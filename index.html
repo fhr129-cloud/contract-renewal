@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>재계약 관리 시스템</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="./src/css/main.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <div>
+      <div style="font-size:28px;font-weight:700;color:#185FA5;margin-bottom:6px;">📋 재계약 관리</div>
+      <div style="font-size:14px;color:#888;">사업장 재계약 현황을 한눈에 관리하세요</div>
+    </div>
+    <button class="btn-google" id="btn-login">
+      <img src="https://www.google.com/favicon.ico" alt="Google">
+      Google 계정으로 로그인
+    </button>
+    <div style="font-size:12px;color:#bbb;">회사 Google 계정으로 로그인하세요</div>
+  </div>
+</div>
+
+<div id="app" style="display:none;">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <i class="ti ti-file-description" style="color:#185FA5;"></i>
+      <span>재계약 관리</span>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">
+        <i class="ti ti-dashboard"></i> 대시보드
+      </button>
+      <button class="nav-item" data-page="contracts" onclick="showPage('contracts')">
+        <i class="ti ti-file-text"></i> 계약 목록
+      </button>
+      <button class="nav-item" data-page="timeline" onclick="showPage('timeline')">
+        <i class="ti ti-calendar"></i> 타임라인
+      </button>
+      <button class="nav-item" data-page="history" onclick="showPage('history')">
+        <i class="ti ti-history"></i> 계약 히스토리
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar" id="user-avatar">U</div>
+        <div id="user-name" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+      </div>
+      <button class="btn-logout" id="btn-logout">로그아웃</button>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="top-bar">
+      <h2 id="page-title">대시보드</h2>
+      <div class="top-actions">
+        <button class="btn" onclick="exportExcel()"><i class="ti ti-download"></i> 엑셀 저장</button>
+        <button class="btn primary" onclick="openAddModal()"><i class="ti ti-plus"></i> 계약 추가</button>
+      </div>
+    </div>
+
+    <div id="page-dashboard" class="page page-body">
+      <div class="stat-grid">
+        <div class="stat-card total"><div class="label"><i class="ti ti-building"></i> 전체 사업장</div><div class="value" id="stat-total">0</div></div>
+        <div class="stat-card auto"><div class="label"><i class="ti ti-refresh"></i> 자동연장 중</div><div class="value" id="stat-auto">0</div></div>
+        <div class="stat-card urgent"><div class="label"><i class="ti ti-alert-circle"></i> 긴급 (D-30)</div><div class="value" id="stat-urgent">0</div></div>
+        <div class="stat-card near"><div class="label"><i class="ti ti-clock"></i> 임박 (D-90)</div><div class="value" id="stat-near">0</div></div>
+        <div class="stat-card ok"><div class="label"><i class="ti ti-check"></i> 여유</div><div class="value" id="stat-ok">0</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+        <div class="card">
+          <div class="card-header"><span class="card-title" style="color:#A32D2D;"><i class="ti ti-alert-circle"></i> 긴급 처리 필요</span></div>
+          <div class="card-body" id="dash-urgent-list"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title" style="color:#185FA5;"><i class="ti ti-refresh"></i> 자동연장 진행 중</span></div>
+          <div class="card-body" id="dash-auto-list"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title"><i class="ti ti-calendar-month"></i> 이번 달 만료</span></div>
+        <div class="card-body" id="dash-thismonth-list"></div>
+      </div>
+    </div>
+
+    <div id="page-contracts" class="page page-body" style="display:none;">
+      <div class="toolbar">
+        <input type="text" id="search-input" placeholder="사업장명 / 소재지 검색..." oninput="renderContractTable()">
+        <select id="filter-status" onchange="renderContractTable()">
+          <option value="">전체 상태</option>
+          <option value="auto">자동연장</option>
+          <option value="urgent">긴급</option>
+          <option value="near">임박</option>
+          <option value="ok">여유</option>
+        </select>
+        <select id="filter-auto" onchange="renderContractTable()">
+          <option value="">자동연장 전체</option>
+          <option value="y">자동연장 있음</option>
+          <option value="n">자동연장 없음</option>
+        </select>
+        <span id="count-label" class="count-badge"></span>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:70px;">상태</th>
+                <th style="width:140px;">사업장</th>
+                <th style="width:120px;">소재지</th>
+                <th style="width:100px;">종료일</th>
+                <th style="width:130px;">D-day</th>
+                <th style="width:80px;">자동연장</th>
+                <th style="width:90px;">단가</th>
+                <th>비고</th>
+                <th style="width:50px;"></th>
+              </tr>
+            </thead>
+            <tbody id="contract-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="page-timeline" class="page page-body" style="display:none;">
+      <p style="font-size:13px;color:#888;margin-bottom:16px;">계약 종료월 기준으로 사업장을 정렬했어요. 칩을 클릭하면 수정할 수 있어요.</p>
+      <div id="timeline-content"></div>
+    </div>
+
+    <div id="page-history" class="page page-body" style="display:none;">
+      <div class="toolbar">
+        <input type="text" id="hist-search" placeholder="사업장 검색..." oninput="renderHistory()">
+      </div>
+      <div id="history-content"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-title">계약 추가</h3>
+      <button class="btn sm" onclick="closeModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <form id="contract-form" onsubmit="return false;">
+        <div class="form-grid">
+          <div class="form-group"><label>사업장명 *</label><input type="text" id="f-name" placeholder="예) SK가스"></div>
+          <div class="form-group"><label>소재지</label><input type="text" id="f-location" placeholder="예) 평택시 포승읍"></div>
+          <div class="form-group"><label>담당자 이름</label><input type="text" id="f-contactName" placeholder="예) 홍길동 과장"></div>
+          <div class="form-group"><label>담당자 연락처</label><input type="tel" id="f-contactPhone" placeholder="예) 010-0000-0000"></div>
+          <div class="form-group"><label>대표번호</label><input type="text" id="f-tel" placeholder="예) T. 031-000-0000"></div>
+          <div class="form-group"><label>자동연장 조건</label>
+            <select id="f-autoRenew">
+              <option value="false">없음</option>
+              <option value="true">자동연장 있음</option>
+            </select>
+          </div>
+          <div class="form-group"><label>계약 시작일 *</label><input type="date" id="f-startDate"></div>
+          <div class="form-group"><label>계약 종료일 *</label><input type="date" id="f-endDate"></div>
+          <div class="form-group"><label>계약단가 (원)</label><input type="number" id="f-price" placeholder="예) 6000"></div>
+          <div class="form-group"><label>단가 구분</label>
+            <select id="f-priceType">
+              <option value="per-meal">식수 단가 (원/식)</option>
+              <option value="management">관리비제</option>
+              <option value="fixed">월 고정금액</option>
+            </select>
+          </div>
+          <div class="form-group full"><label>비고</label><textarea id="f-note" placeholder="월 보장식수, 특식비 등 특이사항"></textarea></div>
+        </div>
+        <div style="background:#FAEEDA;border-radius:8px;padding:10px 14px;font-size:12px;color:#854F0B;margin-top:12px;">
+          <i class="ti ti-info-circle"></i>
+          계약 종료일이 지났는데 새 계약이 없으면 자동으로 <strong>자동연장</strong> 상태로 표시됩니다.
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">취소</button>
+      <button class="btn primary" onclick="saveContract()"><i class="ti ti-check"></i> 저장</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="./src/js/app.js"></script>
+</body>
+</html>
