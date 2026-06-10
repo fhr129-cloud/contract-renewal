@@ -1,3 +1,4 @@
+var currentUser = null;
 import {
   listenContracts,
   listenHistory,
@@ -49,7 +50,47 @@ async function init() {
   listenHistory(function(data) { history = data; });
 }
 init();
+onAuthChange(function(user) {
 
+  currentUser = user;
+
+  if (user) {
+
+    document.getElementById('home-screen').style.display = 'flex';
+
+    const authArea = document.getElementById('auth-area');
+
+    if (authArea) {
+      authArea.innerHTML = `
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span style="font-size:13px;">
+            ${user.displayName}
+          </span>
+
+          <button class="btn sm" onclick="logoutUser()">
+            로그아웃
+          </button>
+        </div>
+      `;
+    }
+
+  } else {
+
+    document.getElementById('app').style.display = 'none';
+
+    const authArea = document.getElementById('auth-area');
+
+    if (authArea) {
+      authArea.innerHTML = `
+        <button class="btn primary" onclick="login()">
+          Google 로그인
+        </button>
+      `;
+    }
+
+  }
+
+});
 window.goHome = function() {
   document.getElementById('app').style.display = 'none';
   document.getElementById('home-screen').style.display = 'flex';
@@ -367,3 +408,15 @@ function showToast(msg) {
 document.getElementById('modal-overlay').addEventListener('click', function(e) {
   if (e.target === e.currentTarget) closeModal();
 });
+window.login = async function() {
+  try {
+    await loginWithGoogle();
+  } catch (e) {
+    console.error(e);
+    alert('로그인 실패');
+  }
+};
+
+window.logoutUser = async function() {
+  await logout();
+};
