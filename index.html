@@ -261,74 +261,82 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 
   <!-- 운영지원 -->
   <div id="page-support" class="page-body" style="display:none;">
-    <div class="support-layout">
-      <!-- 달력 -->
-      <div>
-        <div class="cal-nav">
-          <div class="cal-nav-title" id="cal-title"></div>
-          <div class="cal-nav-btns">
-            <button class="cal-nav-btn" onclick="changeMonth(-1)"><i class="ti ti-chevron-left"></i></button>
-            <button class="cal-nav-btn" onclick="changeMonth(0)">오늘</button>
-            <button class="cal-nav-btn" onclick="changeMonth(1)"><i class="ti ti-chevron-right"></i></button>
-          </div>
-        </div>
-        <div class="cal-wrap">
-          <div id="calendar"></div>
-        </div>
-        <!-- 지원 목록 -->
-        <div class="sup-list-wrap">
-          <div class="sup-list-title">
-            <span><i class="ti ti-history" style="color:#185FA5;margin-right:5px;"></i>지원 이력</span>
-            <span id="sup-list-count" class="count-badge"></span>
-          </div>
-          <div class="sup-row-header">
-            <span>카테고리</span><span>일자</span><span>업장</span><span>담당자</span><span></span>
-          </div>
-          <div id="support-list"></div>
-        </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div id="cal-title" style="font-size:15px;font-weight:600;"></div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn" onclick="changeMonth(-1)"><i class="ti ti-chevron-left"></i></button>
+        <button class="btn" onclick="changeMonth(0)">오늘</button>
+        <button class="btn" onclick="changeMonth(1)"><i class="ti ti-chevron-right"></i></button>
       </div>
+    </div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-body" style="padding:10px;">
+        <div id="calendar"></div>
+      </div>
+    </div>
 
-      <!-- 등록 패널 -->
-      <div class="sup-panel">
-        <div class="sup-panel-title"><i class="ti ti-plus-circle"></i> 운영지원 등록</div>
-
-        <div class="sup-form-group">
-          <label>업장 선택 *</label>
-          <div class="searchable-select" id="ss-wrap">
-            <input type="text" id="ss-input" placeholder="업장명 검색..." autocomplete="off"
-              oninput="filterSS()" onfocus="openSS()" onblur="setTimeout(closeSS,200)">
-            <input type="hidden" id="sup-biz">
-            <div class="ss-dropdown" id="ss-dropdown"></div>
+    <!-- 등록 폼 -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header"><span class="card-title"><i class="ti ti-plus-circle" style="color:#185FA5;"></i> 운영지원 등록</span></div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div class="sup-form-group">
+            <label>업장 선택 *</label>
+            <div class="searchable-select" id="ss-wrap">
+              <input type="text" id="ss-input" placeholder="업장명 검색..." autocomplete="off"
+                oninput="filterSS()" onfocus="openSS()" onblur="setTimeout(closeSS,200)">
+              <input type="hidden" id="sup-biz">
+              <div class="ss-dropdown" id="ss-dropdown"></div>
+            </div>
+          </div>
+          <div class="sup-form-group">
+            <label>일자 *</label>
+            <input type="date" id="sup-date">
+          </div>
+          <div class="sup-form-group">
+            <label>시간</label>
+            <select id="sup-time">
+              <option value="">시간 선택...</option>
+              <option>08:00</option><option>09:00</option><option>10:00</option>
+              <option>11:00</option><option>12:00</option><option>13:00</option>
+              <option>14:00</option><option>15:00</option><option>16:00</option>
+              <option>17:00</option><option>18:00</option><option>19:00</option>
+              <option>20:00</option>
+            </select>
+          </div>
+          <div class="sup-form-group">
+            <label>담당자 이름</label>
+            <input type="text" id="sup-staff" placeholder="예) 손도란">
+          </div>
+          <div class="sup-form-group">
+            <label>지원 카테고리 *</label>
+            <select id="sup-cat">
+              <option value="">선택...</option>
+              <option>위생점검</option>
+              <option>운영상황체크</option>
+              <option>특식지원</option>
+              <option>배식지원</option>
+              <option>미팅</option>
+              <option>기타</option>
+            </select>
+          </div>
+          <div class="sup-form-group">
+            <label>상세 내용</label>
+            <input type="text" id="sup-content" placeholder="지원 내용 간략히">
           </div>
         </div>
+        <button class="btn primary" onclick="submitSupport()"><i class="ti ti-check"></i> 등록</button>
+      </div>
+    </div>
 
-        <div class="sup-form-group">
-          <label>일자 *</label>
-          <input type="date" id="sup-date">
-        </div>
-        <div class="sup-form-group">
-          <label>담당자 이름</label>
-          <input type="text" id="sup-staff" placeholder="예) 손도란">
-        </div>
-        <div class="sup-form-group">
-          <label>지원 카테고리 *</label>
-          <select id="sup-cat">
-            <option value="">선택...</option>
-            <option>위생점검</option>
-            <option>운영상황체크</option>
-            <option>특식지원</option>
-            <option>배식지원</option>
-            <option>미팅</option>
-            <option>기타</option>
-          </select>
-        </div>
-        <div class="sup-form-group">
-          <label>상세 내용</label>
-          <textarea id="sup-content" placeholder="지원 내용을 입력하세요..."></textarea>
-        </div>
-        <button class="btn primary" style="width:100%;" onclick="submitSupport()">
-          <i class="ti ti-check"></i> 등록
-        </button>
+    <!-- 지원 목록 -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><i class="ti ti-history" style="color:#185FA5;"></i> 최근 지원 이력</span>
+        <span id="sup-list-count" class="count-badge"></span>
+      </div>
+      <div class="card-body" style="padding:0 16px;">
+        <div id="support-list"></div>
       </div>
     </div>
   </div>
