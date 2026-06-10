@@ -1,97 +1,92 @@
+// db.js
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import {
-  getFirestore, collection, doc,
-  getDoc, addDoc, setDoc, updateDoc, deleteDoc,
-  query, orderBy, onSnapshot, serverTimestamp, writeBatch, getDocs
+  getFirestore, collection, doc, getDoc, addDoc, setDoc,
+  updateDoc, deleteDoc, query, orderBy, onSnapshot,
+  serverTimestamp, writeBatch, getDocs
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import {
-  getAuth, signInWithPopup, GoogleAuthProvider,
-  signOut, onAuthStateChanged
-} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import firebaseConfig from './firebase-config.js';
 import { SEED_CONTRACTS } from './seed-data.js';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
-export const auth = getAuth(app);
 
-export async function loginWithGoogle() {
-  const provider = new GoogleAuthProvider();
-  return signInWithPopup(auth, provider);
-}
-
-export async function logout() {
-  return signOut(auth);
-}
-
-export function onAuthChange(callback) {
-  return onAuthStateChanged(auth, callback);
-}
-
-export function listenContracts(callback) {
-  const q = query(collection(db, 'contracts'), orderBy('endDate', 'asc'));
-  return onSnapshot(q, snap => {
-    const contracts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    callback(contracts);
+// ── 계약 ──────────────────────────
+export function listenContracts(cb) {
+  var q = query(collection(db,'contracts'), orderBy('endDate','asc'));
+  return onSnapshot(q, function(snap) {
+    cb(snap.docs.map(function(d) { return Object.assign({id:d.id}, d.data()); }));
   });
 }
 
-export async function addContract(data) {
-  return addDoc(collection(db, 'contracts'), {
-    ...data,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
+export function addContract(data) {
+  return addDoc(collection(db,'contracts'), Object.assign({}, data, {
+    createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+  }));
 }
 
-export async function updateContract(id, data) {
-  return updateDoc(doc(db, 'contracts', id), {
-    ...data,
-    updatedAt: serverTimestamp(),
-  });
+export function updateContract(id, data) {
+  return updateDoc(doc(db,'contracts',id), Object.assign({}, data, {
+    updatedAt: serverTimestamp()
+  }));
 }
 
-export async function deleteContract(id) {
-  return deleteDoc(doc(db, 'contracts', id));
+export function deleteContract(id) {
+  return deleteDoc(doc(db,'contracts',id));
 }
 
-export async function addHistory(contractId, contractName, record) {
-  const ref = doc(db, 'history', contractId);
-  const snap = await getDoc(ref);
+// ── 계약 히스토리 ──────────────────────────
+export async function addHistory(contractId, name, record) {
+  var ref = doc(db,'history',contractId);
+  var snap = await getDoc(ref);
   if (snap.exists()) {
-    const existing = snap.data();
+    var ex = snap.data();
     return setDoc(ref, {
-      contractId,
-      name: contractName,
-      records: [...existing.records, record],
-      updatedAt: serverTimestamp(),
-    });
-  } else {
-    return setDoc(ref, {
-      contractId,
-      name: contractName,
-      records: [record],
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      contractId: contractId, name: name,
+      records: ex.records.concat([record]),
+      updatedAt: serverTimestamp()
     });
   }
-}
-
-export function listenHistory(callback) {
-  return onSnapshot(collection(db, 'history'), snap => {
-    const history = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    callback(history);
+  return setDoc(ref, {
+    contractId: contractId, name: name,
+    records: [record],
+    createdAt: serverTimestamp(), updatedAt: serverTimestamp()
   });
 }
 
+export function listenHistory(cb) {
+  return onSnapshot(collection(db,'history'), function(snap) {
+    cb(snap.docs.map(function(d) { return Object.assign({id:d.id}, d.data()); }));
+  });
+}
+
+// ── 운영지원 ──────────────────────────
+export function addSupport(data) {
+  return addDoc(collection(db,'supports'), Object.assign({}, data, {
+    createdAt: serverTimestamp()
+  }));
+}
+
+export function listenSupports(cb) {
+  return onSnapshot(collection(db,'supports'), function(snap) {
+    cb(snap.docs.map(function(d) { return Object.assign({id:d.id}, d.data()); }));
+  });
+}
+
+export function deleteSupport(id) {
+  return deleteDoc(doc(db,'supports',id));
+}
+
+// ── 시드 ──────────────────────────
 export async function seedIfEmpty() {
-  const snap = await getDocs(collection(db, 'contracts'));
+  var snap = await getDocs(collection(db,'contracts'));
   if (!snap.empty) return;
-  const batch = writeBatch(db);
-  for (const c of SEED_CONTRACTS) {
-    const ref = doc(collection(db, 'contracts'));
-    batch.set(ref, { ...c, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-  }
+  var batch = writeBatch(db);
+  SEED_CONTRACTS.forEach(function(c) {
+    var ref = doc(collection(db,'contracts'));
+    batch.set(ref, Object.assign({}, c, {
+      createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+    }));
+  });
   await batch.commit();
-  console.log('시드 데이터 업로드 완료');
 }
