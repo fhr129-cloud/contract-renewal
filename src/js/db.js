@@ -73,6 +73,12 @@ export function deleteSupport(id) {
   return deleteDoc(doc(db,'supports',id));
 }
 
+export function updateSupport(id, data) {
+  return updateDoc(doc(db,'supports',id), Object.assign({}, data, {
+    updatedAt: serverTimestamp()
+  }));
+}
+
 export async function seedIfEmpty() {
   var snap = await getDocs(collection(db,'contracts'));
   if (!snap.empty) {
