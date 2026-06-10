@@ -251,8 +251,11 @@ function renderCalendar() {
     var isToday = key===today;
     html += '<div class="cal-day'+(isToday?' today':'') + '">' +
       '<div class="cal-num">' + d + '</div>' +
-      items.slice(0,3).map(function(s){
-        return '<div class="cal-event cat-' + SUPPORT_CATS.indexOf(s.category) + '">' + (s.bizName||'') + '</div>';
+     items.slice(0,2).map(function(s){
+        return '<div class="cal-event cat-' + SUPPORT_CATS.indexOf(s.category) + '">' +
+          (s.bizName||'') + ' ' + (s.staffName?'·'+s.staffName:'') + ' [' + (s.category||'') + ']' +
+          (s.timeStart?' '+s.timeStart+(s.timeEnd?'~'+s.timeEnd:''):'') +
+          '</div>';
       }).join('') +
       (items.length>3?'<div class="cal-more">+' + (items.length-3) + '건</div>':'') +
       '</div>';
@@ -272,11 +275,16 @@ function renderSupportList() {
   listEl.innerHTML = sorted.length ? sorted.map(function(s){
     var c = contracts.find(function(x){ return x.name===s.bizName; });
     var cid = c?c.id:'';
-   return '<div class="sup-row">' +
+  var timeStr = '';
+    if(s.timeStart) timeStr = s.timeStart + (s.timeEnd ? ' ~ ' + s.timeEnd : '');
+    else if(s.time) timeStr = s.time;
+    return '<div class="sup-row">' +
       '<span class="badge-cat">' + (s.category||'') + '</span>' +
-      '<span class="sup-date" style="font-size:12px;color:#888;">' + (s.date||'') + (s.time?' '+s.time:'') + '</span>' +
+      '<span style="font-size:12px;color:#888;white-space:nowrap;">' + (s.date||'') + (timeStr?' '+timeStr:'') + '</span>' +
       '<span class="sup-biz"' + (cid?' onclick="goDetail(\''+cid+'\')"':'') + '>' + (s.bizName||'') + '</span>' +
       '<span style="font-size:12px;color:#666;">' + (s.staffName||'') + '</span>' +
+      '<span style="font-size:12px;color:#555;flex:1;">' + (s.content||'') + '</span>' +
+      '<button class="btn sm" onclick="editSupport(\''+s.id+'\')" style="margin-right:4px;"><i class="ti ti-edit"></i></button>' +
       '<button class="btn sm danger" onclick="delSupport(\''+s.id+'\')"><i class="ti ti-trash"></i></button>' +
       '</div>';
   }).join('') : '<div class="empty-state" style="padding:20px;"><i class="ti ti-calendar"></i>지원 이력이 없어요</div>';
@@ -317,25 +325,38 @@ window.selectSS = function(name) {
   document.getElementById('ss-dropdown').classList.remove('open');
 };
 
+var editingSupportId = null;
+
 window.submitSupport = async function() {
   var biz = document.getElementById('sup-biz').value;
   var date = document.getElementById('sup-date').value;
-  var time = document.getElementById('sup-time') ? document.getElementById('sup-time').value : '';
+  var timeStart = document.getElementById('sup-time-start') ? document.getElementById('sup-time-start').value : '';
+  var timeEnd = document.getElementById('sup-time-end') ? document.getElementById('sup-time-end').value : '';
   var staff = document.getElementById('sup-staff').value.trim();
   var cat = document.getElementById('sup-cat').value;
   var content = document.getElementById('sup-content').value.trim();
   if(!biz||!date||!cat){ showToast('업장, 일자, 카테고리는 필수예요.'); return; }
+  var data = {bizName:biz, date:date, timeStart:timeStart, timeEnd:timeEnd, staffName:staff, category:cat, content:content};
   try {
-    await addSupport({bizName:biz, date:date, time:time, staffName:staff, category:cat, content:content});
+    if(editingSupportId) {
+      var { updateSupport } = await import('./db.js');
+      await updateSupport(editingSupportId, data);
+      editingSupportId = null;
+      document.querySelector('.btn.primary[onclick="submitSupport()"]').innerHTML = '<i class="ti ti-check"></i> 등록';
+      showToast('수정되었습니다.');
+    } else {
+      await addSupport(data);
+      showToast('운영지원이 등록되었습니다.');
+    }
     document.getElementById('ss-input').value='';
     document.getElementById('sup-biz').value='';
     document.getElementById('sup-date').value='';
-    if(document.getElementById('sup-time')) document.getElementById('sup-time').value='';
+    if(document.getElementById('sup-time-start')) document.getElementById('sup-time-start').value='';
+    if(document.getElementById('sup-time-end')) document.getElementById('sup-time-end').value='';
     document.getElementById('sup-staff').value='';
     document.getElementById('sup-content').value='';
     document.getElementById('sup-cat').value='';
-    showToast('운영지원이 등록되었습니다.');
-  } catch(e){ showToast('등록 중 오류가 발생했습니다.'); }
+  } catch(e){ showToast('등록/수정 중 오류가 발생했습니다.'); }
 };
 
 window.delSupport = async function(id) {
@@ -353,7 +374,21 @@ window.setBizTab = function(tab) {
   if(mapInstance&&tab!=='region'){mapInstance.remove();mapInstance=null;}
   renderBizTab();
 };
-
+window.editSupport = function(id) {
+  var s = supports.find(function(x){ return x.id===id; });
+  if(!s) return;
+  editingSupportId = id;
+  window.selectSS(s.bizName||'');
+  document.getElementById('sup-date').value = s.date||'';
+  if(document.getElementById('sup-time-start')) document.getElementById('sup-time-start').value = s.timeStart||s.time||'';
+  if(document.getElementById('sup-time-end')) document.getElementById('sup-time-end').value = s.timeEnd||'';
+  document.getElementById('sup-staff').value = s.staffName||'';
+  document.getElementById('sup-cat').value = s.category||'';
+  document.getElementById('sup-content').value = s.content||'';
+  document.querySelector('.btn.primary[onclick="submitSupport()"]').innerHTML = '<i class="ti ti-check"></i> 수정 저장';
+  window.scrollTo({top:0, behavior:'smooth'});
+  showToast('수정할 내용을 변경 후 저장하세요.');
+};
 window.renderBizTab = function() {
   var q = (document.getElementById('biz-search')?document.getElementById('biz-search').value:'').toLowerCase();
   var el = document.getElementById('biz-content');
