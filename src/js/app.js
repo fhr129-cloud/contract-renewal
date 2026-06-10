@@ -242,7 +242,7 @@ function renderCalendar() {
   var firstDay = new Date(calYear,calMonth,1).getDay();
   var lastDate = new Date(calYear,calMonth+1,0).getDate();
   var today = new Date().toISOString().slice(0,10);
-  var html = '';
+  var html = '<div class="cal-grid">';
   ['일','월','화','수','목','금','토'].forEach(function(d){ html+='<div class="cal-header">'+d+'</div>'; });
   for(var i=0;i<firstDay;i++) html+='<div class="cal-day empty"></div>';
   for(var d=1;d<=lastDate;d++) {
