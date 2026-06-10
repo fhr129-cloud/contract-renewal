@@ -354,13 +354,14 @@ window.renderBizTab = function() {
       respGroups[r].push(c);
     });
     var respOrder = ['손도란 대리','이소영 주임','김상준 주임','견병록 매니저'];
-    var html = '';
-    respOrder.forEach(function(r){
-      var list = (respGroups[r]||[]).sort(function(a,b){ return a.name.localeCompare(b.name,'ko'); });
-      if(!list.length) return;
-      html += '<div class="resp-section"><div class="resp-header"><i class="ti ti-user"></i>' + r + ' <span>' + list.length + '개소</span></div><div class="biz-grid">' + list.map(bizCard).join('') + '</div></div>';
+    var html = '<div class="team-layout">';
+    var colors = ['blue','green','amber','red'];
+    respOrder.forEach(function(r, i){
+      var list = (respGroups[r]||[]).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
+      html += '<div><div class="team-header ' + colors[i] + '"><i class="ti ti-user"></i> ' + r + ' <span>' + list.length + '개소</span></div>' + list.map(bizCard).join('') + '</div>';
     });
-    el.innerHTML = html || '<div class="empty-state">검색 결과 없음</div>';
+    html += '</div>';
+    el.innerHTML = filtered.length ? html : '<div class="empty-state">검색 결과 없음</div>';
   } else if(currentBizTab==='region') {
     el.innerHTML = '<div class="map-legend">' +
       '<span><span class="leg-dot" style="background:#E24B4A;"></span>긴급</span>' +
