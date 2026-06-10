@@ -1,4 +1,3 @@
-// db.js
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import {
   getFirestore, collection, doc, getDoc, addDoc, setDoc,
@@ -6,12 +5,11 @@ import {
   serverTimestamp, writeBatch, getDocs
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import firebaseConfig from './firebase-config.js';
-import { SEED_CONTRACTS } from './seed-data.js';
+import { SEED_CONTRACTS, SEED_HISTORY } from './seed-data.js';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-// ── 계약 ──────────────────────────
 export function listenContracts(cb) {
   var q = query(collection(db,'contracts'), orderBy('endDate','asc'));
   return onSnapshot(q, function(snap) {
@@ -35,7 +33,6 @@ export function deleteContract(id) {
   return deleteDoc(doc(db,'contracts',id));
 }
 
-// ── 계약 히스토리 ──────────────────────────
 export async function addHistory(contractId, name, record) {
   var ref = doc(db,'history',contractId);
   var snap = await getDoc(ref);
@@ -60,7 +57,6 @@ export function listenHistory(cb) {
   });
 }
 
-// ── 운영지원 ──────────────────────────
 export function addSupport(data) {
   return addDoc(collection(db,'supports'), Object.assign({}, data, {
     createdAt: serverTimestamp()
@@ -77,16 +73,53 @@ export function deleteSupport(id) {
   return deleteDoc(doc(db,'supports',id));
 }
 
-// ── 시드 ──────────────────────────
 export async function seedIfEmpty() {
   var snap = await getDocs(collection(db,'contracts'));
-  if (!snap.empty) return;
+  if (!snap.empty) {
+    // 히스토리만 없으면 추가
+    var histSnap = await getDocs(collection(db,'history'));
+    if (histSnap.empty) await seedHistory();
+    return;
+  }
+
+  // 계약 데이터 업로드
   var batch = writeBatch(db);
+  var contractIds = {};
   SEED_CONTRACTS.forEach(function(c) {
     var ref = doc(collection(db,'contracts'));
+    contractIds[c.name] = ref.id;
     batch.set(ref, Object.assign({}, c, {
       createdAt: serverTimestamp(), updatedAt: serverTimestamp()
     }));
+  });
+  await batch.commit();
+
+  // 히스토리 업로드
+  await seedHistory(contractIds);
+}
+
+async function seedHistory(contractIds) {
+  // contractIds 없으면 Firebase에서 직접 조회
+  if (!contractIds) {
+    var snap = await getDocs(collection(db,'contracts'));
+    contractIds = {};
+    snap.docs.forEach(function(d) {
+      contractIds[d.data().name] = d.id;
+    });
+  }
+
+  var batch = writeBatch(db);
+  SEED_HISTORY.forEach(function(h) {
+    var cid = contractIds[h.name];
+    if (!cid) return;
+    var ref = doc(db,'history', cid);
+    batch.set(ref, {
+      contractId: cid,
+      name: h.name,
+      records: h.records,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
   });
   await batch.commit();
 }
