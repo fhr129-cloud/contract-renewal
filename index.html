@@ -49,7 +49,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f0ee;color:#1a1a18;min-
 .badge-cat{font-size:11px;font-weight:500;padding:2px 8px;border-radius:99px;background:#f0f0ec;color:#555;white-space:nowrap;}
 
 /* 대시보드 */
-.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+.stat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px;}
 .stat-card{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:box-shadow .12s;}
 .stat-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.08);}
 .stat-card.active-card{box-shadow:0 0 0 2px #185FA5;}
@@ -57,11 +57,13 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f0ee;color:#1a1a18;min-
 .stat-icon.blue,.stat-icon.blue2{background:#E6F1FB;color:#185FA5;}
 .stat-icon.red{background:#FCEBEB;color:#A32D2D;}
 .stat-icon.amber{background:#FAEEDA;color:#854F0B;}
+.stat-icon.green{background:#EAF3DE;color:#3B6D11;}
 .stat-info .stat-label{font-size:12px;color:#888;margin-bottom:3px;}
 .stat-val{font-size:22px;font-weight:600;}
 .stat-val.blue,.stat-val.blue2{color:#185FA5;}
 .stat-val.red{color:#A32D2D;}
 .stat-val.amber{color:#854F0B;}
+.stat-val.green{color:#3B6D11;}
 .dash-list-wrap{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;overflow:hidden;margin-bottom:14px;}
 .dash-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:.5px solid #f0f0ec;cursor:pointer;}
 .dash-item:last-child{border-bottom:none;}
@@ -74,18 +76,18 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f0ee;color:#1a1a18;min-
 /* 달력 */
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:#e8e8e4;border-radius:10px;overflow:hidden;}
 .cal-header{background:#f5f5f3;text-align:center;font-size:12px;font-weight:500;color:#888;padding:8px 0;}
-.cal-day{background:#fff;min-height:80px;padding:5px;}
+.cal-day{background:#fff;min-height:90px;padding:5px;}
 .cal-day.empty{background:#fafaf8;}
 .cal-day.today .cal-num{background:#185FA5;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;}
 .cal-num{font-size:12px;font-weight:500;margin-bottom:3px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;}
-.cal-event{font-size:10px;padding:2px 5px;border-radius:4px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cal-event{font-size:10px;padding:2px 5px;border-radius:4px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.4;}
 .cal-event.cat-0{background:#E6F1FB;color:#185FA5;}
 .cal-event.cat-1{background:#EAF3DE;color:#3B6D11;}
 .cal-event.cat-2{background:#FAEEDA;color:#854F0B;}
 .cal-event.cat-3{background:#FCEBEB;color:#A32D2D;}
 .cal-event.cat-4{background:#F3E6FB;color:#6B2FA0;}
 .cal-event.cat-5{background:#f0f0ec;color:#555;}
-.cal-more{font-size:10px;color:#aaa;}
+.cal-more{font-size:10px;color:#aaa;padding:2px 4px;}
 
 /* 운영지원 폼 */
 .sup-form-group{display:flex;flex-direction:column;gap:4px;}
@@ -100,18 +102,36 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f0ee;color:#1a1a18;min-
 .sup-row:last-child{border-bottom:none;}
 .sup-biz{font-weight:500;cursor:pointer;color:#185FA5;}
 
+/* 끼니 선택 */
+.meal-select-wrap{background:#f5f5f3;border-radius:8px;padding:12px;}
+.meal-day-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
+.meal-day-row:last-child{margin-bottom:0;}
+.meal-day-label{font-size:12px;font-weight:600;min-width:50px;color:#444;}
+.meal-check{display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;}
+.meal-check input{cursor:pointer;}
+.meal-sub{display:none;background:#fff;border-radius:6px;padding:8px;margin-top:6px;margin-left:58px;}
+.meal-sub.show{display:flex;flex-wrap:wrap;gap:8px;}
+
+/* 담당자 */
+.contact-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+.contact-row input{flex:1;padding:7px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;font-family:inherit;}
+.contact-row .btn{flex-shrink:0;}
+
 /* FS 사업장 현황 */
 .tab-bar{display:flex;gap:4px;border-bottom:.5px solid #e8e8e4;margin-bottom:16px;}
 .tab-btn{padding:8px 16px;font-size:13px;font-weight:500;color:#888;background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;margin-bottom:-1px;font-family:inherit;}
 .tab-btn.active{color:#185FA5;border-bottom-color:#185FA5;}
 .team-layout{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 .resp-layout{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
-.team-header{font-size:13px;font-weight:600;color:#fff;padding:10px 14px;border-radius:8px;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.team-header{font-size:13px;font-weight:600;color:#fff;padding:10px 14px;border-radius:8px;margin-bottom:10px;display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;}
 .team-header.blue{background:#185FA5;}
 .team-header.green{background:#3B6D11;}
 .team-header.amber{background:#854F0B;}
 .team-header.red{background:#A32D2D;}
 .team-header span{font-size:12px;font-weight:400;margin-left:auto;}
+.team-header .toggle-icon{font-size:14px;transition:transform .2s;}
+.team-body{display:none;}
+.team-body.open{display:block;}
 .biz-card{background:#fff;border:.5px solid #e8e8e4;border-radius:10px;padding:12px;cursor:pointer;transition:box-shadow .12s;margin-bottom:8px;}
 .biz-card:hover{box-shadow:0 2px 10px rgba(0,0,0,.08);}
 .biz-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
@@ -155,7 +175,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 /* 모달 */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:300;align-items:center;justify-content:center;}
 .modal-overlay.open{display:flex;}
-.modal{background:#fff;border-radius:14px;width:580px;max-width:95vw;max-height:90vh;overflow-y:auto;}
+.modal{background:#fff;border-radius:14px;width:620px;max-width:95vw;max-height:90vh;overflow-y:auto;}
 .modal-header{padding:16px 20px;border-bottom:.5px solid #e8e8e4;display:flex;align-items:center;justify-content:space-between;}
 .modal-header h3{font-size:15px;font-weight:600;}
 .modal-body{padding:20px;}
@@ -175,13 +195,15 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 
 @media(max-width:900px){
   .resp-layout{grid-template-columns:1fr 1fr;}
-  .stat-grid{grid-template-columns:1fr 1fr;}
+  .stat-grid{grid-template-columns:repeat(3,1fr);}
 }
 @media(max-width:600px){
   .team-layout,.resp-layout{grid-template-columns:1fr;}
   .form-grid{grid-template-columns:1fr;}
-  .stat-grid{grid-template-columns:1fr 1fr;}
+  .stat-grid{grid-template-columns:repeat(2,1fr);}
   .page-body,.detail-body{padding:14px 16px;}
+  .cal-day{min-height:60px;}
+  .cal-event{font-size:9px;}
 }
 </style>
 </head>
@@ -230,6 +252,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
       <div class="stat-card" id="card-urgent" onclick="window.toggleDashCard(this,'urgent')"></div>
       <div class="stat-card" id="card-near" onclick="window.toggleDashCard(this,'near')"></div>
       <div class="stat-card" id="card-auto" onclick="window.toggleDashCard(this,'auto')"></div>
+      <div class="stat-card" id="card-ok" onclick="window.toggleDashCard(this,'ok')"></div>
     </div>
     <div class="dash-list-wrap" id="dash-list-wrap" style="display:none;">
       <div id="dash-list"></div>
@@ -256,7 +279,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
         <span class="card-title"><i class="ti ti-plus-circle" style="color:#185FA5;"></i> 운영지원 등록</span>
       </div>
       <div class="card-body">
-   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:12px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:12px;">
           <div class="sup-form-group">
             <label>업장 선택 *</label>
             <div class="searchable-select">
@@ -270,15 +293,14 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
             <label>일자 *</label>
             <input type="date" id="sup-date">
           </div>
-        <div class="sup-form-group">
+          <div class="sup-form-group">
             <label>시작 시간</label>
             <select id="sup-time-start">
               <option value="">선택...</option>
               <option>08:00</option><option>09:00</option><option>10:00</option>
               <option>11:00</option><option>12:00</option><option>13:00</option>
               <option>14:00</option><option>15:00</option><option>16:00</option>
-              <option>17:00</option><option>18:00</option><option>19:00</option>
-              <option>20:00</option>
+              <option>17:00</option><option>18:00</option><option>19:00</option><option>20:00</option>
             </select>
           </div>
           <div class="sup-form-group">
@@ -288,8 +310,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
               <option>09:00</option><option>10:00</option><option>11:00</option>
               <option>12:00</option><option>13:00</option><option>14:00</option>
               <option>15:00</option><option>16:00</option><option>17:00</option>
-              <option>18:00</option><option>19:00</option><option>20:00</option>
-              <option>21:00</option>
+              <option>18:00</option><option>19:00</option><option>20:00</option><option>21:00</option>
             </select>
           </div>
           <div class="sup-form-group">
@@ -300,20 +321,18 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
             <label>지원 카테고리 *</label>
             <select id="sup-cat">
               <option value="">선택...</option>
-              <option>위생점검</option>
-              <option>운영상황체크</option>
-              <option>특식지원</option>
-              <option>배식지원</option>
-              <option>미팅</option>
-              <option>기타</option>
+              <option>위생점검</option><option>운영상황체크</option>
+              <option>특식지원</option><option>배식지원</option>
+              <option>미팅</option><option>기타</option>
             </select>
           </div>
-          <div class="sup-form-group">
+          <div class="sup-form-group" style="grid-column:1/-1;">
             <label>상세 내용</label>
             <input type="text" id="sup-content" placeholder="지원 내용 간략히">
           </div>
         </div>
-        <button class="btn primary" onclick="submitSupport()"><i class="ti ti-check"></i> 등록</button>
+        <button class="btn primary" id="sup-submit-btn" onclick="submitSupport()"><i class="ti ti-check"></i> 등록</button>
+        <button class="btn" id="sup-cancel-btn" onclick="cancelEditSupport()" style="display:none;margin-left:8px;">취소</button>
       </div>
     </div>
     <div class="card">
@@ -385,9 +404,20 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
         <div class="form-grid">
           <div class="form-group"><label>사업장명 *</label><input type="text" id="f-name"></div>
           <div class="form-group"><label>소재지</label><input type="text" id="f-addr"></div>
-          <div class="form-group"><label>담당자 이름</label><input type="text" id="f-contactName"></div>
-          <div class="form-group"><label>담당자 연락처</label><input type="tel" id="f-contactPhone"></div>
-          <div class="form-group"><label>대표번호</label><input type="text" id="f-tel"></div>
+
+          <!-- 담당자 여러명 -->
+          <div class="form-group full">
+            <label>담당자 <button type="button" class="btn sm" onclick="addContactRow()" style="margin-left:8px;"><i class="ti ti-plus"></i> 추가</button></label>
+            <div id="contact-rows">
+              <div class="contact-row">
+                <input type="text" placeholder="이름 · 직책 (예) 홍길동 과장" class="contact-name">
+                <input type="text" placeholder="연락처 (예) 010-0000-0000" class="contact-phone">
+                <input type="text" placeholder="대표번호 (예) T.031-000-0000" class="contact-tel">
+                <button type="button" class="btn sm danger" onclick="removeContactRow(this)"><i class="ti ti-trash"></i></button>
+              </div>
+            </div>
+          </div>
+
           <div class="form-group"><label>팀</label>
             <select id="f-team"><option value="1">1팀 (박주형)</option><option value="2">2팀 (김재희)</option></select>
           </div>
@@ -411,9 +441,37 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
               <option value="fixed">월 고정금액</option>
             </select>
           </div>
-          <div class="form-group"><label>운영끼니</label><input type="text" id="f-meals" placeholder="예) 조/중/석"></div>
           <div class="form-group"><label>월평균식수</label><input type="number" id="f-avgMeals"></div>
-          <div class="form-group full"><label>주말 운영</label><input type="text" id="f-weekend"></div>
+          <div class="form-group full">
+            <label>운영끼니</label>
+            <div class="meal-select-wrap">
+              <div class="meal-day-row">
+                <span class="meal-day-label">평일</span>
+                <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="weekday" value="조"> 조식</label>
+                <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="weekday" value="중"> 중식</label>
+                <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="weekday" value="석"> 석식</label>
+                <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="weekday" value="야"> 야식</label>
+              </div>
+              <div class="meal-day-row">
+                <label class="meal-check"><input type="checkbox" id="meal-sat" onchange="toggleWeekend('sat')"> <span class="meal-day-label" style="min-width:auto;">토요일</span></label>
+                <div class="meal-sub" id="meal-sat-sub">
+                  <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="sat" value="조"> 조식</label>
+                  <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="sat" value="중"> 중식</label>
+                  <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="sat" value="석"> 석식</label>
+                  <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="sat" value="야"> 야식</label>
+                </div>
+              </div>
+              <div class="meal-day-row">
+                <label class="meal-check"><input type="checkbox" id="meal-sun" onchange="toggleWeekend('sun')"> <span class="meal-day-label" style="min-width:auto;">일요일</span></label>
+                <div class="meal-sub" id="meal-sun-sub">
+                  <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="sun" value="조"> 조식</label>
+                  <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="sun" value="중"> 중식</label>
+                  <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="sun" value="석"> 석식</label>
+                  <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="sun" value="야"> 야식</label>
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="form-group full"><label>특이사항</label><textarea id="f-note"></textarea></div>
         </div>
       </form>
