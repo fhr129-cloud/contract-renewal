@@ -8,6 +8,9 @@ var editingId = null;
 var currentPage = '';
 var currentBizTab = 'team';
 var mapInstance = null;
+var calYear = new Date().getFullYear();
+var calMonth = new Date().getMonth();
+var ssOptions = [];
 window.detailId = null;
 
 var COORDS = {
@@ -60,9 +63,16 @@ var SUPPORT_CATS = ['위생점검','운영상황체크','특식지원','배식�
 
 async function init() {
   await seedIfEmpty();
-  listenContracts(function(data) { contracts = data; if(currentPage) renderPage(currentPage); });
+  listenContracts(function(data) {
+    contracts = data;
+    ssOptions = data.slice().sort(function(a,b){ return a.name.localeCompare(b.name,'ko'); });
+    if(currentPage) renderPage(currentPage);
+  });
   listenHistory(function(data) { historyData = data; });
-  listenSupports(function(data) { supports = data; if(currentPage==='support') renderSupport(); });
+  listenSupports(function(data) {
+    supports = data;
+    if(currentPage==='support') renderCalendar();
+  });
 }
 init();
 
@@ -94,7 +104,7 @@ window.goPage = function(page) {
 
 function renderPage(page) {
   if(page==='dashboard') renderDashboard();
-  if(page==='support') renderSupport();
+  if(page==='support') { renderCalendar(); renderSupportList(); initSS(); }
   if(page==='businesses') renderBizTab();
   if(page==='admin') renderAdmin();
 }
@@ -133,8 +143,7 @@ window.toggleDashCard = function(el, filter) {
   wrap.style.display = 'block';
   var list = contracts.filter(function(c){
     var s = calcStatus(c);
-    if(filter==='all') return true;
-    return s === filter;
+    return filter==='all' ? true : s===filter;
   }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
   listEl.innerHTML = list.length ? list.map(function(c){
     var s=calcStatus(c); var d=dDiff(c.endDate);
@@ -148,7 +157,7 @@ window.toggleDashCard = function(el, filter) {
 
 // ── 사업장 상세 ──────────────────────────
 window.goDetail = function(id) {
-  if(!id || id === 'undefined') return;
+  if(!id||id==='undefined') return;
   var c = contracts.find(function(x){ return x.id===id; });
   if(!c) return;
   window.detailId = id;
@@ -160,25 +169,20 @@ window.goDetail = function(id) {
 
 window.goBackFromDetail = function() {
   document.getElementById('detail-screen').style.display = 'none';
-  if(currentPage) {
-    document.getElementById('app').style.display = 'flex';
-  } else {
-    document.getElementById('home-screen').style.display = 'flex';
-  }
+  if(currentPage) document.getElementById('app').style.display = 'flex';
+  else document.getElementById('home-screen').style.display = 'flex';
 };
 
 function renderDetail(c) {
-  var s = calcStatus(c);
-  var d = dDiff(c.endDate);
+  var s=calcStatus(c); var d=dDiff(c.endDate);
   document.getElementById('detail-title').textContent = c.name;
   var h = historyData.find(function(h){ return h.contractId===c.id; });
-  var histHtml = h && h.records && h.records.length ? h.records.map(function(r,i){
+  var histHtml = h&&h.records&&h.records.length ? h.records.map(function(r,i){
     return '<div class="hist-record">' +
       '<span class="hist-round">' + (i===0?'최초':i+'차') + '</span>' +
       '<span>' + (r.startDate?fmtDate(r.startDate):'-') + ' ~ ' + (r.endDate?fmtDate(r.endDate):'-') + '</span>' +
-      '<span style="font-weight:500;">' + (r.price?Number(r.price).toLocaleString()+'원':'관리비제') + '</span>' +
-      (r.note?'<span style="color:#888;font-size:12px;">'+r.note+'</span>':'') +
-      '</div>';
+      '<span style="font-weight:500;">' + (r.price?Number(r.price).toLocaleString()+'원/식':'관리비제') + '</span>' +
+      (r.note?'<span style="color:#888;font-size:12px;">'+r.note+'</span>':'') + '</div>';
   }).join('') : '<div style="color:#aaa;font-size:13px;padding:12px 0;">히스토리 없음</div>';
 
   var bizSupports = supports.filter(function(sp){ return sp.bizName===c.name; })
@@ -188,13 +192,14 @@ function renderDetail(c) {
       '<span class="badge-cat">' + (sp.category||'') + '</span>' +
       '<span style="font-size:12px;color:#888;">' + (sp.date||'') + '</span>' +
       '<span style="font-weight:500;">' + (sp.staffName||'') + '</span>' +
-      '<span style="color:#666;">' + (sp.content||'') + '</span>' +
-      '</div>';
+      '<span style="color:#666;">' + (sp.content||'') + '</span></div>';
   }).join('') : '<div style="color:#aaa;font-size:13px;padding:12px 0;">지원 이력 없음</div>';
 
   document.getElementById('detail-body').innerHTML =
     '<div class="detail-section">' +
-    '<div class="detail-row"><span class="detail-label">계약 상태</span><div style="display:flex;align-items:center;gap:8px;"><span class="badge ' + s + '">' + STATUS_META[s].label + '</span><span style="color:' + (s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':'#854F0B') + ';font-weight:500;">' + dDayLabel(d) + '</span></div></div>' +
+    '<div class="detail-row"><span class="detail-label">계약 상태</span>' +
+    '<div style="display:flex;align-items:center;gap:8px;"><span class="badge ' + s + '">' + STATUS_META[s].label + '</span>' +
+    '<span style="color:' + (s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':'#854F0B') + ';font-weight:500;">' + dDayLabel(d) + '</span></div></div>' +
     '<div class="detail-row"><span class="detail-label">소재지</span><span>' + (c.addr||'-') + '</span></div>' +
     '<div class="detail-row"><span class="detail-label">담당자</span><span>' + (c.contactName||'-') + '</span></div>' +
     '<div class="detail-row"><span class="detail-label">연락처</span><span>' + (c.contactPhone||'-') + (c.tel?' / '+c.tel:'') + '</span></div>' +
@@ -210,80 +215,107 @@ function renderDetail(c) {
     '<div class="detail-row"><span class="detail-label">자동연장</span><span>' + (c.autoRenew?'있음':'없음') + '</span></div>' +
     (c.note?'<div class="detail-row"><span class="detail-label">특이사항</span><span>' + c.note + '</span></div>':'') +
     '</div>' +
-    '<div class="detail-section">' +
-    '<div class="detail-section-title">계약 히스토리</div>' +
-    histHtml + '</div>' +
-    '<div class="detail-section">' +
-    '<div class="detail-section-title">운영지원 이력</div>' +
-    supHtml + '</div>';
+    '<div class="detail-section"><div class="detail-section-title">계약 히스토리</div>' + histHtml + '</div>' +
+    '<div class="detail-section"><div class="detail-section-title">운영지원 이력</div>' + supHtml + '</div>';
 }
 
 // ── 운영지원 ──────────────────────────
-function renderSupport() {
+window.changeMonth = function(dir) {
+  if(dir===0){ calYear=new Date().getFullYear(); calMonth=new Date().getMonth(); }
+  else {
+    calMonth += dir;
+    if(calMonth>11){calMonth=0;calYear++;}
+    if(calMonth<0){calMonth=11;calYear--;}
+  }
   renderCalendar();
-  renderSupportForm();
-}
+};
 
 function renderCalendar() {
-  var now = new Date();
-  var year = now.getFullYear();
-  var month = now.getMonth();
   var el = document.getElementById('cal-title');
-  if(el) el.textContent = year + '년 ' + (month+1) + '월';
+  if(el) el.textContent = calYear + '년 ' + (calMonth+1) + '월';
   var dayMap = {};
   supports.forEach(function(s){
     if(!s.date) return;
     var key = s.date.slice(0,10);
-    if(!dayMap[key]) dayMap[key] = [];
+    if(!dayMap[key]) dayMap[key]=[];
     dayMap[key].push(s);
   });
-  var firstDay = new Date(year, month, 1).getDay();
-  var lastDate = new Date(year, month+1, 0).getDate();
+  var firstDay = new Date(calYear,calMonth,1).getDay();
+  var lastDate = new Date(calYear,calMonth+1,0).getDate();
   var today = new Date().toISOString().slice(0,10);
-  var calHtml = '<div class="cal-grid">';
-  ['일','월','화','수','목','금','토'].forEach(function(d){ calHtml += '<div class="cal-header">' + d + '</div>'; });
-  for(var i=0;i<firstDay;i++) calHtml += '<div class="cal-day empty"></div>';
+  var html = '';
+  ['일','월','화','수','목','금','토'].forEach(function(d){ html+='<div class="cal-header">'+d+'</div>'; });
+  for(var i=0;i<firstDay;i++) html+='<div class="cal-day empty"></div>';
   for(var d=1;d<=lastDate;d++) {
-    var key = year + '-' + String(month+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-    var items = dayMap[key] || [];
-    var isToday = key === today;
-    calHtml += '<div class="cal-day' + (isToday?' today':'') + '">' +
+    var key = calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    var items = dayMap[key]||[];
+    var isToday = key===today;
+    html += '<div class="cal-day'+(isToday?' today':'') + '">' +
       '<div class="cal-num">' + d + '</div>' +
-      items.slice(0,2).map(function(s){
-        return '<div class="cal-event cat-' + SUPPORT_CATS.indexOf(s.category) + '">' + (s.staffName||'') + ' ' + (s.category||'') + '</div>';
+      items.slice(0,3).map(function(s){
+        return '<div class="cal-event cat-' + SUPPORT_CATS.indexOf(s.category) + '">' + (s.bizName||'') + '</div>';
       }).join('') +
-      (items.length>2?'<div class="cal-more">+' + (items.length-2) + '건</div>':'') +
+      (items.length>3?'<div class="cal-more">+' + (items.length-3) + '건</div>':'') +
       '</div>';
   }
-  calHtml += '</div>';
   var calEl = document.getElementById('calendar');
-  if(calEl) calEl.innerHTML = calHtml;
+  if(calEl) calEl.innerHTML = html;
+  renderSupportList();
+}
 
+function renderSupportList() {
   var listEl = document.getElementById('support-list');
   if(!listEl) return;
-  var sorted = supports.slice().sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); }).slice(0,20);
+  var sorted = supports.slice().sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+  var el = document.getElementById('sup-list-count');
+  if(el) el.textContent = sorted.length + '건';
   listEl.innerHTML = sorted.length ? sorted.map(function(s){
     var c = contracts.find(function(x){ return x.name===s.bizName; });
-    var cid = c ? c.id : '';
+    var cid = c?c.id:'';
     return '<div class="sup-row">' +
       '<span class="badge-cat">' + (s.category||'') + '</span>' +
-      '<span class="sup-date">' + (s.date||'') + '</span>' +
+      '<span class="sup-date" style="font-size:12px;color:#888;">' + (s.date||'') + '</span>' +
       '<span class="sup-biz"' + (cid?' onclick="goDetail(\''+cid+'\')"':'') + '>' + (s.bizName||'') + '</span>' +
-      '<span class="sup-staff">' + (s.staffName||'') + '</span>' +
-      '<span class="sup-content">' + (s.content||'') + '</span>' +
-      '<button class="btn sm danger" onclick="delSupport(\'' + s.id + '\')"><i class="ti ti-trash"></i></button>' +
+      '<span style="font-size:12px;color:#666;">' + (s.staffName||'') + '</span>' +
+      '<button class="btn sm danger" onclick="delSupport(\''+s.id+'\')"><i class="ti ti-trash"></i></button>' +
       '</div>';
-  }).join('') : '<div class="empty-state"><i class="ti ti-calendar"></i>지원 이력이 없어요</div>';
+  }).join('') : '<div class="empty-state" style="padding:20px;"><i class="ti ti-calendar"></i>지원 이력이 없어요</div>';
 }
 
-function renderSupportForm() {
-  var sel = document.getElementById('sup-biz');
-  if(!sel) return;
-  var sorted = contracts.slice().sort(function(a,b){ return a.name.localeCompare(b.name,'ko'); });
-  sel.innerHTML = '<option value="">업장 선택...</option>' + sorted.map(function(c){
-    return '<option value="' + c.name + '">' + c.name + '</option>';
-  }).join('');
+// ── 검색 가능한 업장 선택 ──────────────────────────
+function initSS() {
+  renderSSOptions('');
 }
+
+function renderSSOptions(q) {
+  var dd = document.getElementById('ss-dropdown');
+  if(!dd) return;
+  var filtered = ssOptions.filter(function(c){ return !q||c.name.toLowerCase().includes(q.toLowerCase()); });
+  dd.innerHTML = filtered.length ? filtered.map(function(c){
+    return '<div class="ss-option" onmousedown="selectSS(\'' + c.name.replace(/'/g,"\\'") + '\')">' + c.name + '</div>';
+  }).join('') : '<div class="ss-option" style="color:#aaa;">검색 결과 없음</div>';
+}
+
+window.filterSS = function() {
+  var q = document.getElementById('ss-input').value;
+  renderSSOptions(q);
+  document.getElementById('sup-biz').value = '';
+};
+
+window.openSS = function() {
+  document.getElementById('ss-dropdown').classList.add('open');
+  renderSSOptions(document.getElementById('ss-input').value);
+};
+
+window.closeSS = function() {
+  document.getElementById('ss-dropdown').classList.remove('open');
+};
+
+window.selectSS = function(name) {
+  document.getElementById('ss-input').value = name;
+  document.getElementById('sup-biz').value = name;
+  document.getElementById('ss-dropdown').classList.remove('open');
+};
 
 window.submitSupport = async function() {
   var biz = document.getElementById('sup-biz').value;
@@ -293,12 +325,13 @@ window.submitSupport = async function() {
   var content = document.getElementById('sup-content').value.trim();
   if(!biz||!date||!cat){ showToast('업장, 일자, 카테고리는 필수예요.'); return; }
   try {
-    await addSupport({ bizName:biz, date:date, staffName:staff, category:cat, content:content });
+    await addSupport({bizName:biz,date:date,staffName:staff,category:cat,content:content});
+    document.getElementById('ss-input').value='';
+    document.getElementById('sup-biz').value='';
     document.getElementById('sup-date').value='';
     document.getElementById('sup-staff').value='';
     document.getElementById('sup-content').value='';
     document.getElementById('sup-cat').value='';
-    document.getElementById('sup-biz').value='';
     showToast('운영지원이 등록되었습니다.');
   } catch(e){ showToast('등록 중 오류가 발생했습니다.'); }
 };
@@ -325,43 +358,39 @@ window.renderBizTab = function() {
   if(!el) return;
 
   function bizCard(c) {
-    var s = calcStatus(c);
-    var d = dDiff(c.endDate);
+    var s=calcStatus(c); var d=dDiff(c.endDate);
     return '<div class="biz-card" onclick="goDetail(\'' + c.id + '\')">' +
       '<div class="biz-card-top"><span class="biz-name">' + c.name + '</span><span class="badge ' + s + '">' + STATUS_META[s].label + '</span></div>' +
       '<div class="biz-info"><span><i class="ti ti-map-pin"></i>' + (c.addr||'-') + '</span>' +
       (c.contactName?'<span><i class="ti ti-user"></i>' + c.contactName + '</span>':'') +
       (c.contactPhone?'<span><i class="ti ti-phone"></i>' + c.contactPhone + '</span>':'') + '</div>' +
       '<div class="biz-bottom"><span>' + fmtDate(c.endDate) + '</span>' +
-      '<span style="font-size:12px;font-weight:500;color:' + (s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':'#854F0B') + '">' + dDayLabel(d) + '</span></div>' +
+      '<span style="font-weight:500;color:' + (s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':'#854F0B') + '">' + dDayLabel(d) + '</span></div>' +
       '</div>';
   }
 
   var filtered = contracts.filter(function(c){ return !q||c.name.toLowerCase().includes(q)||(c.addr||'').toLowerCase().includes(q); });
 
   if(currentBizTab==='team') {
-    var t1 = filtered.filter(function(c){ return c.team===1; }).sort(function(a,b){ return a.name.localeCompare(b.name,'ko'); });
-    var t2 = filtered.filter(function(c){ return c.team===2; }).sort(function(a,b){ return a.name.localeCompare(b.name,'ko'); });
+    var t1 = filtered.filter(function(c){ return c.team===1; }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
+    var t2 = filtered.filter(function(c){ return c.team===2; }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
     el.innerHTML = '<div class="team-layout">' +
       '<div><div class="team-header blue"><i class="ti ti-users"></i> 1팀 — 박주형 본부장 <span>' + t1.length + '개소</span></div>' + t1.map(bizCard).join('') + '</div>' +
       '<div><div class="team-header green"><i class="ti ti-users"></i> 2팀 — 김재희 차장 <span>' + t2.length + '개소</span></div>' + t2.map(bizCard).join('') + '</div>' +
       '</div>';
+
   } else if(currentBizTab==='resp') {
-    var respGroups = {};
-    filtered.forEach(function(c){
-      var r = c.resp||'미지정';
-      if(!respGroups[r]) respGroups[r]=[];
-      respGroups[r].push(c);
-    });
     var respOrder = ['손도란 대리','이소영 주임','김상준 주임','견병록 매니저'];
-    var html = '<div class="team-layout">';
     var colors = ['blue','green','amber','red'];
-    respOrder.forEach(function(r, i){
-      var list = (respGroups[r]||[]).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
+    var html = '<div class="resp-layout">';
+    respOrder.forEach(function(r,i){
+      var list = filtered.filter(function(c){ return c.resp===r; })
+        .sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
       html += '<div><div class="team-header ' + colors[i] + '"><i class="ti ti-user"></i> ' + r + ' <span>' + list.length + '개소</span></div>' + list.map(bizCard).join('') + '</div>';
     });
     html += '</div>';
-    el.innerHTML = filtered.length ? html : '<div class="empty-state">검색 결과 없음</div>';
+    el.innerHTML = html;
+
   } else if(currentBizTab==='region') {
     el.innerHTML = '<div class="map-legend">' +
       '<span><span class="leg-dot" style="background:#E24B4A;"></span>긴급</span>' +
@@ -373,19 +402,13 @@ window.renderBizTab = function() {
       mapInstance = L.map('map').setView([36.98,127.05],9);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapInstance);
       filtered.forEach(function(c){
-        var coord = COORDS[c.name];
-        if(!coord) return;
+        var coord=COORDS[c.name]; if(!coord) return;
         var s=calcStatus(c);
-        var color = s==='urgent'?'#E24B4A':s==='near'?'#EF9F27':'#4A90D9';
-        var marker = L.circleMarker([coord.lat,coord.lng],{radius:s==='urgent'?10:8,fillColor:color,color:'#fff',weight:2,fillOpacity:0.9}).addTo(mapInstance);
-        var d = dDiff(c.endDate);
-        marker.bindTooltip(
-          '<b>' + c.name + '</b>' +
-          '<br><span style="color:' + color + ';font-weight:500;">' + STATUS_META[s].label + ' ' + dDayLabel(d) + '</span>' +
-          '<br><span style="color:#888;font-size:12px;">' + (c.addr||'') + '</span>' +
-          (c.contactName?'<br>' + c.contactName + ' ' + (c.contactPhone||''):''),
-          {permanent:false,direction:'top',offset:[0,-8],opacity:0.97}
-        );
+        var color=s==='urgent'?'#E24B4A':s==='near'?'#EF9F27':'#4A90D9';
+        var marker=L.circleMarker([coord.lat,coord.lng],{radius:s==='urgent'?10:8,fillColor:color,color:'#fff',weight:2,fillOpacity:0.9}).addTo(mapInstance);
+        var d=dDiff(c.endDate);
+        marker.bindTooltip('<b>' + c.name + '</b><br><span style="color:' + color + ';font-weight:500;">' + STATUS_META[s].label + ' ' + dDayLabel(d) + '</span><br><span style="color:#888;font-size:12px;">' + (c.addr||'') + '</span>' + (c.contactName?'<br>' + c.contactName + ' ' + (c.contactPhone||''):''),
+          {permanent:false,direction:'top',offset:[0,-8],opacity:0.97});
         marker.on('click',function(){ window.goDetail(c.id); });
       });
     },100);
@@ -407,24 +430,23 @@ function renderAdmin() {
       '<td>' + fmtDate(c.endDate) + '</td>' +
       '<td style="font-size:12px;font-weight:500;color:' + (s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':'#854F0B') + ';">' + dDayLabel(d) + '</td>' +
       '<td>' + priceLabel(c) + '</td>' +
-      '<td onclick="event.stopPropagation()"><button class="btn sm danger" onclick="handleDelete(\'' + c.id + '\',\'' + c.name.replace(/'/g,'') + '\')"><i class="ti ti-trash"></i></button></td>' +
-      '</tr>';
+      '<td onclick="event.stopPropagation()"><button class="btn sm danger" onclick="handleDelete(\'' + c.id + '\',\'' + c.name.replace(/'/g,'') + '\')"><i class="ti ti-trash"></i></button></td></tr>';
   }).join('') || '<tr><td colspan="6"><div class="empty-state">없음</div></td></tr>';
 }
 
 // ── 모달 ──────────────────────────
 window.openAddModal = function() {
-  editingId = null;
-  document.getElementById('modal-title').textContent = '계약 추가';
+  editingId=null;
+  document.getElementById('modal-title').textContent='계약 추가';
   document.getElementById('contract-form').reset();
   document.getElementById('modal-overlay').classList.add('open');
 };
 
 window.openEditModal = function(id) {
-  if(!id || id==='undefined') return;
+  if(!id||id==='undefined') return;
   var c=contracts.find(function(x){ return x.id===id; }); if(!c) return;
   editingId=id;
-  document.getElementById('modal-title').textContent = '계약 수정 — '+c.name;
+  document.getElementById('modal-title').textContent='계약 수정 — '+c.name;
   document.getElementById('f-name').value=c.name||'';
   document.getElementById('f-addr').value=c.addr||'';
   document.getElementById('f-contactName').value=c.contactName||'';
@@ -450,7 +472,7 @@ window.saveContract = async function() {
   var name=document.getElementById('f-name').value.trim();
   var endDate=document.getElementById('f-endDate').value;
   if(!name||!endDate){ showToast('사업장명과 종료일은 필수입니다.'); return; }
-  var data = {
+  var data={
     name:name, addr:document.getElementById('f-addr').value.trim(),
     contactName:document.getElementById('f-contactName').value.trim(),
     contactPhone:document.getElementById('f-contactPhone').value.trim(),
