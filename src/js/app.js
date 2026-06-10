@@ -74,21 +74,23 @@ onAuthChange(function(user) {
       `;
     }
 
-  } else {
+ } else {
 
-    document.getElementById('app').style.display = 'none';
+  document.getElementById('app').style.display = 'none';
 
-    const authArea = document.getElementById('auth-area');
+  document.getElementById('home-screen').style.display = 'flex';
 
-    if (authArea) {
-      authArea.innerHTML = `
-        <button class="btn primary" onclick="login()">
-          Google 로그인
-        </button>
-      `;
-    }
+  const authArea = document.getElementById('auth-area');
 
+  if (authArea) {
+    authArea.innerHTML = `
+      <button class="btn primary" onclick="login()">
+        Google 로그인
+      </button>
+    `;
   }
+
+}
 
 });
 window.goHome = function() {
@@ -97,6 +99,17 @@ window.goHome = function() {
 };
 
 window.goPage = function(page) {
+
+  if (!currentUser) {
+    alert('Google 로그인이 필요합니다.');
+    return;
+  }
+
+  document.getElementById('home-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+
+  ...
+}
   document.getElementById('home-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   ['businesses','contracts','history','admin'].forEach(function(p) {
