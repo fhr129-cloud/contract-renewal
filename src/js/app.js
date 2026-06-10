@@ -320,15 +320,17 @@ window.selectSS = function(name) {
 window.submitSupport = async function() {
   var biz = document.getElementById('sup-biz').value;
   var date = document.getElementById('sup-date').value;
+  var time = document.getElementById('sup-time') ? document.getElementById('sup-time').value : '';
   var staff = document.getElementById('sup-staff').value.trim();
   var cat = document.getElementById('sup-cat').value;
   var content = document.getElementById('sup-content').value.trim();
   if(!biz||!date||!cat){ showToast('업장, 일자, 카테고리는 필수예요.'); return; }
   try {
-    await addSupport({bizName:biz,date:date,staffName:staff,category:cat,content:content});
+    await addSupport({bizName:biz, date:date, time:time, staffName:staff, category:cat, content:content});
     document.getElementById('ss-input').value='';
     document.getElementById('sup-biz').value='';
     document.getElementById('sup-date').value='';
+    if(document.getElementById('sup-time')) document.getElementById('sup-time').value='';
     document.getElementById('sup-staff').value='';
     document.getElementById('sup-content').value='';
     document.getElementById('sup-cat').value='';
