@@ -1,43 +1,27 @@
-import { loginWithGoogle, logout, onAuthChange, listenContracts, listenHistory, addContract, updateContract, deleteContract, addHistory, seedIfEmpty } from './db.js';
+import { listenContracts, listenHistory, addContract, updateContract, deleteContract, addHistory, seedIfEmpty } from './db.js';
 import { calcStatus, STATUS_META, fmtDate, toInputDate, monthKey, monthLabel, dDiff, dDayLabel } from './utils.js';
 
 let contracts = [];
 let history = [];
 let currentPage = 'dashboard';
 let editingId = null;
-let unsubContracts = null;
-let unsubHistory = null;
 
-onAuthChange(async user => {
-  if (user) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
-    renderUserInfo(user);
-    await seedIfEmpty();
-    unsubContracts = listenContracts(data => {
-      contracts = data;
-      renderCurrentPage();
-    });
-    unsubHistory = listenHistory(data => {
-      history = data;
-      if (currentPage === 'history') renderHistory();
-    });
-    showPage('dashboard');
-  } else {
-    document.getElementById('login-screen').style.display = 'flex';
-    document.getElementById('app').style.display = 'none';
-    if (unsubContracts) unsubContracts();
-    if (unsubHistory) unsubHistory();
-  }
-});
-
-function renderUserInfo(user) {
-  const initials = user.displayName
-    ? user.displayName.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase()
-    : user.email[0].toUpperCase();
-  document.getElementById('user-avatar').textContent = initials;
-  document.getElementById('user-name').textContent = user.displayName || user.email;
+async function init() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  await seedIfEmpty();
+  listenContracts(data => {
+    contracts = data;
+    renderCurrentPage();
+  });
+  listenHistory(data => {
+    history = data;
+    if (currentPage === 'history') renderHistory();
+  });
+  showPage('dashboard');
 }
+
+init();
 
 window.showPage = function(page) {
   currentPage = page;
@@ -47,7 +31,7 @@ window.showPage = function(page) {
   document.querySelectorAll('.page').forEach(el => {
     el.style.display = el.id === 'page-' + page ? 'block' : 'none';
   });
-  const titles = { dashboard: '대시보드', contracts: '계약 목록', timeline: '타임라인', history: '계약 히스토리' };
+  var titles = { dashboard: '대시보드', contracts: '계약 목록', timeline: '타임라인', history: '계약 히스토리' };
   document.getElementById('page-title').textContent = titles[page] || '';
   renderCurrentPage();
 };
@@ -60,9 +44,9 @@ function renderCurrentPage() {
 }
 
 function renderDashboard() {
-  const counts = { total: contracts.length, urgent: 0, near: 0, ok: 0, auto: 0 };
-  contracts.forEach(c => {
-    const s = calcStatus(c);
+  var counts = { total: contracts.length, urgent: 0, near: 0, ok: 0, auto: 0 };
+  contracts.forEach(function(c) {
+    var s = calcStatus(c);
     if (s === 'auto') counts.auto++;
     else if (s === 'urgent') counts.urgent++;
     else if (s === 'near') counts.near++;
@@ -74,28 +58,28 @@ function renderDashboard() {
   document.getElementById('stat-near').textContent = counts.near;
   document.getElementById('stat-ok').textContent = counts.ok;
 
-  const urgentList = contracts.filter(c => calcStatus(c) === 'urgent').sort((a,b) => new Date(a.endDate)-new Date(b.endDate));
-  const autoList = contracts.filter(c => calcStatus(c) === 'auto').sort((a,b) => new Date(a.endDate)-new Date(b.endDate));
+  var urgentList = contracts.filter(function(c) { return calcStatus(c) === 'urgent'; }).sort(function(a,b) { return new Date(a.endDate)-new Date(b.endDate); });
+  var autoList = contracts.filter(function(c) { return calcStatus(c) === 'auto'; }).sort(function(a,b) { return new Date(a.endDate)-new Date(b.endDate); });
 
   document.getElementById('dash-urgent-list').innerHTML = urgentList.length
-    ? urgentList.map(c => dashMiniRow(c)).join('')
+    ? urgentList.map(function(c) { return dashMiniRow(c, false); }).join('')
     : '<div class="empty-state"><i class="ti ti-circle-check"></i>긴급 사업장이 없어요</div>';
 
   document.getElementById('dash-auto-list').innerHTML = autoList.length
-    ? autoList.map(c => dashMiniRow(c, true)).join('')
+    ? autoList.map(function(c) { return dashMiniRow(c, true); }).join('')
     : '<div class="empty-state"><i class="ti ti-circle-check"></i>자동연장 중인 사업장이 없어요</div>';
 
-  const now = new Date();
-  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const nextMonthStart = new Date(now.getFullYear(), now.getMonth()+1, 1);
-  const thisMonth = contracts.filter(c => {
-    const e = new Date(c.endDate);
+  var now = new Date();
+  var thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  var nextMonthStart = new Date(now.getFullYear(), now.getMonth()+1, 1);
+  var thisMonth = contracts.filter(function(c) {
+    var e = new Date(c.endDate);
     return e >= thisMonthStart && e < nextMonthStart;
-  }).sort((a,b) => new Date(a.endDate)-new Date(b.endDate));
+  }).sort(function(a,b) { return new Date(a.endDate)-new Date(b.endDate); });
 
   document.getElementById('dash-thismonth-list').innerHTML = thisMonth.length
-    ? thisMonth.map(c => {
-        const s = calcStatus(c);
+    ? thisMonth.map(function(c) {
+        var s = calcStatus(c);
         return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid #f0f0ec;">'
           + '<div><div style="font-weight:500;">' + c.name + '</div>'
           + '<div class="text-sm text-muted">' + (c.contactPhone||'') + '</div></div>'
@@ -106,9 +90,8 @@ function renderDashboard() {
 }
 
 function dashMiniRow(c, isAuto) {
-  isAuto = isAuto || false;
-  const d = dDiff(c.endDate);
-  const dLabel = d < 0 ? ('만료 ' + Math.abs(d) + '일 경과') : ('D-' + d);
+  var d = dDiff(c.endDate);
+  var dLabel = d < 0 ? ('만료 ' + Math.abs(d) + '일 경과') : ('D-' + d);
   return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid #f0f0ec;cursor:pointer;" onclick="showPage(\'contracts\')">'
     + '<div><div style="font-weight:500;">' + c.name + '</div>'
     + '<div class="text-sm text-muted">' + (c.contactName||'') + ' ' + (c.contactPhone||'') + '</div></div>'
@@ -117,30 +100,30 @@ function dashMiniRow(c, isAuto) {
 }
 
 function renderContractTable() {
-  const q = (document.getElementById('search-input') ? document.getElementById('search-input').value : '').toLowerCase();
-  const fs = document.getElementById('filter-status') ? document.getElementById('filter-status').value : '';
-  const fa = document.getElementById('filter-auto') ? document.getElementById('filter-auto').value : '';
-  const rows = contracts.filter(c => {
-    const s = calcStatus(c);
+  var q = (document.getElementById('search-input') ? document.getElementById('search-input').value : '').toLowerCase();
+  var fs = document.getElementById('filter-status') ? document.getElementById('filter-status').value : '';
+  var fa = document.getElementById('filter-auto') ? document.getElementById('filter-auto').value : '';
+  var rows = contracts.filter(function(c) {
+    var s = calcStatus(c);
     if (q && !c.name.toLowerCase().includes(q) && !(c.location||'').toLowerCase().includes(q)) return false;
     if (fs && s !== fs) return false;
     if (fa === 'y' && !c.autoRenew) return false;
     if (fa === 'n' && c.autoRenew) return false;
     return true;
-  }).sort((a,b) => new Date(a.endDate)-new Date(b.endDate));
+  }).sort(function(a,b) { return new Date(a.endDate)-new Date(b.endDate); });
 
-  const el = document.getElementById('count-label');
+  var el = document.getElementById('count-label');
   if (el) el.textContent = rows.length + '건';
 
-  const tbody = document.getElementById('contract-tbody');
+  var tbody = document.getElementById('contract-tbody');
   if (!tbody) return;
-  tbody.innerHTML = rows.map(c => {
-    const s = calcStatus(c);
-    const d = dDiff(c.endDate);
-    const barW = Math.max(4, Math.round(Math.max(0, 1-Math.min(Math.max(d,0),400)/400)*72));
-    const barColor = s==='urgent' ? '#E24B4A' : s==='auto' ? '#378ADD' : s==='near' ? '#EF9F27' : '#97C459';
-    const priceStr = c.price ? (Number(c.price).toLocaleString() + '원') : '관리비제';
-    const autoRenewBadge = c.autoRenew ? '<span class="badge auto"><i class="ti ti-refresh"></i> 자동</span>' : '';
+  tbody.innerHTML = rows.map(function(c) {
+    var s = calcStatus(c);
+    var d = dDiff(c.endDate);
+    var barW = Math.max(4, Math.round(Math.max(0, 1-Math.min(Math.max(d,0),400)/400)*72));
+    var barColor = s==='urgent' ? '#E24B4A' : s==='auto' ? '#378ADD' : s==='near' ? '#EF9F27' : '#97C459';
+    var priceStr = c.price ? (Number(c.price).toLocaleString() + '원') : '관리비제';
+    var autoBadge = c.autoRenew ? '<span class="badge auto"><i class="ti ti-refresh"></i> 자동</span>' : '';
     return '<tr onclick="openEditModal(\'' + c.id + '\')">'
       + '<td><span class="badge ' + s + '">' + STATUS_META[s].label + '</span></td>'
       + '<td style="font-weight:500;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + c.name + '</td>'
@@ -148,27 +131,27 @@ function renderContractTable() {
       + '<td>' + fmtDate(c.endDate) + '</td>'
       + '<td><div class="dday-wrap"><div class="dday-bar" style="width:' + barW + 'px;background:' + barColor + ';"></div>'
       + '<span class="dday-label ' + s + '">' + dDayLabel(d) + '</span></div></td>'
-      + '<td>' + autoRenewBadge + '</td>'
+      + '<td>' + autoBadge + '</td>'
       + '<td>' + priceStr + '</td>'
       + '<td class="text-sm text-muted" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (c.note||'') + '</td>'
-      + '<td onclick="event.stopPropagation()"><button class="btn sm danger" onclick="handleDelete(\'' + c.id + '\',\'' + c.name.replace(/'/g, '') + '\')"><i class="ti ti-trash"></i></button></td>'
+      + '<td onclick="event.stopPropagation()"><button class="btn sm danger" onclick="handleDelete(\'' + c.id + '\',\'' + c.name.replace(/'/g,'') + '\')"><i class="ti ti-trash"></i></button></td>'
       + '</tr>';
   }).join('') || '<tr><td colspan="9"><div class="empty-state"><i class="ti ti-search"></i>검색 결과가 없어요</div></td></tr>';
 }
 
 function renderTimeline() {
-  const groups = {};
-  contracts.forEach(c => {
-    const k = monthKey(c.endDate);
+  var groups = {};
+  contracts.forEach(function(c) {
+    var k = monthKey(c.endDate);
     if (!groups[k]) groups[k] = [];
     groups[k].push(c);
   });
-  const el = document.getElementById('timeline-content');
+  var el = document.getElementById('timeline-content');
   if (!el) return;
-  el.innerHTML = Object.keys(groups).sort().map(k => {
-    const items = groups[k].sort((a,b) => new Date(a.endDate)-new Date(b.endDate));
-    const chips = items.map(c => {
-      const s = calcStatus(c);
+  el.innerHTML = Object.keys(groups).sort().map(function(k) {
+    var items = groups[k].sort(function(a,b) { return new Date(a.endDate)-new Date(b.endDate); });
+    var chips = items.map(function(c) {
+      var s = calcStatus(c);
       return '<span class="tl-chip ' + s + '" onclick="openEditModal(\'' + c.id + '\')" title="' + fmtDate(c.endDate) + '">' + c.name + '</span>';
     }).join('');
     return '<div class="tl-month-group"><div class="tl-month-label"><i class="ti ti-calendar-month"></i>' + monthLabel(k) + '<span class="count-badge">' + items.length + '건</span></div><div class="tl-chips">' + chips + '</div></div>';
@@ -176,12 +159,12 @@ function renderTimeline() {
 }
 
 function renderHistory() {
-  const q = (document.getElementById('hist-search') ? document.getElementById('hist-search').value : '').toLowerCase();
-  const items = history.filter(h => !q || h.name.toLowerCase().includes(q));
-  const el = document.getElementById('history-content');
+  var q = (document.getElementById('hist-search') ? document.getElementById('hist-search').value : '').toLowerCase();
+  var items = history.filter(function(h) { return !q || h.name.toLowerCase().includes(q); });
+  var el = document.getElementById('history-content');
   if (!el) return;
-  el.innerHTML = items.map(h => {
-    const records = (h.records||[]).map((r,i) => {
+  el.innerHTML = items.map(function(h) {
+    var records = (h.records||[]).map(function(r,i) {
       return '<div class="hist-record">'
         + '<div><span class="hist-round">' + (i===0 ? '최초' : i+'차 갱신') + '</span>'
         + '<div class="text-sm text-muted mt-1">' + (r.startDate ? fmtDate(r.startDate) : '-') + ' ~ ' + (r.endDate ? fmtDate(r.endDate) : '-') + '</div>'
@@ -203,7 +186,7 @@ window.openAddModal = function() {
 };
 
 window.openEditModal = function(id) {
-  const c = contracts.find(x => x.id === id);
+  var c = contracts.find(function(x) { return x.id === id; });
   if (!c) return;
   editingId = id;
   document.getElementById('modal-title').textContent = '계약 수정';
@@ -226,10 +209,10 @@ window.closeModal = function() {
 };
 
 window.saveContract = async function() {
-  const name = document.getElementById('f-name').value.trim();
-  const endDate = document.getElementById('f-endDate').value;
+  var name = document.getElementById('f-name').value.trim();
+  var endDate = document.getElementById('f-endDate').value;
   if (!name || !endDate) { showToast('사업장명과 종료일은 필수입니다.'); return; }
-  const data = {
+  var data = {
     name: name,
     location: document.getElementById('f-location').value.trim(),
     contactName: document.getElementById('f-contactName').value.trim(),
@@ -248,7 +231,7 @@ window.saveContract = async function() {
       await addHistory(editingId, name, { startDate: data.startDate, endDate: data.endDate, price: data.price, note: data.note, updatedAt: new Date().toISOString() });
       showToast('계약이 수정되었습니다.');
     } else {
-      const ref = await addContract(data);
+      var ref = await addContract(data);
       await addHistory(ref.id, name, { startDate: data.startDate, endDate: data.endDate, price: data.price, note: data.note, updatedAt: new Date().toISOString() });
       showToast('계약이 추가되었습니다.');
     }
@@ -271,31 +254,26 @@ window.handleDelete = async function(id, name) {
 
 window.exportExcel = function() {
   if (!window.XLSX) { showToast('잠시 후 다시 시도해 주세요.'); return; }
-  const rows = [['번호','사업장','소재지','담당자','연락처','시작일','종료일','D-day','단가','자동연장','상태','비고']];
-  contracts.slice().sort((a,b) => new Date(a.endDate)-new Date(b.endDate)).forEach(c => {
-    const s = calcStatus(c);
+  var rows = [['번호','사업장','소재지','담당자','연락처','시작일','종료일','D-day','단가','자동연장','상태','비고']];
+  contracts.slice().sort(function(a,b) { return new Date(a.endDate)-new Date(b.endDate); }).forEach(function(c) {
+    var s = calcStatus(c);
     rows.push([c.no||'', c.name, c.location||'', c.contactName||'', c.contactPhone||'', fmtDate(c.startDate), fmtDate(c.endDate), dDiff(c.endDate), c.price||'관리비제', c.autoRenew ? '자동연장' : '', STATUS_META[s].label, c.note||'']);
   });
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(rows);
+  var wb = XLSX.utils.book_new();
+  var ws = XLSX.utils.aoa_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb, ws, '계약현황');
   XLSX.writeFile(wb, '재계약현황_' + new Date().toISOString().slice(0,10) + '.xlsx');
   showToast('엑셀 파일이 저장되었습니다.');
 };
 
 function showToast(msg) {
-  const el = document.createElement('div');
+  var el = document.createElement('div');
   el.className = 'toast';
   el.textContent = msg;
   document.body.appendChild(el);
   setTimeout(function() { el.remove(); }, 2800);
 }
 
-document.getElementById('btn-login').addEventListener('click', loginWithGoogle);
-document.getElementById('btn-logout').addEventListener('click', async function() {
-  await logout();
-  showToast('로그아웃되었습니다.');
-});
 document.getElementById('modal-overlay').addEventListener('click', function(e) {
   if (e.target === e.currentTarget) closeModal();
 });
