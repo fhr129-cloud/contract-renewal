@@ -257,6 +257,7 @@ function renderCalendar() {
       (items.length>3?'<div class="cal-more">+' + (items.length-3) + '건</div>':'') +
       '</div>';
   }
+html += '</div>';
   var calEl = document.getElementById('calendar');
   if(calEl) calEl.innerHTML = html;
   renderSupportList();
