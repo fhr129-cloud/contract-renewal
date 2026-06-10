@@ -7,140 +7,273 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="./src/css/main.css">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Noto Sans KR', sans-serif; background: #f5f5f3; color: #1a1a18; min-height: 100vh; }
+
+    /* 홈 화면 */
+    #home-screen {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+    .home-logo {
+      font-size: 32px;
+      font-weight: 700;
+      color: #185FA5;
+      margin-bottom: 8px;
+    }
+    .home-sub {
+      font-size: 14px;
+      color: #888;
+      margin-bottom: 48px;
+    }
+    .home-menu {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      width: 100%;
+      max-width: 480px;
+    }
+    .home-btn {
+      background: #fff;
+      border: 0.5px solid #e8e8e4;
+      border-radius: 16px;
+      padding: 28px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: box-shadow 0.15s, transform 0.15s;
+      text-align: center;
+    }
+    .home-btn:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .home-btn i { font-size: 32px; }
+    .home-btn .btn-label { font-size: 14px; font-weight: 600; color: #1a1a18; }
+    .home-btn .btn-desc { font-size: 12px; color: #888; }
+    .home-btn.blue i { color: #185FA5; }
+    .home-btn.green i { color: #3B6D11; }
+    .home-btn.amber i { color: #854F0B; }
+    .home-btn.red i { color: #A32D2D; }
+
+    /* 앱 화면 */
+    #app { display: none; flex-direction: column; min-height: 100vh; }
+    .top-bar {
+      height: 52px;
+      background: #fff;
+      border-bottom: 0.5px solid #e8e8e4;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .back-btn {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; color: #185FA5;
+      background: none; border: none; cursor: pointer; padding: 0;
+    }
+    .top-bar h2 { font-size: 15px; font-weight: 600; flex: 1; }
+    .top-actions { display: flex; gap: 8px; }
+    .page-body { padding: 20px; }
+
+    /* 버튼 */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; border: 0.5px solid #ccc; background: #fff; font-size: 13px; cursor: pointer; white-space: nowrap; }
+    .btn:hover { background: #f5f5f3; }
+    .btn.primary { background: #185FA5; color: #fff; border-color: #185FA5; }
+    .btn.primary:hover { background: #0C447C; }
+    .btn.danger { background: #FCEBEB; color: #A32D2D; border-color: #F7C1C1; }
+    .btn.sm { padding: 5px 10px; font-size: 12px; }
+
+    /* 배지 */
+    .badge { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 99px; border: 0.5px solid transparent; white-space: nowrap; }
+    .badge.urgent { background: #FCEBEB; color: #A32D2D; border-color: #F7C1C1; }
+    .badge.near { background: #FAEEDA; color: #854F0B; border-color: #FAC775; }
+    .badge.ok { background: #EAF3DE; color: #3B6D11; border-color: #C0DD97; }
+    .badge.auto { background: #E6F1FB; color: #185FA5; border-color: #B5D4F4; }
+
+    /* 카드 */
+    .card { background: #fff; border: 0.5px solid #e8e8e4; border-radius: 12px; overflow: hidden; margin-bottom: 12px; }
+    .card-header { padding: 14px 16px; border-bottom: 0.5px solid #e8e8e4; display: flex; align-items: center; justify-content: space-between; }
+    .card-title { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+    .card-body { padding: 14px 16px; }
+
+    /* 테이블 */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; font-weight: 500; font-size: 12px; color: #888; padding: 9px 10px; border-bottom: 0.5px solid #e8e8e4; white-space: nowrap; }
+    td { padding: 10px; border-bottom: 0.5px solid #f0f0ec; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #fafaf8; cursor: pointer; }
+
+    /* 툴바 */
+    .toolbar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+    .toolbar input, .toolbar select { padding: 8px 12px; border: 0.5px solid #ccc; border-radius: 8px; font-size: 13px; background: #fff; }
+    .toolbar input { min-width: 180px; }
+
+    /* 모달 */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 100; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #fff; border-radius: 12px; width: 560px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
+    .modal-header { padding: 16px 20px; border-bottom: 0.5px solid #e8e8e4; display: flex; align-items: center; justify-content: space-between; }
+    .modal-header h3 { font-size: 15px; font-weight: 600; }
+    .modal-body { padding: 20px; }
+    .modal-footer { padding: 14px 20px; border-top: 0.5px solid #e8e8e4; display: flex; justify-content: flex-end; gap: 8px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-group label { font-size: 12px; color: #666; font-weight: 500; }
+    .form-group input, .form-group select, .form-group textarea { padding: 8px 12px; border: 0.5px solid #ccc; border-radius: 8px; font-size: 13px; width: 100%; }
+    .form-group textarea { resize: vertical; min-height: 64px; }
+
+    /* D-day */
+    .dday-wrap { display: flex; align-items: center; gap: 7px; }
+    .dday-bar { height: 4px; border-radius: 2px; min-width: 4px; }
+
+    /* 타임라인 */
+    .tl-month-group { margin-bottom: 16px; }
+    .tl-month-label { font-size: 12px; font-weight: 500; color: #888; margin-bottom: 7px; display: flex; align-items: center; gap: 6px; }
+    .tl-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+    .tl-chip { font-size: 12px; padding: 4px 10px; border-radius: 8px; border: 0.5px solid transparent; cursor: pointer; }
+    .tl-chip.urgent { background: #FCEBEB; color: #A32D2D; border-color: #F7C1C1; }
+    .tl-chip.near { background: #FAEEDA; color: #854F0B; border-color: #FAC775; }
+    .tl-chip.ok { background: #EAF3DE; color: #3B6D11; border-color: #C0DD97; }
+    .tl-chip.auto { background: #E6F1FB; color: #185FA5; border-color: #B5D4F4; }
+
+    /* 히스토리 */
+    .hist-record { padding: 10px 0; border-bottom: 0.5px solid #f0f0ec; display: flex; justify-content: space-between; gap: 12px; }
+    .hist-record:last-child { border-bottom: none; }
+    .hist-round { font-size: 11px; color: #888; background: #f5f5f3; padding: 2px 7px; border-radius: 99px; }
+
+    /* 거래처 카드 */
+    .biz-card { background: #fff; border: 0.5px solid #e8e8e4; border-radius: 12px; padding: 16px; margin-bottom: 10px; cursor: pointer; transition: box-shadow 0.12s; }
+    .biz-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.07); }
+    .biz-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .biz-info { font-size: 12px; color: #888; display: flex; flex-wrap: wrap; gap: 8px; }
+
+    /* 토스트 */
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a18; color: #fff; padding: 12px 18px; border-radius: 8px; font-size: 13px; z-index: 999; animation: fadeUp 0.2s ease; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+    .empty-state { text-align: center; padding: 40px; color: #aaa; font-size: 13px; }
+    .empty-state i { font-size: 32px; display: block; margin-bottom: 10px; }
+    .count-badge { font-size: 11px; background: #f0f0ec; color: #666; padding: 2px 7px; border-radius: 99px; }
+    .text-muted { color: #888; }
+    .text-sm { font-size: 12px; }
+    .mt-1 { margin-top: 6px; }
+  </style>
 </head>
 <body>
 
-<div id="login-screen">
-  <div class="login-box">
-    <div>
-      <div style="font-size:28px;font-weight:700;color:#185FA5;margin-bottom:6px;">📋 재계약 관리</div>
-      <div style="font-size:14px;color:#888;">사업장 재계약 현황을 한눈에 관리하세요</div>
+<!-- 홈 화면 -->
+<div id="home-screen">
+  <div class="home-logo">📋 재계약 관리</div>
+  <div class="home-sub">온정F&amp;B 사업장 재계약 현황 관리 시스템</div>
+  <div class="home-menu">
+    <div class="home-btn blue" onclick="goPage('businesses')">
+      <i class="ti ti-building"></i>
+      <div class="btn-label">거래처 정보</div>
+      <div class="btn-desc">사업장 연락처 조회</div>
     </div>
-    <button class="btn-google" id="btn-login">
-      <img src="https://www.google.com/favicon.ico" alt="Google">
-      Google 계정으로 로그인
-    </button>
-    <div style="font-size:12px;color:#bbb;">회사 Google 계정으로 로그인하세요</div>
-  </div>
-</div>
-
-<div id="app" style="display:none;">
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      <i class="ti ti-file-description" style="color:#185FA5;"></i>
-      <span>재계약 관리</span>
+    <div class="home-btn green" onclick="goPage('contracts')">
+      <i class="ti ti-file-text"></i>
+      <div class="btn-label">현재 계약현황</div>
+      <div class="btn-desc">D-day 및 상태 확인</div>
     </div>
-    <nav class="sidebar-nav">
-      <button class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">
-        <i class="ti ti-dashboard"></i> 대시보드
-      </button>
-      <button class="nav-item" data-page="contracts" onclick="showPage('contracts')">
-        <i class="ti ti-file-text"></i> 계약 목록
-      </button>
-      <button class="nav-item" data-page="timeline" onclick="showPage('timeline')">
-        <i class="ti ti-calendar"></i> 타임라인
-      </button>
-      <button class="nav-item" data-page="history" onclick="showPage('history')">
-        <i class="ti ti-history"></i> 계약 히스토리
-      </button>
-    </nav>
-    <div class="sidebar-footer">
-      <div class="user-info">
-        <div class="user-avatar" id="user-avatar">U</div>
-        <div id="user-name" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
-      </div>
-      <button class="btn-logout" id="btn-logout">로그아웃</button>
+    <div class="home-btn amber" onclick="goPage('history')">
+      <i class="ti ti-history"></i>
+      <div class="btn-label">계약 히스토리</div>
+      <div class="btn-desc">계약 이력 조회</div>
     </div>
-  </aside>
-
-  <div class="main-content">
-    <div class="top-bar">
-      <h2 id="page-title">대시보드</h2>
-      <div class="top-actions">
-        <button class="btn" onclick="exportExcel()"><i class="ti ti-download"></i> 엑셀 저장</button>
-        <button class="btn primary" onclick="openAddModal()"><i class="ti ti-plus"></i> 계약 추가</button>
-      </div>
-    </div>
-
-    <div id="page-dashboard" class="page page-body">
-      <div class="stat-grid">
-        <div class="stat-card total"><div class="label"><i class="ti ti-building"></i> 전체 사업장</div><div class="value" id="stat-total">0</div></div>
-        <div class="stat-card auto"><div class="label"><i class="ti ti-refresh"></i> 자동연장 중</div><div class="value" id="stat-auto">0</div></div>
-        <div class="stat-card urgent"><div class="label"><i class="ti ti-alert-circle"></i> 긴급 (D-30)</div><div class="value" id="stat-urgent">0</div></div>
-        <div class="stat-card near"><div class="label"><i class="ti ti-clock"></i> 임박 (D-90)</div><div class="value" id="stat-near">0</div></div>
-        <div class="stat-card ok"><div class="label"><i class="ti ti-check"></i> 여유</div><div class="value" id="stat-ok">0</div></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
-        <div class="card">
-          <div class="card-header"><span class="card-title" style="color:#A32D2D;"><i class="ti ti-alert-circle"></i> 긴급 처리 필요</span></div>
-          <div class="card-body" id="dash-urgent-list"></div>
-        </div>
-        <div class="card">
-          <div class="card-header"><span class="card-title" style="color:#185FA5;"><i class="ti ti-refresh"></i> 자동연장 진행 중</span></div>
-          <div class="card-body" id="dash-auto-list"></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title"><i class="ti ti-calendar-month"></i> 이번 달 만료</span></div>
-        <div class="card-body" id="dash-thismonth-list"></div>
-      </div>
-    </div>
-
-    <div id="page-contracts" class="page page-body" style="display:none;">
-      <div class="toolbar">
-        <input type="text" id="search-input" placeholder="사업장명 / 소재지 검색..." oninput="renderContractTable()">
-        <select id="filter-status" onchange="renderContractTable()">
-          <option value="">전체 상태</option>
-          <option value="auto">자동연장</option>
-          <option value="urgent">긴급</option>
-          <option value="near">임박</option>
-          <option value="ok">여유</option>
-        </select>
-        <select id="filter-auto" onchange="renderContractTable()">
-          <option value="">자동연장 전체</option>
-          <option value="y">자동연장 있음</option>
-          <option value="n">자동연장 없음</option>
-        </select>
-        <span id="count-label" class="count-badge"></span>
-      </div>
-      <div class="card">
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th style="width:70px;">상태</th>
-                <th style="width:140px;">사업장</th>
-                <th style="width:120px;">소재지</th>
-                <th style="width:100px;">종료일</th>
-                <th style="width:130px;">D-day</th>
-                <th style="width:80px;">자동연장</th>
-                <th style="width:90px;">단가</th>
-                <th>비고</th>
-                <th style="width:50px;"></th>
-              </tr>
-            </thead>
-            <tbody id="contract-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <div id="page-timeline" class="page page-body" style="display:none;">
-      <p style="font-size:13px;color:#888;margin-bottom:16px;">계약 종료월 기준으로 사업장을 정렬했어요. 칩을 클릭하면 수정할 수 있어요.</p>
-      <div id="timeline-content"></div>
-    </div>
-
-    <div id="page-history" class="page page-body" style="display:none;">
-      <div class="toolbar">
-        <input type="text" id="hist-search" placeholder="사업장 검색..." oninput="renderHistory()">
-      </div>
-      <div id="history-content"></div>
+    <div class="home-btn red" onclick="goPage('admin')">
+      <i class="ti ti-settings"></i>
+      <div class="btn-label">관리자 수정</div>
+      <div class="btn-desc">계약 추가 · 수정 · 삭제</div>
     </div>
   </div>
 </div>
 
+<!-- 앱 화면 -->
+<div id="app">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goHome()"><i class="ti ti-arrow-left"></i> 홈</button>
+    <h2 id="page-title"></h2>
+    <div class="top-actions" id="top-actions"></div>
+  </div>
+
+  <!-- 거래처 정보 -->
+  <div id="page-businesses" class="page-body" style="display:none;">
+    <div class="toolbar">
+      <input type="text" id="biz-search" placeholder="사업장명 / 소재지 검색..." oninput="renderBusinesses()">
+    </div>
+    <div id="biz-list"></div>
+  </div>
+
+  <!-- 현재 계약현황 -->
+  <div id="page-contracts" class="page-body" style="display:none;">
+    <div class="toolbar">
+      <input type="text" id="search-input" placeholder="사업장명 검색..." oninput="renderContractTable()">
+      <select id="filter-status" onchange="renderContractTable()">
+        <option value="">전체 상태</option>
+        <option value="auto">자동연장</option>
+        <option value="urgent">긴급</option>
+        <option value="near">임박</option>
+        <option value="ok">여유</option>
+      </select>
+      <span id="count-label" class="count-badge"></span>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>상태</th><th>사업장</th><th>종료일</th><th>D-day</th><th>자동연장</th><th>단가</th><th>비고</th>
+          </tr></thead>
+          <tbody id="contract-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <!-- 타임라인 -->
+    <div class="card">
+      <div class="card-header"><span class="card-title"><i class="ti ti-calendar"></i> 월별 타임라인</span></div>
+      <div class="card-body"><div id="timeline-content"></div></div>
+    </div>
+  </div>
+
+  <!-- 계약 히스토리 -->
+  <div id="page-history" class="page-body" style="display:none;">
+    <div class="toolbar">
+      <input type="text" id="hist-search" placeholder="사업장 검색..." oninput="renderHistory()">
+    </div>
+    <div id="history-content"></div>
+  </div>
+
+  <!-- 관리자 수정 -->
+  <div id="page-admin" class="page-body" style="display:none;">
+    <div class="toolbar">
+      <input type="text" id="admin-search" placeholder="사업장명 검색..." oninput="renderAdmin()">
+      <span id="admin-count" class="count-badge"></span>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>상태</th><th>사업장</th><th>종료일</th><th>D-day</th><th>단가</th><th style="width:80px;"></th>
+          </tr></thead>
+          <tbody id="admin-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 계약 모달 -->
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal">
     <div class="modal-header">
@@ -156,12 +289,9 @@
           <div class="form-group"><label>담당자 연락처</label><input type="tel" id="f-contactPhone" placeholder="예) 010-0000-0000"></div>
           <div class="form-group"><label>대표번호</label><input type="text" id="f-tel" placeholder="예) T. 031-000-0000"></div>
           <div class="form-group"><label>자동연장 조건</label>
-            <select id="f-autoRenew">
-              <option value="false">없음</option>
-              <option value="true">자동연장 있음</option>
-            </select>
+            <select id="f-autoRenew"><option value="false">없음</option><option value="true">자동연장 있음</option></select>
           </div>
-          <div class="form-group"><label>계약 시작일 *</label><input type="date" id="f-startDate"></div>
+          <div class="form-group"><label>계약 시작일</label><input type="date" id="f-startDate"></div>
           <div class="form-group"><label>계약 종료일 *</label><input type="date" id="f-endDate"></div>
           <div class="form-group"><label>계약단가 (원)</label><input type="number" id="f-price" placeholder="예) 6000"></div>
           <div class="form-group"><label>단가 구분</label>
@@ -171,11 +301,7 @@
               <option value="fixed">월 고정금액</option>
             </select>
           </div>
-          <div class="form-group full"><label>비고</label><textarea id="f-note" placeholder="월 보장식수, 특식비 등 특이사항"></textarea></div>
-        </div>
-        <div style="background:#FAEEDA;border-radius:8px;padding:10px 14px;font-size:12px;color:#854F0B;margin-top:12px;">
-          <i class="ti ti-info-circle"></i>
-          계약 종료일이 지났는데 새 계약이 없으면 자동으로 <strong>자동연장</strong> 상태로 표시됩니다.
+          <div class="form-group full"><label>비고</label><textarea id="f-note" placeholder="월 보장식수, 특식비 등"></textarea></div>
         </div>
       </form>
     </div>
