@@ -1,4 +1,3 @@
-// app.js
 import { listenContracts, listenHistory, listenSupports, addContract, updateContract, deleteContract, addHistory, addSupport, deleteSupport, seedIfEmpty } from './db.js';
 import { calcStatus, STATUS_META, fmtDate, toInputDate, monthKey, monthLabel, dDiff, dDayLabel, priceLabel } from './utils.js';
 
@@ -9,9 +8,8 @@ var editingId = null;
 var currentPage = '';
 var currentBizTab = 'team';
 var mapInstance = null;
-var detailId = null;
+window.detailId = null;
 
-// ── 좌표 데이터 ──────────────────────────
 var COORDS = {
   'SK가스':{lat:36.9623,lng:126.8834},'그린씨알피':{lat:37.0234,lng:127.2156},
   '다원체어스':{lat:37.6234,lng:127.3456},'대덕농협':{lat:37.0456,lng:127.2345},
@@ -60,7 +58,6 @@ var COORDS = {
 
 var SUPPORT_CATS = ['위생점검','운영상황체크','특식지원','배식지원','미팅','기타'];
 
-// ── 초기화 ──────────────────────────
 async function init() {
   await seedIfEmpty();
   listenContracts(function(data) { contracts = data; if(currentPage) renderPage(currentPage); });
@@ -69,7 +66,6 @@ async function init() {
 }
 init();
 
-// ── 페이지 전환 ──────────────────────────
 window.goHome = function() {
   document.getElementById('app').style.display = 'none';
   document.getElementById('detail-screen').style.display = 'none';
@@ -88,7 +84,6 @@ window.goPage = function(page) {
   var actions = document.getElementById('top-actions');
   actions.innerHTML = '';
   if(page==='admin') actions.innerHTML = '<button class="btn primary" onclick="openAddModal()"><i class="ti ti-plus"></i> 추가</button><button class="btn" onclick="exportExcel()"><i class="ti ti-download"></i> 엑셀</button>';
-  if(page==='contracts') actions.innerHTML = '<button class="btn" onclick="exportExcel()"><i class="ti ti-download"></i> 엑셀</button>';
   ['dashboard','support','businesses','admin'].forEach(function(p){
     var el=document.getElementById('page-'+p);
     if(el) el.style.display = p===page?'block':'none';
@@ -122,36 +117,6 @@ function renderDashboard() {
   makeCard('card-urgent','red','ti-alert-circle','계약 긴급 (D-30)',counts.urgent);
   makeCard('card-near','amber','ti-clock','계약 임박 (D-90)',counts.near);
   makeCard('card-auto','blue2','ti-refresh','자동연장 중',counts.auto);
-
-  // 카드 클릭 리스트
-  function renderList(el, filter) {
-    var list = contracts.filter(function(c){ return filter(calcStatus(c)); })
-      .sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
-    el.innerHTML = list.length ? list.map(function(c){
-      var s=calcStatus(c); var d=dDiff(c.endDate);
-      return '<div class="dash-item" onclick="goDetail(\'' + c.id + '\')">' +
-        '<div><div class="dash-name">' + c.name + '</div>' +
-        '<div class="dash-sub">' + c.resp + ' · ' + c.addr.split(' ').slice(0,2).join(' ') + '</div></div>' +
-        '<div class="dash-right"><span class="badge ' + s + '">' + STATUS_META[s].label + '</span>' +
-        '<div class="dash-dday" style="color:' + (s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':'#854F0B') + '">' + dDayLabel(d) + '</div></div></div>';
-    }).join('') : '<div class="empty-state"><i class="ti ti-check"></i>해당 없음</div>';
-  }
-
-  var activeCard = document.querySelector('.stat-card.active-card');
-  var activeFilter = activeCard ? activeCard.dataset.filter : null;
-  var listEl = document.getElementById('dash-list');
-  var listWrap = document.getElementById('dash-list-wrap');
-
-  if(activeFilter) {
-    listWrap.style.display = 'block';
-    var filterFn = {
-      'all': function(s){ return true; },
-      'urgent': function(s){ return s==='urgent'; },
-      'near': function(s){ return s==='near'; },
-      'auto': function(s){ return s==='auto'; },
-    }[activeFilter] || function(){ return true; };
-    renderList(listEl, filterFn);
-  }
 }
 
 window.toggleDashCard = function(el, filter) {
@@ -175,7 +140,7 @@ window.toggleDashCard = function(el, filter) {
     var s=calcStatus(c); var d=dDiff(c.endDate);
     return '<div class="dash-item" onclick="goDetail(\'' + c.id + '\')">' +
       '<div><div class="dash-name">' + c.name + '</div>' +
-      '<div class="dash-sub">' + c.resp + ' · ' + c.addr.split(' ').slice(0,2).join(' ') + '</div></div>' +
+      '<div class="dash-sub">' + (c.resp||'') + ' · ' + (c.addr||'').split(' ').slice(0,2).join(' ') + '</div></div>' +
       '<div class="dash-right"><span class="badge ' + s + '">' + STATUS_META[s].label + '</span>' +
       '<div class="dash-dday" style="color:' + (s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':'#854F0B') + '">' + dDayLabel(d) + '</div></div></div>';
   }).join('') : '<div class="empty-state"><i class="ti ti-check"></i>해당 없음</div>';
@@ -183,9 +148,10 @@ window.toggleDashCard = function(el, filter) {
 
 // ── 사업장 상세 ──────────────────────────
 window.goDetail = function(id) {
+  if(!id || id === 'undefined') return;
   var c = contracts.find(function(x){ return x.id===id; });
   if(!c) return;
-  detailId = id;
+  window.detailId = id;
   document.getElementById('app').style.display = 'none';
   document.getElementById('home-screen').style.display = 'none';
   document.getElementById('detail-screen').style.display = 'flex';
@@ -215,21 +181,20 @@ function renderDetail(c) {
       '</div>';
   }).join('') : '<div style="color:#aaa;font-size:13px;padding:12px 0;">히스토리 없음</div>';
 
-  // 지원 이력
-  var bizSupports = supports.filter(function(s){ return s.bizName===c.name; })
+  var bizSupports = supports.filter(function(sp){ return sp.bizName===c.name; })
     .sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
-  var supHtml = bizSupports.length ? bizSupports.map(function(s){
+  var supHtml = bizSupports.length ? bizSupports.map(function(sp){
     return '<div class="hist-record">' +
-      '<span class="badge-cat">' + s.category + '</span>' +
-      '<span>' + (s.date||'') + '</span>' +
-      '<span style="font-weight:500;">' + (s.staffName||'') + '</span>' +
-      '<span style="color:#666;">' + (s.content||'') + '</span>' +
+      '<span class="badge-cat">' + (sp.category||'') + '</span>' +
+      '<span style="font-size:12px;color:#888;">' + (sp.date||'') + '</span>' +
+      '<span style="font-weight:500;">' + (sp.staffName||'') + '</span>' +
+      '<span style="color:#666;">' + (sp.content||'') + '</span>' +
       '</div>';
   }).join('') : '<div style="color:#aaa;font-size:13px;padding:12px 0;">지원 이력 없음</div>';
 
   document.getElementById('detail-body').innerHTML =
     '<div class="detail-section">' +
-    '<div class="detail-row"><span class="detail-label">계약 상태</span><span class="badge ' + s + '">' + STATUS_META[s].label + '</span> <span style="color:' + (s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':'#854F0B') + ';font-weight:500;">' + dDayLabel(d) + '</span></div>' +
+    '<div class="detail-row"><span class="detail-label">계약 상태</span><div style="display:flex;align-items:center;gap:8px;"><span class="badge ' + s + '">' + STATUS_META[s].label + '</span><span style="color:' + (s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':'#854F0B') + ';font-weight:500;">' + dDayLabel(d) + '</span></div></div>' +
     '<div class="detail-row"><span class="detail-label">소재지</span><span>' + (c.addr||'-') + '</span></div>' +
     '<div class="detail-row"><span class="detail-label">담당자</span><span>' + (c.contactName||'-') + '</span></div>' +
     '<div class="detail-row"><span class="detail-label">연락처</span><span>' + (c.contactPhone||'-') + (c.tel?' / '+c.tel:'') + '</span></div>' +
@@ -247,12 +212,10 @@ function renderDetail(c) {
     '</div>' +
     '<div class="detail-section">' +
     '<div class="detail-section-title">계약 히스토리</div>' +
-    histHtml +
-    '</div>' +
+    histHtml + '</div>' +
     '<div class="detail-section">' +
     '<div class="detail-section-title">운영지원 이력</div>' +
-    supHtml +
-    '</div>';
+    supHtml + '</div>';
 }
 
 // ── 운영지원 ──────────────────────────
@@ -267,8 +230,6 @@ function renderCalendar() {
   var month = now.getMonth();
   var el = document.getElementById('cal-title');
   if(el) el.textContent = year + '년 ' + (month+1) + '월';
-
-  // 날짜별 지원 건수 맵
   var dayMap = {};
   supports.forEach(function(s){
     if(!s.date) return;
@@ -276,7 +237,6 @@ function renderCalendar() {
     if(!dayMap[key]) dayMap[key] = [];
     dayMap[key].push(s);
   });
-
   var firstDay = new Date(year, month, 1).getDay();
   var lastDate = new Date(year, month+1, 0).getDate();
   var today = new Date().toISOString().slice(0,10);
@@ -299,15 +259,16 @@ function renderCalendar() {
   var calEl = document.getElementById('calendar');
   if(calEl) calEl.innerHTML = calHtml;
 
-  // 지원 목록 (최근 20건)
   var listEl = document.getElementById('support-list');
   if(!listEl) return;
   var sorted = supports.slice().sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); }).slice(0,20);
   listEl.innerHTML = sorted.length ? sorted.map(function(s){
+    var c = contracts.find(function(x){ return x.name===s.bizName; });
+    var cid = c ? c.id : '';
     return '<div class="sup-row">' +
       '<span class="badge-cat">' + (s.category||'') + '</span>' +
       '<span class="sup-date">' + (s.date||'') + '</span>' +
-      '<span class="sup-biz" onclick="goDetail(\'' + (contracts.find(function(c){return c.name===s.bizName;})||{}).id + '\')">' + (s.bizName||'') + '</span>' +
+      '<span class="sup-biz"' + (cid?' onclick="goDetail(\''+cid+'\')"':'') + '>' + (s.bizName||'') + '</span>' +
       '<span class="sup-staff">' + (s.staffName||'') + '</span>' +
       '<span class="sup-content">' + (s.content||'') + '</span>' +
       '<button class="btn sm danger" onclick="delSupport(\'' + s.id + '\')"><i class="ti ti-trash"></i></button>' +
@@ -330,7 +291,7 @@ window.submitSupport = async function() {
   var staff = document.getElementById('sup-staff').value.trim();
   var cat = document.getElementById('sup-cat').value;
   var content = document.getElementById('sup-content').value.trim();
-  if(!biz||!date||!cat) { showToast('업장, 일자, 카테고리는 필수예요.'); return; }
+  if(!biz||!date||!cat){ showToast('업장, 일자, 카테고리는 필수예요.'); return; }
   try {
     await addSupport({ bizName:biz, date:date, staffName:staff, category:cat, content:content });
     document.getElementById('sup-date').value='';
@@ -339,12 +300,12 @@ window.submitSupport = async function() {
     document.getElementById('sup-cat').value='';
     document.getElementById('sup-biz').value='';
     showToast('운영지원이 등록되었습니다.');
-  } catch(e) { showToast('등록 중 오류가 발생했습니다.'); }
+  } catch(e){ showToast('등록 중 오류가 발생했습니다.'); }
 };
 
 window.delSupport = async function(id) {
   if(!confirm('삭제할까요?')) return;
-  try { await deleteSupport(id); showToast('삭제되었습니다.'); } catch(e) { showToast('오류 발생'); }
+  try{ await deleteSupport(id); showToast('삭제되었습니다.'); } catch(e){ showToast('오류 발생'); }
 };
 
 // ── FS 사업장 현황 ──────────────────────────
@@ -371,7 +332,8 @@ window.renderBizTab = function() {
       '<div class="biz-info"><span><i class="ti ti-map-pin"></i>' + (c.addr||'-') + '</span>' +
       (c.contactName?'<span><i class="ti ti-user"></i>' + c.contactName + '</span>':'') +
       (c.contactPhone?'<span><i class="ti ti-phone"></i>' + c.contactPhone + '</span>':'') + '</div>' +
-      '<div class="biz-bottom"><span>' + fmtDate(c.endDate) + '</span><span style="font-size:12px;font-weight:500;color:' + (s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':'#854F0B') + '">' + dDayLabel(d) + '</span></div>' +
+      '<div class="biz-bottom"><span>' + fmtDate(c.endDate) + '</span>' +
+      '<span style="font-size:12px;font-weight:500;color:' + (s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':'#854F0B') + '">' + dDayLabel(d) + '</span></div>' +
       '</div>';
   }
 
@@ -384,7 +346,6 @@ window.renderBizTab = function() {
       '<div><div class="team-header blue"><i class="ti ti-users"></i> 1팀 — 박주형 본부장 <span>' + t1.length + '개소</span></div>' + t1.map(bizCard).join('') + '</div>' +
       '<div><div class="team-header green"><i class="ti ti-users"></i> 2팀 — 김재희 차장 <span>' + t2.length + '개소</span></div>' + t2.map(bizCard).join('') + '</div>' +
       '</div>';
-
   } else if(currentBizTab==='resp') {
     var respGroups = {};
     filtered.forEach(function(c){
@@ -400,7 +361,6 @@ window.renderBizTab = function() {
       html += '<div class="resp-section"><div class="resp-header"><i class="ti ti-user"></i>' + r + ' <span>' + list.length + '개소</span></div><div class="biz-grid">' + list.map(bizCard).join('') + '</div></div>';
     });
     el.innerHTML = html || '<div class="empty-state">검색 결과 없음</div>';
-
   } else if(currentBizTab==='region') {
     el.innerHTML = '<div class="map-legend">' +
       '<span><span class="leg-dot" style="background:#E24B4A;"></span>긴급</span>' +
@@ -425,7 +385,7 @@ window.renderBizTab = function() {
           (c.contactName?'<br>' + c.contactName + ' ' + (c.contactPhone||''):''),
           {permanent:false,direction:'top',offset:[0,-8],opacity:0.97}
         );
-        marker.on('click',function(){ goDetail(c.id); });
+        marker.on('click',function(){ window.goDetail(c.id); });
       });
     },100);
   }
@@ -460,6 +420,7 @@ window.openAddModal = function() {
 };
 
 window.openEditModal = function(id) {
+  if(!id || id==='undefined') return;
   var c=contracts.find(function(x){ return x.id===id; }); if(!c) return;
   editingId=id;
   document.getElementById('modal-title').textContent = '계약 수정 — '+c.name;
@@ -524,7 +485,6 @@ window.handleDelete = async function(id,name) {
   catch(e){ showToast('삭제 중 오류가 발생했습니다.'); }
 };
 
-// ── 엑셀 ──────────────────────────
 window.exportExcel = function() {
   if(!window.XLSX){ showToast('잠시 후 다시 시도해 주세요.'); return; }
   var rows=[['번호','사업장','소재지','팀','책임','담당자','연락처','시작일','종료일','D-day','단가','평균식수','끼니','주말','자동연장','상태','비고']];
@@ -539,7 +499,6 @@ window.exportExcel = function() {
   showToast('엑셀 저장되었습니다.');
 };
 
-// ── 유틸 ──────────────────────────
 function showToast(msg) {
   var el=document.createElement('div'); el.className='toast'; el.textContent=msg;
   document.body.appendChild(el); setTimeout(function(){ el.remove(); },2800);
