@@ -256,7 +256,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
         <span class="card-title"><i class="ti ti-plus-circle" style="color:#185FA5;"></i> 운영지원 등록</span>
       </div>
       <div class="card-body">
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
           <div class="sup-form-group">
             <label>업장 선택 *</label>
             <div class="searchable-select">
@@ -270,15 +270,26 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
             <label>일자 *</label>
             <input type="date" id="sup-date">
           </div>
-          <div class="sup-form-group">
-            <label>시간</label>
-            <select id="sup-time">
+        <div class="sup-form-group">
+            <label>시작 시간</label>
+            <select id="sup-time-start">
               <option value="">선택...</option>
               <option>08:00</option><option>09:00</option><option>10:00</option>
               <option>11:00</option><option>12:00</option><option>13:00</option>
               <option>14:00</option><option>15:00</option><option>16:00</option>
               <option>17:00</option><option>18:00</option><option>19:00</option>
               <option>20:00</option>
+            </select>
+          </div>
+          <div class="sup-form-group">
+            <label>종료 시간</label>
+            <select id="sup-time-end">
+              <option value="">선택...</option>
+              <option>09:00</option><option>10:00</option><option>11:00</option>
+              <option>12:00</option><option>13:00</option><option>14:00</option>
+              <option>15:00</option><option>16:00</option><option>17:00</option>
+              <option>18:00</option><option>19:00</option><option>20:00</option>
+              <option>21:00</option>
             </select>
           </div>
           <div class="sup-form-group">
