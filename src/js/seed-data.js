@@ -87,3 +87,329 @@ export const SEED_CONTRACTS = [
   {no:84,name:'세명테크',startDate:'2026-02-01',endDate:'2027-03-01',price:9000,priceType:'per-meal',meals:'중/석',note:'월 보장식수 1,600식',contactName:'최현용 부장',contactPhone:'010-9722-2655',tel:'',team:2,addr:'충남 아산시 둔포면 장영실로 922-5',resp:'김상준 주임',avgMeals:1600,weekend:'',autoRenew:false},
   {no:85,name:'효림정공',startDate:'2026-02-01',endDate:'2028-02-09',price:6000,priceType:'per-meal',meals:'중/석',note:'',contactName:'최종혁 부장',contactPhone:'010-9170-3063',tel:'',team:1,addr:'경기 평택시 세교산단로101번길 99',resp:'견병록 매니저',avgMeals:2600,weekend:'',autoRenew:false},
 ];
+export const SEED_HISTORY = [
+  {name:'SK가스', records:[
+    {startDate:'2026-05-01',endDate:'2026-08-21',price:0,note:'21,476,100원/月'}
+  ]},
+  {name:'그린씨알피', records:[
+    {startDate:'2022-05-01',endDate:'2023-04-30',price:4500,note:''},
+    {startDate:'2023-05-01',endDate:'2026-05-30',price:5000,note:'토 중'}
+  ]},
+  {name:'다원체어스', records:[
+    {startDate:'2024-10-01',endDate:'2026-10-20',price:6000,note:'평일 보장식수 80식 / 주말 보장식수 30식'}
+  ]},
+  {name:'대덕농협', records:[
+    {startDate:'2023-09-01',endDate:'2026-08-21',price:6800,note:'월 보장식수 1,200식'}
+  ]},
+  {name:'덕일산업', records:[
+    {startDate:'2026-01-01',endDate:'2026-12-25',price:4500,note:'토 조'}
+  ]},
+  {name:'동인물산', records:[
+    {startDate:'2023-01-01',endDate:'2023-12-31',price:6000,note:'월 보장식수 1,700식'},
+    {startDate:'2024-12-01',endDate:'2026-12-25',price:7000,note:'월 보장식수 1,700식'}
+  ]},
+  {name:'동인산업', records:[
+    {startDate:'2024-07-01',endDate:'2026-05-31',price:6000,note:'인건비 150만원 지원'}
+  ]},
+  {name:'드림메카텍', records:[
+    {startDate:'2020-07-01',endDate:'2022-06-30',price:4500,note:''},
+    {startDate:'2022-07-01',endDate:'2024-06-30',price:5000,note:''},
+    {startDate:'2024-07-01',endDate:'2026-06-30',price:5500,note:'평일 보장식수 중식 45식'}
+  ]},
+  {name:'롯데웰푸드', records:[
+    {startDate:'2023-05-01',endDate:'2024-04-30',price:4500,note:''},
+    {startDate:'2025-05-01',endDate:'2026-04-30',price:5000,note:'주말 포함'}
+  ]},
+  {name:'메카로', records:[
+    {startDate:'2024-05-01',endDate:'2026-04-30',price:6000,note:''}
+  ]},
+  {name:'발렉스', records:[
+    {startDate:'2021-10-01',endDate:'2023-09-30',price:5500,note:''},
+    {startDate:'2023-10-01',endDate:'2026-10-19',price:7000,note:''}
+  ]},
+  {name:'보성정보통신', records:[
+    {startDate:'2018-04-01',endDate:'2019-03-31',price:3000,note:''},
+    {startDate:'2019-04-01',endDate:'2021-03-31',price:3500,note:''},
+    {startDate:'2021-04-01',endDate:'2023-03-31',price:3800,note:''},
+    {startDate:'2023-04-01',endDate:'2027-03-22',price:4000,note:'토 중/야, 일 중'}
+  ]},
+  {name:'삼양화학공업', records:[
+    {startDate:'2025-02-01',endDate:'2026-12-25',price:0,note:'16,700,000원/月'}
+  ]},
+  {name:'삼일엘리베이터', records:[
+    {startDate:'2020-02-01',endDate:'2022-01-31',price:5500,note:'월 보장식수 800식'},
+    {startDate:'2022-02-01',endDate:'2027-02-01',price:7000,note:'월 보장식수 800식'}
+  ]},
+  {name:'삼전순약', records:[
+    {startDate:'2020-02-01',endDate:'2022-01-31',price:5500,note:'일 보장식수 110식'},
+    {startDate:'2022-02-01',endDate:'2027-02-19',price:7000,note:'일 보장식수 110식'}
+  ]},
+  {name:'삼정펄프', records:[
+    {startDate:'2026-01-01',endDate:'2026-12-25',price:5000,note:'월 보장식수 1,700식'}
+  ]},
+  {name:'성문전자', records:[
+    {startDate:'2023-05-01',endDate:'2027-01-25',price:4600,note:''}
+  ]},
+  {name:'세종알로이', records:[
+    {startDate:'2022-05-01',endDate:'2024-04-30',price:5000,note:'월 보장식수 1,200식'},
+    {startDate:'2024-05-01',endDate:'2027-03-22',price:6000,note:'월 보장식수 1,200식'}
+  ]},
+  {name:'솔레오', records:[
+    {startDate:'2026-01-01',endDate:'2027-02-22',price:4700,note:'월 보장식수 3,500식'}
+  ]},
+  {name:'승우플라텍', records:[
+    {startDate:'2021-08-01',endDate:'2023-07-31',price:4500,note:'월 보장식수 1,900식'},
+    {startDate:'2023-08-01',endDate:'2026-07-31',price:5300,note:'월 보장식수 1,900식'}
+  ]},
+  {name:'신덕산업', records:[
+    {startDate:'2021-07-01',endDate:'2023-06-30',price:4200,note:''},
+    {startDate:'2023-07-01',endDate:'2026-06-30',price:5000,note:''}
+  ]},
+  {name:'신양물류', records:[
+    {startDate:'2020-07-01',endDate:'2022-06-30',price:4500,note:'기준식수 월 2,200식'},
+    {startDate:'2022-07-01',endDate:'2026-06-30',price:5500,note:'기준식수 월 2,200식'}
+  ]},
+  {name:'신한전기(엠투엔)', records:[
+    {startDate:'2025-05-01',endDate:'2026-05-31',price:4700,note:'평일 보장식수 중식 130식'}
+  ]},
+  {name:'에스아이', records:[
+    {startDate:'2021-05-01',endDate:'2027-03-26',price:0,note:'관리비제, 월 정산금액=식당운영 총비용×1.07'}
+  ]},
+  {name:'엠아이텍', records:[
+    {startDate:'2023-01-01',endDate:'2024-12-31',price:7000,note:'월 보장식수 1,200식'},
+    {startDate:'2025-01-01',endDate:'2026-10-20',price:8000,note:'월 보장식수 1,200식'}
+  ]},
+  {name:'연암', records:[
+    {startDate:'2023-10-01',endDate:'2025-09-30',price:6500,note:'월 보장식수 1,200식'},
+    {startDate:'2025-10-01',endDate:'2027-10-17',price:7100,note:'월 보장식수 1,200식'}
+  ]},
+  {name:'오뚜기 논산', records:[
+    {startDate:'2022-01-01',endDate:'2024-01-31',price:4500,note:'월 보장식수 1,000식'},
+    {startDate:'2024-02-01',endDate:'2027-01-21',price:5000,note:'월 보장식수 1,000식'}
+  ]},
+  {name:'오뚜기 평택', records:[
+    {startDate:'2022-09-01',endDate:'2024-08-31',price:4800,note:'월 보장식수 1,400식'},
+    {startDate:'2024-09-01',endDate:'2026-08-21',price:5500,note:'월 보장식수 1,400식 / 특식비 100만원/月'}
+  ]},
+  {name:'오뚜기 포승', records:[
+    {startDate:'2021-12-01',endDate:'2023-11-30',price:4800,note:'일 보장식수 130식'},
+    {startDate:'2023-12-01',endDate:'2026-12-25',price:5500,note:'일 보장식수 130식'}
+  ]},
+  {name:'우보테크', records:[
+    {startDate:'2022-10-01',endDate:'2024-09-30',price:4200,note:''},
+    {startDate:'2024-10-01',endDate:'2026-10-20',price:5000,note:'평일 조식 보장식수 30식'}
+  ]},
+  {name:'우진티엠씨', records:[
+    {startDate:'2020-09-01',endDate:'2022-08-31',price:0,note:'관리비제 월 80만원'},
+    {startDate:'2022-09-01',endDate:'2026-09-19',price:0,note:'관리비제 월 80만원'}
+  ]},
+  {name:'유니젠', records:[
+    {startDate:'2023-05-01',endDate:'2025-04-30',price:5500,note:''},
+    {startDate:'2025-05-01',endDate:'2026-05-25',price:6000,note:''}
+  ]},
+  {name:'윤지양행', records:[
+    {startDate:'2023-05-01',endDate:'2025-04-30',price:5500,note:'토 중'},
+    {startDate:'2025-05-01',endDate:'2026-05-25',price:6000,note:'토 중'}
+  ]},
+  {name:'일렉콤', records:[
+    {startDate:'2023-05-01',endDate:'2025-04-30',price:7500,note:'조식 3,500원(간편식)'},
+    {startDate:'2025-05-01',endDate:'2026-06-30',price:8500,note:'26년6월까지 계약종료 이동급식 진행'}
+  ]},
+  {name:'지에스아이', records:[
+    {startDate:'2015-03-01',endDate:'2017-02-28',price:3700,note:'일 보장식수 25식'},
+    {startDate:'2019-03-01',endDate:'2020-02-29',price:3900,note:'일 보장식수 25식'},
+    {startDate:'2020-03-01',endDate:'2021-02-28',price:3900,note:'평일 보장식수 25식 / 주말 보장식수 50식'},
+    {startDate:'2022-02-01',endDate:'2023-01-31',price:4100,note:'평일 보장식수 25식 / 주말 보장식수 50식'},
+    {startDate:'2024-05-01',endDate:'2027-03-22',price:4300,note:'평일 보장식수 25식 / 주말 보장식수 60식'}
+  ]},
+  {name:'청우코아', records:[
+    {startDate:'2021-05-01',endDate:'2027-03-13',price:0,note:'운영수수료 월 450,000원'}
+  ]},
+  {name:'KC글라스', records:[
+    {startDate:'2022-02-01',endDate:'2024-01-31',price:4500,note:''},
+    {startDate:'2025-01-01',endDate:'2026-12-25',price:5000,note:'주말 포함'}
+  ]},
+  {name:'코오롱 인더스트리', records:[
+    {startDate:'2020-10-01',endDate:'2022-03-31',price:5000,note:'VAT포함'},
+    {startDate:'2023-09-01',endDate:'2026-12-25',price:6000,note:'VAT포함'}
+  ]},
+  {name:'티엔씨', records:[
+    {startDate:'2013-02-01',endDate:'2014-01-31',price:4000,note:''},
+    {startDate:'2014-02-01',endDate:'2015-01-31',price:4300,note:''},
+    {startDate:'2015-02-01',endDate:'2016-01-31',price:4300,note:''},
+    {startDate:'2018-09-01',endDate:'2019-08-31',price:4600,note:''},
+    {startDate:'2019-09-01',endDate:'2020-08-31',price:4900,note:''},
+    {startDate:'2021-04-01',endDate:'2022-03-31',price:5500,note:'월 보장식수 1,300식'},
+    {startDate:'2021-10-01',endDate:'2026-10-20',price:6000,note:'월 보장식수 1,300식'}
+  ]},
+  {name:'파트라', records:[
+    {startDate:'2022-11-01',endDate:'2024-05-31',price:6500,note:'석식 제공시 보장식수 30식'},
+    {startDate:'2024-06-01',endDate:'2026-12-25',price:7500,note:'석식 제공시 보장식수 30식'}
+  ]},
+  {name:'퍼슨', records:[
+    {startDate:'2022-07-01',endDate:'2023-06-30',price:4400,note:'석식 제공시 보장식수 35식'},
+    {startDate:'2023-07-01',endDate:'2024-06-30',price:4900,note:'석식 제공시 보장식수 35식'},
+    {startDate:'2024-07-01',endDate:'2026-06-30',price:4900,note:'석식 제공시 보장식수 35식'}
+  ]},
+  {name:'퓨어앤텍', records:[
+    {startDate:'2020-08-01',endDate:'2022-07-31',price:5000,note:'월 보장식수 1,600식'},
+    {startDate:'2022-08-01',endDate:'2026-07-31',price:6000,note:'월 보장식수 1,600식'}
+  ]},
+  {name:'한보일렉트', records:[
+    {startDate:'2018-10-01',endDate:'2020-09-30',price:3750,note:'일 보장식수 90식'},
+    {startDate:'2021-10-01',endDate:'2023-09-30',price:5000,note:'일 보장식수 85식'},
+    {startDate:'2024-01-01',endDate:'2027-03-22',price:5300,note:'일 보장식수 85식'}
+  ]},
+  {name:'한석시스템', records:[
+    {startDate:'2022-08-01',endDate:'2026-07-31',price:0,note:'관리비제'}
+  ]},
+  {name:'한양로보틱스', records:[
+    {startDate:'2019-07-01',endDate:'2021-06-30',price:6000,note:'월 보장식수 1,200식'},
+    {startDate:'2021-07-01',endDate:'2023-06-30',price:5200,note:''},
+    {startDate:'2023-07-01',endDate:'2026-05-31',price:6000,note:''}
+  ]},
+  {name:'한온시스템 아산', records:[
+    {startDate:'2022-10-01',endDate:'2024-03-31',price:4500,note:''},
+    {startDate:'2024-04-01',endDate:'2025-12-31',price:5000,note:''},
+    {startDate:'2026-01-01',endDate:'2027-10-24',price:5000,note:'토 동일'}
+  ]},
+  {name:'한온시스템 둔포', records:[
+    {startDate:'2022-10-01',endDate:'2024-03-31',price:4500,note:''},
+    {startDate:'2025-05-01',endDate:'2026-06-30',price:5000,note:'토 조/중'}
+  ]},
+  {name:'에치와이', records:[
+    {startDate:'2022-10-01',endDate:'2024-03-31',price:3500,note:'관리비제 13,000,000원'},
+    {startDate:'2024-04-01',endDate:'2025-12-31',price:3500,note:'관리비제 13,800,000원'},
+    {startDate:'2026-01-01',endDate:'2026-12-25',price:3500,note:'관리비제 14,000,000원'}
+  ]},
+  {name:'쏘나브이피씨', records:[
+    {startDate:'2022-08-01',endDate:'2024-03-31',price:5200,note:'조식은 간편식으로 제공'},
+    {startDate:'2024-04-01',endDate:'2025-12-31',price:5200,note:'조식은 간편식으로 제공'},
+    {startDate:'2026-01-01',endDate:'2027-10-24',price:5500,note:'조식은 간편식으로 제공'}
+  ]},
+  {name:'나래산업', records:[
+    {startDate:'2023-02-01',endDate:'2024-02-29',price:4800,note:'토요일 중식 보장식수 30식'},
+    {startDate:'2024-10-01',endDate:'2025-12-31',price:5700,note:'토요일 중식 보장식수 30식'},
+    {startDate:'2026-01-07',endDate:'2027-01-07',price:5700,note:'토 중'}
+  ]},
+  {name:'한미에프쓰리 1공장', records:[
+    {startDate:'2023-01-01',endDate:'2024-04-30',price:5000,note:'조식(간편식) 2,000원'},
+    {startDate:'2024-05-01',endDate:'2026-04-30',price:5300,note:'조식(간편식) 2,300원'}
+  ]},
+  {name:'한미에프쓰리 2공장', records:[
+    {startDate:'2023-01-01',endDate:'2024-04-30',price:5000,note:'조식(간편식) 2,000원'},
+    {startDate:'2024-05-01',endDate:'2026-04-30',price:5300,note:'조식(간편식) 2,300원'}
+  ]},
+  {name:'카길 애그리 퓨리나', records:[
+    {startDate:'2024-01-01',endDate:'2027-03-22',price:5500,note:'야식 6,500원'}
+  ]},
+  {name:'한국바이린', records:[
+    {startDate:'2023-07-01',endDate:'2023-12-31',price:4900,note:''},
+    {startDate:'2024-01-01',endDate:'2024-05-31',price:5500,note:''},
+    {startDate:'2024-06-01',endDate:'2026-06-30',price:5500,note:'주말에만 셀프라면 운영'}
+  ]},
+  {name:'디이엔티 오산', records:[
+    {startDate:'2023-08-01',endDate:'2026-07-31',price:6000,note:''}
+  ]},
+  {name:'수퍼빈(아이엠팩토리)', records:[
+    {startDate:'2023-10-01',endDate:'2026-10-20',price:10000,note:'월 보장식수 600식'}
+  ]},
+  {name:'한국가스공사', records:[
+    {startDate:'2023-10-01',endDate:'2024-06-30',price:4000,note:'조식 및 간식 2,000원'},
+    {startDate:'2024-01-01',endDate:'2025-06-30',price:4500,note:'간식 2,000원 / 중식 및 석식 4,500원'},
+    {startDate:'2023-10-01',endDate:'2026-10-31',price:4500,note:'식대지원금 월 11,216,000원'}
+  ]},
+  {name:'동천', records:[
+    {startDate:'2023-12-01',endDate:'2026-12-25',price:6200,note:''}
+  ]},
+  {name:'비씨젠', records:[
+    {startDate:'2023-12-01',endDate:'2025-01-31',price:6000,note:'조식 3,000원 / 중식 6,000원 / 석식 4,500원'},
+    {startDate:'2025-02-01',endDate:'2026-12-25',price:6000,note:'조식 3,000원 / 중식 6,000원 / 석식 5,000원'}
+  ]},
+  {name:'삼영잉크', records:[
+    {startDate:'2024-03-01',endDate:'2025-02-28',price:5000,note:'특식비 월 150만원 / 간식비 월 80만원'},
+    {startDate:'2024-03-01',endDate:'2027-02-22',price:5000,note:'특식비 150만원/月 · 간식비 80만원/月'}
+  ]},
+  {name:'디오토모티브', records:[
+    {startDate:'2024-03-01',endDate:'2025-02-28',price:6500,note:'주말 보장식수 30식'},
+    {startDate:'2025-03-01',endDate:'2027-02-22',price:7000,note:'주말 보장식수 30식'}
+  ]},
+  {name:'주강로보테크', records:[
+    {startDate:'2024-04-22',endDate:'2026-04-21',price:6000,note:'일 보장식수 100식'}
+  ]},
+  {name:'피엘에스', records:[
+    {startDate:'2024-05-07',endDate:'2025-05-06',price:6000,note:'월 보장식수 3,000식'},
+    {startDate:'2024-05-07',endDate:'2026-05-05',price:6000,note:''}
+  ]},
+  {name:'이구산업', records:[
+    {startDate:'2024-06-01',endDate:'2026-03-31',price:5200,note:'365일 운영'},
+    {startDate:'2026-01-01',endDate:'2027-10-24',price:5500,note:'주말 동일'}
+  ]},
+  {name:'진보', records:[
+    {startDate:'2024-08-19',endDate:'2026-08-28',price:7000,note:'월 보장식수 2,000식'}
+  ]},
+  {name:'EPS코리아', records:[
+    {startDate:'2024-09-01',endDate:'2026-08-21',price:5000,note:'월 보장식수 2,500식'}
+  ]},
+  {name:'두손', records:[
+    {startDate:'2024-10-01',endDate:'2026-10-20',price:8000,note:'월 보장식수 800식'}
+  ]},
+  {name:'지푸드', records:[
+    {startDate:'2024-11-01',endDate:'2026-11-27',price:6500,note:'월 보장식수 1,400식'}
+  ]},
+  {name:'머크', records:[
+    {startDate:'2024-12-01',endDate:'2026-12-25',price:4900,note:'플러스바 15만원/日'}
+  ]},
+  {name:'동아전기부품', records:[
+    {startDate:'2024-09-01',endDate:'2026-12-25',price:7075,note:'월 보장식수 2,400식 / 급식단가 7,075원'},
+    {startDate:'2025-03-01',endDate:'2027-11-18',price:5100,note:'월 보장식수 1,900식'}
+  ]},
+  {name:'에스앤지(바스노바)', records:[
+    {startDate:'2025-02-01',endDate:'2027-02-07',price:8000,note:'월 보장식수 1,000식'}
+  ]},
+  {name:'대한송유관공사', records:[
+    {startDate:'2025-03-01',endDate:'2027-02-22',price:7700,note:'VAT포함'}
+  ]},
+  {name:'미소찬', records:[
+    {startDate:'2025-03-01',endDate:'2027-03-08',price:5800,note:'일 보장식수 40식'}
+  ]},
+  {name:'비와이티', records:[
+    {startDate:'2025-02-01',endDate:'2027-03-22',price:7000,note:'월 보장식수 2,000식'}
+  ]},
+  {name:'대성아이앤지', records:[
+    {startDate:'2025-06-01',endDate:'2027-06-14',price:5800,note:''}
+  ]},
+  {name:'무봉산수련원', records:[
+    {startDate:'2025-09-01',endDate:'2027-08-17',price:0,note:'변동단가'}
+  ]},
+  {name:'진성티이씨 1공장', records:[
+    {startDate:'2025-10-01',endDate:'2027-10-17',price:6050,note:'토 중'}
+  ]},
+  {name:'진성티이씨 2공장', records:[
+    {startDate:'2025-10-01',endDate:'2027-10-17',price:6050,note:'토 중'}
+  ]},
+  {name:'대코', records:[
+    {startDate:'2026-01-01',endDate:'2026-12-25',price:7000,note:''}
+  ]},
+  {name:'동아전장', records:[
+    {startDate:'2025-03-01',endDate:'2027-11-18',price:5100,note:'월 보장식수 1,900식'}
+  ]},
+  {name:'린데코리아', records:[
+    {startDate:'2025-04-01',endDate:'2027-12-12',price:9000,note:'월 보장식수 1,000식'}
+  ]},
+  {name:'신세대여행사', records:[
+    {startDate:'2026-01-01',endDate:'2027-12-18',price:6000,note:'월 보장식수 1,600식'}
+  ]},
+  {name:'삼아알미늄', records:[
+    {startDate:'2026-01-01',endDate:'2026-08-21',price:0,note:'관리비수수료 월 1,500,000원'}
+  ]},
+  {name:'필코코스팜', records:[
+    {startDate:'2026-02-01',endDate:'2027-03-01',price:7000,note:''}
+  ]},
+  {name:'세명테크', records:[
+    {startDate:'2026-02-01',endDate:'2027-03-01',price:9000,note:'월 보장식수 1,600식'}
+  ]},
+  {name:'효림정공', records:[
+    {startDate:'2026-02-01',endDate:'2028-02-09',price:6000,note:''}
+  ]},
+];
