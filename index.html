@@ -12,10 +12,10 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Noto Sans KR',sans-serif;background:#f5f5f3;color:#1a1a18;min-height:100vh;font-size:14px;}
+body{font-family:'Noto Sans KR',sans-serif;background:#f0f0ee;color:#1a1a18;min-height:100vh;font-size:14px;}
 
 /* ── 홈 ─────────────────────── */
-#home-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;background:#f5f5f3;}
+#home-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;}
 .home-logo{font-size:28px;font-weight:700;color:#185FA5;margin-bottom:4px;}
 .home-sub{font-size:13px;color:#aaa;margin-bottom:40px;}
 .home-menu{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;max-width:440px;}
@@ -24,17 +24,17 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f5f5f3;color:#1a1a18;min-
 .home-btn i{font-size:30px;}
 .home-btn .lbl{font-size:14px;font-weight:600;}
 .home-btn .desc{font-size:11px;color:#999;}
-.home-btn.blue i{color:#185FA5;} .home-btn.green i{color:#3B6D11;}
-.home-btn.amber i{color:#854F0B;} .home-btn.red i{color:#A32D2D;}
+.home-btn.blue i{color:#185FA5;}.home-btn.green i{color:#3B6D11;}
+.home-btn.amber i{color:#854F0B;}.home-btn.red i{color:#A32D2D;}
 
 /* ── 앱 레이아웃 ─────────────────────── */
-#app{display:none;flex-direction:column;min-height:100vh;max-width:1280px;margin:0 auto;width:100%;}
-#detail-screen{display:none;flex-direction:column;min-height:100vh;max-width:1280px;margin:0 auto;width:100%;}
+#app{display:none;flex-direction:column;min-height:100vh;max-width:1280px;margin:0 auto;width:100%;background:#f0f0ee;}
+#detail-screen{display:none;flex-direction:column;min-height:100vh;max-width:1280px;margin:0 auto;width:100%;background:#f0f0ee;}
 .top-bar{height:52px;background:#fff;border-bottom:.5px solid #e8e8e4;display:flex;align-items:center;padding:0 18px;gap:10px;position:sticky;top:0;z-index:200;}
-.back-btn{display:flex;align-items:center;gap:5px;font-size:13px;color:#185FA5;background:none;border:none;cursor:pointer;padding:0;white-space:nowrap;}
+.back-btn{display:flex;align-items:center;gap:5px;font-size:13px;color:#185FA5;background:none;border:none;cursor:pointer;padding:0;white-space:nowrap;font-family:inherit;}
 .top-bar h2{font-size:15px;font-weight:600;flex:1;}
 .top-actions{display:flex;gap:7px;}
-.page-body{padding:18px;}
+.page-body{padding:20px 24px;}
 
 /* ── 버튼 ─────────────────────── */
 .btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:8px;border:.5px solid #ccc;background:#fff;font-size:13px;cursor:pointer;white-space:nowrap;font-family:inherit;}
@@ -53,16 +53,15 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f5f5f3;color:#1a1a18;min-
 .badge-cat{font-size:11px;font-weight:500;padding:2px 8px;border-radius:99px;background:#f0f0ec;color:#555;white-space:nowrap;}
 
 /* ── 대시보드 ─────────────────────── */
-.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
 .stat-card{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:box-shadow .12s;}
 .stat-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.08);}
 .stat-card.active-card{box-shadow:0 0 0 2px #185FA5;}
 .stat-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
-.stat-icon.blue{background:#E6F1FB;color:#185FA5;}
-.stat-icon.blue2{background:#E6F1FB;color:#185FA5;}
+.stat-icon.blue,.stat-icon.blue2{background:#E6F1FB;color:#185FA5;}
 .stat-icon.red{background:#FCEBEB;color:#A32D2D;}
 .stat-icon.amber{background:#FAEEDA;color:#854F0B;}
-.stat-label{font-size:12px;color:#888;margin-bottom:3px;}
+.stat-info .stat-label{font-size:12px;color:#888;margin-bottom:3px;}
 .stat-val{font-size:22px;font-weight:600;}
 .stat-val.blue,.stat-val.blue2{color:#185FA5;}
 .stat-val.red{color:#A32D2D;}
@@ -77,10 +76,18 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f5f5f3;color:#1a1a18;min-
 .dash-dday{font-size:12px;font-weight:500;margin-top:4px;}
 
 /* ── 운영지원 ─────────────────────── */
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;background:#f0f0ec;border:.5px solid #e8e8e4;border-radius:10px;overflow:hidden;margin-bottom:16px;}
-.cal-header{background:#fff;text-align:center;font-size:12px;font-weight:500;color:#888;padding:8px 0;}
-.cal-day{background:#fff;min-height:70px;padding:6px;font-size:12px;}
-.cal-day.empty{background:#fafaf8;}
+.support-layout{display:grid;grid-template-columns:1fr 380px;gap:16px;align-items:start;}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.cal-nav-title{font-size:15px;font-weight:600;}
+.cal-nav-btns{display:flex;gap:6px;}
+.cal-nav-btn{padding:5px 10px;border:.5px solid #ccc;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;font-family:inherit;}
+.cal-nav-btn:hover{background:#f5f5f3;}
+.cal-wrap{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;padding:14px;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.cal-header{text-align:center;font-size:12px;font-weight:500;color:#888;padding:6px 0;}
+.cal-day{min-height:80px;padding:5px;border-radius:6px;cursor:pointer;}
+.cal-day:hover{background:#f5f5f3;}
+.cal-day.empty{cursor:default;}
 .cal-day.today .cal-num{background:#185FA5;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;}
 .cal-num{font-size:12px;font-weight:500;margin-bottom:3px;width:22px;}
 .cal-event{font-size:10px;padding:2px 4px;border-radius:4px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -91,49 +98,57 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f5f5f3;color:#1a1a18;min-
 .cal-event.cat-4{background:#F3E6FB;color:#6B2FA0;}
 .cal-event.cat-5{background:#f0f0ec;color:#555;}
 .cal-more{font-size:10px;color:#aaa;}
-.sup-form{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;padding:16px;margin-bottom:16px;}
-.sup-form-title{font-size:14px;font-weight:500;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
-.sup-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
-.sup-form-group{display:flex;flex-direction:column;gap:4px;}
-.sup-form-group.full{grid-column:1/-1;}
-.sup-form-group label{font-size:12px;color:#666;}
-.sup-form-group input,.sup-form-group select,.sup-form-group textarea{padding:7px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;font-family:inherit;width:100%;}
-.sup-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:.5px solid #f0f0ec;flex-wrap:wrap;}
+.sup-panel{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;padding:16px;position:sticky;top:70px;}
+.sup-panel-title{font-size:14px;font-weight:600;margin-bottom:14px;color:#185FA5;display:flex;align-items:center;gap:6px;}
+.sup-form-group{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;}
+.sup-form-group label{font-size:12px;color:#666;font-weight:500;}
+.sup-form-group input,.sup-form-group select,.sup-form-group textarea{padding:8px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;font-family:inherit;width:100%;}
+.sup-form-group textarea{resize:vertical;min-height:70px;}
+/* 검색 가능한 select */
+.searchable-select{position:relative;}
+.searchable-select input{width:100%;padding:8px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;font-family:inherit;}
+.searchable-select input:focus{outline:none;border-color:#185FA5;}
+.ss-dropdown{display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:.5px solid #ccc;border-radius:8px;max-height:200px;overflow-y:auto;z-index:100;box-shadow:0 4px 16px rgba(0,0,0,.1);}
+.ss-dropdown.open{display:block;}
+.ss-option{padding:8px 12px;font-size:13px;cursor:pointer;}
+.ss-option:hover{background:#f0f0ee;}
+.ss-option.selected{background:#E6F1FB;color:#185FA5;font-weight:500;}
+/* 지원 목록 */
+.sup-list-wrap{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;padding:16px;margin-top:16px;}
+.sup-list-title{font-size:14px;font-weight:500;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+.sup-row{display:grid;grid-template-columns:80px 90px 1fr 70px 40px;gap:8px;align-items:center;padding:9px 0;border-bottom:.5px solid #f0f0ec;font-size:13px;}
 .sup-row:last-child{border-bottom:none;}
-.sup-date{font-size:12px;color:#888;white-space:nowrap;}
-.sup-biz{font-weight:500;cursor:pointer;color:#185FA5;}
-.sup-staff{font-size:12px;color:#666;}
-.sup-content{font-size:13px;flex:1;}
-.sup-list-wrap{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;padding:14px 16px;}
-.sup-list-title{font-size:14px;font-weight:500;margin-bottom:10px;}
+.sup-row-header{display:grid;grid-template-columns:80px 90px 1fr 70px 40px;gap:8px;padding:6px 0;border-bottom:.5px solid #e8e8e4;font-size:12px;color:#888;font-weight:500;margin-bottom:4px;}
+.sup-biz{font-weight:500;cursor:pointer;color:#185FA5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sup-content{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#555;}
 
 /* ── FS 사업장 현황 ─────────────────────── */
-.tab-bar{display:flex;gap:4px;border-bottom:.5px solid #e8e8e4;margin-bottom:14px;}
+.tab-bar{display:flex;gap:4px;border-bottom:.5px solid #e8e8e4;margin-bottom:16px;}
 .tab-btn{padding:8px 16px;font-size:13px;font-weight:500;color:#888;background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;margin-bottom:-1px;font-family:inherit;}
 .tab-btn.active{color:#185FA5;border-bottom-color:#185FA5;}
 .team-layout{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.resp-layout{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
 .team-header{font-size:13px;font-weight:600;color:#fff;padding:10px 14px;border-radius:8px;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
 .team-header.blue{background:#185FA5;}
 .team-header.green{background:#3B6D11;}
+.team-header.amber{background:#854F0B;}
+.team-header.red{background:#A32D2D;}
+.team-header.purple{background:#6B2FA0;}
 .team-header span{font-size:12px;font-weight:400;margin-left:auto;}
-.biz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;}
-.biz-card{background:#fff;border:.5px solid #e8e8e4;border-radius:10px;padding:14px;cursor:pointer;transition:box-shadow .12s;}
+.biz-card{background:#fff;border:.5px solid #e8e8e4;border-radius:10px;padding:12px;cursor:pointer;transition:box-shadow .12s;margin-bottom:8px;}
 .biz-card:hover{box-shadow:0 2px 10px rgba(0,0,0,.08);}
-.biz-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;}
+.biz-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
 .biz-name{font-size:13px;font-weight:600;}
-.biz-info{font-size:12px;color:#888;display:flex;flex-direction:column;gap:3px;margin-bottom:7px;}
-.biz-info span{display:flex;align-items:flex-start;gap:4px;}
-.biz-info i{flex-shrink:0;margin-top:1px;}
-.biz-bottom{display:flex;justify-content:space-between;font-size:12px;color:#aaa;border-top:.5px solid #f0f0ec;padding-top:7px;}
-.resp-section{margin-bottom:18px;}
-.resp-header{font-size:13px;font-weight:600;color:#185FA5;padding:8px 12px;background:#E6F1FB;border-radius:8px;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
-.resp-header span{font-size:12px;font-weight:400;margin-left:6px;}
-#map{height:480px;border-radius:12px;border:.5px solid #e8e8e4;}
+.biz-info{font-size:11px;color:#888;display:flex;flex-direction:column;gap:2px;margin-bottom:6px;}
+.biz-info span{display:flex;align-items:flex-start;gap:3px;}
+.biz-info i{flex-shrink:0;margin-top:1px;font-size:11px;}
+.biz-bottom{display:flex;justify-content:space-between;font-size:11px;color:#aaa;border-top:.5px solid #f0f0ec;padding-top:6px;}
+#map{height:500px;border-radius:12px;border:.5px solid #e8e8e4;}
 .map-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:#666;margin-bottom:10px;}
 .map-legend span{display:flex;align-items:center;gap:4px;}
 .leg-dot{width:10px;height:10px;border-radius:50%;}
 
-/* ── 관리자 수정 ─────────────────────── */
+/* ── 관리자 ─────────────────────── */
 .toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;}
 .toolbar input,.toolbar select{padding:7px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;background:#fff;font-family:inherit;}
 .toolbar input{min-width:180px;}
@@ -147,8 +162,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 .count-badge{font-size:11px;background:#f0f0ec;color:#666;padding:2px 7px;border-radius:99px;}
 
 /* ── 사업장 상세 ─────────────────────── */
-#detail-screen{display:none;flex-direction:column;min-height:100vh;}
-.detail-body{padding:18px;}
+.detail-body{padding:20px 24px;}
 .detail-section{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;padding:16px;margin-bottom:12px;}
 .detail-section-title{font-size:13px;font-weight:600;color:#185FA5;margin-bottom:10px;padding-bottom:8px;border-bottom:.5px solid #e8e8e4;}
 .detail-row{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:.5px solid #f0f0ec;font-size:13px;}
@@ -178,12 +192,19 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 .empty-state i{font-size:28px;display:block;margin-bottom:8px;}
 .toast{position:fixed;bottom:24px;right:24px;background:#1a1a18;color:#fff;padding:11px 16px;border-radius:8px;font-size:13px;z-index:999;animation:fadeUp .2s ease;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.biz-search-wrap{margin-bottom:12px;}
+
+@media(max-width:900px){
+  .support-layout{grid-template-columns:1fr;}
+  .sup-panel{position:static;}
+  .resp-layout{grid-template-columns:1fr 1fr;}
+  .stat-grid{grid-template-columns:1fr 1fr;}
+}
 @media(max-width:600px){
-  .team-layout{grid-template-columns:1fr;}
+  .team-layout,.resp-layout{grid-template-columns:1fr;}
   .form-grid{grid-template-columns:1fr;}
   .stat-grid{grid-template-columns:1fr 1fr;}
-  .sup-form-grid{grid-template-columns:1fr;}
+  .sup-row,.sup-row-header{grid-template-columns:70px 80px 1fr 50px 36px;}
+  .page-body,.detail-body{padding:14px 16px;}
 }
 </style>
 </head>
@@ -228,10 +249,10 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
   <!-- 대시보드 -->
   <div id="page-dashboard" class="page-body" style="display:none;">
     <div class="stat-grid">
-<div class="stat-card" id="card-total" onclick="window.toggleDashCard(this,'all')"></div>
-<div class="stat-card" id="card-urgent" onclick="window.toggleDashCard(this,'urgent')"></div>
-<div class="stat-card" id="card-near" onclick="window.toggleDashCard(this,'near')"></div>
-<div class="stat-card" id="card-auto" onclick="window.toggleDashCard(this,'auto')"></div>
+      <div class="stat-card" id="card-total" onclick="window.toggleDashCard(this,'all')"></div>
+      <div class="stat-card" id="card-urgent" onclick="window.toggleDashCard(this,'urgent')"></div>
+      <div class="stat-card" id="card-near" onclick="window.toggleDashCard(this,'near')"></div>
+      <div class="stat-card" id="card-auto" onclick="window.toggleDashCard(this,'auto')"></div>
     </div>
     <div class="dash-list-wrap" id="dash-list-wrap" style="display:none;">
       <div id="dash-list"></div>
@@ -240,17 +261,47 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 
   <!-- 운영지원 -->
   <div id="page-support" class="page-body" style="display:none;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <div id="cal-title" style="font-size:15px;font-weight:600;"></div>
-    </div>
-    <div id="calendar"></div>
-    <div class="sup-form">
-      <div class="sup-form-title"><i class="ti ti-plus-circle" style="color:#185FA5;"></i> 운영지원 등록</div>
-      <div class="sup-form-grid">
+    <div class="support-layout">
+      <!-- 달력 -->
+      <div>
+        <div class="cal-nav">
+          <div class="cal-nav-title" id="cal-title"></div>
+          <div class="cal-nav-btns">
+            <button class="cal-nav-btn" onclick="changeMonth(-1)"><i class="ti ti-chevron-left"></i></button>
+            <button class="cal-nav-btn" onclick="changeMonth(0)">오늘</button>
+            <button class="cal-nav-btn" onclick="changeMonth(1)"><i class="ti ti-chevron-right"></i></button>
+          </div>
+        </div>
+        <div class="cal-wrap">
+          <div id="calendar"></div>
+        </div>
+        <!-- 지원 목록 -->
+        <div class="sup-list-wrap">
+          <div class="sup-list-title">
+            <span><i class="ti ti-history" style="color:#185FA5;margin-right:5px;"></i>지원 이력</span>
+            <span id="sup-list-count" class="count-badge"></span>
+          </div>
+          <div class="sup-row-header">
+            <span>카테고리</span><span>일자</span><span>업장</span><span>담당자</span><span></span>
+          </div>
+          <div id="support-list"></div>
+        </div>
+      </div>
+
+      <!-- 등록 패널 -->
+      <div class="sup-panel">
+        <div class="sup-panel-title"><i class="ti ti-plus-circle"></i> 운영지원 등록</div>
+
         <div class="sup-form-group">
           <label>업장 선택 *</label>
-          <select id="sup-biz"><option value="">업장 선택...</option></select>
+          <div class="searchable-select" id="ss-wrap">
+            <input type="text" id="ss-input" placeholder="업장명 검색..." autocomplete="off"
+              oninput="filterSS()" onfocus="openSS()" onblur="setTimeout(closeSS,200)">
+            <input type="hidden" id="sup-biz">
+            <div class="ss-dropdown" id="ss-dropdown"></div>
+          </div>
         </div>
+
         <div class="sup-form-group">
           <label>일자 *</label>
           <input type="date" id="sup-date">
@@ -271,23 +322,23 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
             <option>기타</option>
           </select>
         </div>
-        <div class="sup-form-group full">
+        <div class="sup-form-group">
           <label>상세 내용</label>
           <textarea id="sup-content" placeholder="지원 내용을 입력하세요..."></textarea>
         </div>
+        <button class="btn primary" style="width:100%;" onclick="submitSupport()">
+          <i class="ti ti-check"></i> 등록
+        </button>
       </div>
-      <button class="btn primary" onclick="submitSupport()"><i class="ti ti-check"></i> 등록</button>
-    </div>
-    <div class="sup-list-wrap">
-      <div class="sup-list-title"><i class="ti ti-history" style="color:#185FA5;margin-right:5px;"></i>최근 지원 이력</div>
-      <div id="support-list"></div>
     </div>
   </div>
 
   <!-- FS 사업장 현황 -->
   <div id="page-businesses" class="page-body" style="display:none;">
-    <div class="biz-search-wrap">
-      <input type="text" id="biz-search" placeholder="사업장명 검색..." style="padding:8px 12px;border:.5px solid #ccc;border-radius:8px;font-size:13px;width:100%;max-width:280px;" oninput="renderBizTab()">
+    <div style="margin-bottom:12px;">
+      <input type="text" id="biz-search" placeholder="사업장명 검색..."
+        style="padding:8px 12px;border:.5px solid #ccc;border-radius:8px;font-size:13px;width:100%;max-width:280px;"
+        oninput="renderBizTab()">
     </div>
     <div class="tab-bar">
       <button class="tab-btn active" onclick="setBizTab('team')">팀별</button>
@@ -322,7 +373,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
     <button class="back-btn" onclick="goBackFromDetail()"><i class="ti ti-arrow-left"></i> 뒤로</button>
     <h2 id="detail-title"></h2>
     <div class="top-actions">
-      <button class="btn sm primary" onclick="openEditModal(detailId)"><i class="ti ti-edit"></i> 수정</button>
+      <button class="btn sm primary" onclick="openEditModal(window.detailId)"><i class="ti ti-edit"></i> 수정</button>
     </div>
   </div>
   <div class="detail-body" id="detail-body"></div>
@@ -358,7 +409,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
           </div>
           <div class="form-group"><label>계약 시작일</label><input type="date" id="f-startDate"></div>
           <div class="form-group"><label>계약 종료일 *</label><input type="date" id="f-endDate"></div>
-          <div class="form-group"><label>계약단가 (원)</label><input type="number" id="f-price" placeholder="0 = 관리비제/고정"></div>
+          <div class="form-group"><label>계약단가 (원)</label><input type="number" id="f-price"></div>
           <div class="form-group"><label>단가 구분</label>
             <select id="f-priceType">
               <option value="per-meal">식수 단가 (원/식)</option>
