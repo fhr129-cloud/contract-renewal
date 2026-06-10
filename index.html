@@ -12,46 +12,11 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Noto Sans KR', sans-serif; background: #f5f5f3; color: #1a1a18; min-height: 100vh; }
 
-    /* 홈 화면 */
-    #home-screen {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 40px 20px;
-    }
-    .home-logo {
-      font-size: 32px;
-      font-weight: 700;
-      color: #185FA5;
-      margin-bottom: 8px;
-    }
-    .home-sub {
-      font-size: 14px;
-      color: #888;
-      margin-bottom: 48px;
-    }
-    .home-menu {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      width: 100%;
-      max-width: 480px;
-    }
-    .home-btn {
-      background: #fff;
-      border: 0.5px solid #e8e8e4;
-      border-radius: 16px;
-      padding: 28px 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      cursor: pointer;
-      transition: box-shadow 0.15s, transform 0.15s;
-      text-align: center;
-    }
+    #home-screen { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; }
+    .home-logo { font-size: 32px; font-weight: 700; color: #185FA5; margin-bottom: 8px; }
+    .home-sub { font-size: 14px; color: #888; margin-bottom: 48px; }
+    .home-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%; max-width: 480px; }
+    .home-btn { background: #fff; border: 0.5px solid #e8e8e4; border-radius: 16px; padding: 28px 20px; display: flex; flex-direction: column; align-items: center; gap: 12px; cursor: pointer; transition: box-shadow 0.15s, transform 0.15s; text-align: center; }
     .home-btn:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); transform: translateY(-2px); }
     .home-btn i { font-size: 32px; }
     .home-btn .btn-label { font-size: 14px; font-weight: 600; color: #1a1a18; }
@@ -61,30 +26,13 @@
     .home-btn.amber i { color: #854F0B; }
     .home-btn.red i { color: #A32D2D; }
 
-    /* 앱 화면 */
     #app { display: none; flex-direction: column; min-height: 100vh; }
-    .top-bar {
-      height: 52px;
-      background: #fff;
-      border-bottom: 0.5px solid #e8e8e4;
-      display: flex;
-      align-items: center;
-      padding: 0 20px;
-      gap: 12px;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-    .back-btn {
-      display: flex; align-items: center; gap: 6px;
-      font-size: 13px; color: #185FA5;
-      background: none; border: none; cursor: pointer; padding: 0;
-    }
+    .top-bar { height: 52px; background: #fff; border-bottom: 0.5px solid #e8e8e4; display: flex; align-items: center; padding: 0 20px; gap: 12px; position: sticky; top: 0; z-index: 10; }
+    .back-btn { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #185FA5; background: none; border: none; cursor: pointer; padding: 0; }
     .top-bar h2 { font-size: 15px; font-weight: 600; flex: 1; }
     .top-actions { display: flex; gap: 8px; }
     .page-body { padding: 20px; }
 
-    /* 버튼 */
     .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; border: 0.5px solid #ccc; background: #fff; font-size: 13px; cursor: pointer; white-space: nowrap; }
     .btn:hover { background: #f5f5f3; }
     .btn.primary { background: #185FA5; color: #fff; border-color: #185FA5; }
@@ -92,20 +40,17 @@
     .btn.danger { background: #FCEBEB; color: #A32D2D; border-color: #F7C1C1; }
     .btn.sm { padding: 5px 10px; font-size: 12px; }
 
-    /* 배지 */
     .badge { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 99px; border: 0.5px solid transparent; white-space: nowrap; }
     .badge.urgent { background: #FCEBEB; color: #A32D2D; border-color: #F7C1C1; }
     .badge.near { background: #FAEEDA; color: #854F0B; border-color: #FAC775; }
     .badge.ok { background: #EAF3DE; color: #3B6D11; border-color: #C0DD97; }
     .badge.auto { background: #E6F1FB; color: #185FA5; border-color: #B5D4F4; }
 
-    /* 카드 */
     .card { background: #fff; border: 0.5px solid #e8e8e4; border-radius: 12px; overflow: hidden; margin-bottom: 12px; }
     .card-header { padding: 14px 16px; border-bottom: 0.5px solid #e8e8e4; display: flex; align-items: center; justify-content: space-between; }
     .card-title { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
     .card-body { padding: 14px 16px; }
 
-    /* 테이블 */
     .table-wrap { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th { text-align: left; font-weight: 500; font-size: 12px; color: #888; padding: 9px 10px; border-bottom: 0.5px solid #e8e8e4; white-space: nowrap; }
@@ -113,12 +58,32 @@
     tr:last-child td { border-bottom: none; }
     tbody tr:hover td { background: #fafaf8; cursor: pointer; }
 
-    /* 툴바 */
     .toolbar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
     .toolbar input, .toolbar select { padding: 8px 12px; border: 0.5px solid #ccc; border-radius: 8px; font-size: 13px; background: #fff; }
     .toolbar input { min-width: 180px; }
 
-    /* 모달 */
+    /* 탭 */
+    .tab-bar { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 0.5px solid #e8e8e4; padding-bottom: 0; flex-wrap: wrap; }
+    .tab-btn { padding: 8px 16px; font-size: 13px; font-weight: 500; color: #888; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; transition: color 0.1s; margin-bottom: -1px; }
+    .tab-btn:hover { color: #185FA5; }
+    .tab-btn.active { color: #185FA5; border-bottom-color: #185FA5; }
+
+    /* 거래처 카드 */
+    .biz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+    .biz-card { background: #fff; border: 0.5px solid #e8e8e4; border-radius: 12px; padding: 16px; }
+    .biz-name { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+    .biz-info { font-size: 12px; color: #888; display: flex; flex-direction: column; gap: 4px; }
+    .biz-info span { display: flex; align-items: flex-start; gap: 5px; }
+    .biz-info i { margin-top: 2px; flex-shrink: 0; }
+
+    /* 책임자 섹션 */
+    .resp-section { margin-bottom: 24px; }
+    .resp-header { font-size: 14px; font-weight: 600; color: #185FA5; margin-bottom: 10px; padding: 8px 12px; background: #E6F1FB; border-radius: 8px; display: flex; align-items: center; gap: 6px; }
+
+    /* 지역 섹션 */
+    .region-section { margin-bottom: 20px; }
+    .region-header { font-size: 13px; font-weight: 600; color: #666; margin-bottom: 8px; padding: 6px 10px; background: #f5f5f3; border-radius: 6px; border-left: 3px solid #185FA5; }
+
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 100; align-items: center; justify-content: center; }
     .modal-overlay.open { display: flex; }
     .modal { background: #fff; border-radius: 12px; width: 560px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
@@ -133,35 +98,24 @@
     .form-group input, .form-group select, .form-group textarea { padding: 8px 12px; border: 0.5px solid #ccc; border-radius: 8px; font-size: 13px; width: 100%; }
     .form-group textarea { resize: vertical; min-height: 64px; }
 
-    /* D-day */
     .dday-wrap { display: flex; align-items: center; gap: 7px; }
     .dday-bar { height: 4px; border-radius: 2px; min-width: 4px; }
 
-    /* 타임라인 */
     .tl-month-group { margin-bottom: 16px; }
     .tl-month-label { font-size: 12px; font-weight: 500; color: #888; margin-bottom: 7px; display: flex; align-items: center; gap: 6px; }
     .tl-chips { display: flex; flex-wrap: wrap; gap: 5px; }
-    .tl-chip { font-size: 12px; padding: 4px 10px; border-radius: 8px; border: 0.5px solid transparent; cursor: pointer; }
+    .tl-chip { font-size: 12px; padding: 4px 10px; border-radius: 8px; border: 0.5px solid transparent; }
     .tl-chip.urgent { background: #FCEBEB; color: #A32D2D; border-color: #F7C1C1; }
     .tl-chip.near { background: #FAEEDA; color: #854F0B; border-color: #FAC775; }
     .tl-chip.ok { background: #EAF3DE; color: #3B6D11; border-color: #C0DD97; }
     .tl-chip.auto { background: #E6F1FB; color: #185FA5; border-color: #B5D4F4; }
 
-    /* 히스토리 */
     .hist-record { padding: 10px 0; border-bottom: 0.5px solid #f0f0ec; display: flex; justify-content: space-between; gap: 12px; }
     .hist-record:last-child { border-bottom: none; }
     .hist-round { font-size: 11px; color: #888; background: #f5f5f3; padding: 2px 7px; border-radius: 99px; }
 
-    /* 거래처 카드 */
-    .biz-card { background: #fff; border: 0.5px solid #e8e8e4; border-radius: 12px; padding: 16px; margin-bottom: 10px; cursor: pointer; transition: box-shadow 0.12s; }
-    .biz-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.07); }
-    .biz-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
-    .biz-info { font-size: 12px; color: #888; display: flex; flex-wrap: wrap; gap: 8px; }
-
-    /* 토스트 */
     .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a18; color: #fff; padding: 12px 18px; border-radius: 8px; font-size: 13px; z-index: 999; animation: fadeUp 0.2s ease; }
     @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-
     .empty-state { text-align: center; padding: 40px; color: #aaa; font-size: 13px; }
     .empty-state i { font-size: 32px; display: block; margin-bottom: 10px; }
     .count-badge { font-size: 11px; background: #f0f0ec; color: #666; padding: 2px 7px; border-radius: 99px; }
@@ -180,7 +134,7 @@
     <div class="home-btn blue" onclick="goPage('businesses')">
       <i class="ti ti-building"></i>
       <div class="btn-label">거래처 정보</div>
-      <div class="btn-desc">사업장 연락처 조회</div>
+      <div class="btn-desc">팀별 · 지역별 · 책임별</div>
     </div>
     <div class="home-btn green" onclick="goPage('contracts')">
       <i class="ti ti-file-text"></i>
@@ -211,9 +165,16 @@
   <!-- 거래처 정보 -->
   <div id="page-businesses" class="page-body" style="display:none;">
     <div class="toolbar">
-      <input type="text" id="biz-search" placeholder="사업장명 / 소재지 검색..." oninput="renderBusinesses()">
+      <input type="text" id="biz-search" placeholder="사업장명 검색..." oninput="renderBizTab()">
     </div>
-    <div id="biz-list"></div>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="setBizTab('all')">전체</button>
+      <button class="tab-btn" onclick="setBizTab('team1')">1팀 (박주형)</button>
+      <button class="tab-btn" onclick="setBizTab('team2')">2팀 (김재희)</button>
+      <button class="tab-btn" onclick="setBizTab('region')">소재지별</button>
+      <button class="tab-btn" onclick="setBizTab('resp')">책임별</button>
+    </div>
+    <div id="biz-content"></div>
   </div>
 
   <!-- 현재 계약현황 -->
@@ -239,7 +200,6 @@
         </table>
       </div>
     </div>
-    <!-- 타임라인 -->
     <div class="card">
       <div class="card-header"><span class="card-title"><i class="ti ti-calendar"></i> 월별 타임라인</span></div>
       <div class="card-body"><div id="timeline-content"></div></div>
@@ -283,17 +243,17 @@
     <div class="modal-body">
       <form id="contract-form" onsubmit="return false;">
         <div class="form-grid">
-          <div class="form-group"><label>사업장명 *</label><input type="text" id="f-name" placeholder="예) SK가스"></div>
-          <div class="form-group"><label>소재지</label><input type="text" id="f-location" placeholder="예) 평택시 포승읍"></div>
-          <div class="form-group"><label>담당자 이름</label><input type="text" id="f-contactName" placeholder="예) 홍길동 과장"></div>
-          <div class="form-group"><label>담당자 연락처</label><input type="tel" id="f-contactPhone" placeholder="예) 010-0000-0000"></div>
-          <div class="form-group"><label>대표번호</label><input type="text" id="f-tel" placeholder="예) T. 031-000-0000"></div>
+          <div class="form-group"><label>사업장명 *</label><input type="text" id="f-name"></div>
+          <div class="form-group"><label>소재지</label><input type="text" id="f-location"></div>
+          <div class="form-group"><label>담당자 이름</label><input type="text" id="f-contactName"></div>
+          <div class="form-group"><label>담당자 연락처</label><input type="tel" id="f-contactPhone"></div>
+          <div class="form-group"><label>대표번호</label><input type="text" id="f-tel"></div>
           <div class="form-group"><label>자동연장 조건</label>
             <select id="f-autoRenew"><option value="false">없음</option><option value="true">자동연장 있음</option></select>
           </div>
           <div class="form-group"><label>계약 시작일</label><input type="date" id="f-startDate"></div>
           <div class="form-group"><label>계약 종료일 *</label><input type="date" id="f-endDate"></div>
-          <div class="form-group"><label>계약단가 (원)</label><input type="number" id="f-price" placeholder="예) 6000"></div>
+          <div class="form-group"><label>계약단가 (원)</label><input type="number" id="f-price"></div>
           <div class="form-group"><label>단가 구분</label>
             <select id="f-priceType">
               <option value="per-meal">식수 단가 (원/식)</option>
@@ -301,7 +261,7 @@
               <option value="fixed">월 고정금액</option>
             </select>
           </div>
-          <div class="form-group full"><label>비고</label><textarea id="f-note" placeholder="월 보장식수, 특식비 등"></textarea></div>
+          <div class="form-group full"><label>비고</label><textarea id="f-note"></textarea></div>
         </div>
       </form>
     </div>
