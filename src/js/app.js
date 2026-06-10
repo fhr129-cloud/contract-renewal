@@ -1,4 +1,15 @@
-import { listenContracts, listenHistory, addContract, updateContract, deleteContract, addHistory, seedIfEmpty } from './db.js';
+import {
+  listenContracts,
+  listenHistory,
+  addContract,
+  updateContract,
+  deleteContract,
+  addHistory,
+  seedIfEmpty,
+  loginWithGoogle,
+  logout,
+  onAuthChange
+} from './db.js';
 import { calcStatus, STATUS_META, fmtDate, toInputDate, monthKey, monthLabel, dDiff, dDayLabel } from './utils.js';
 
 var contracts = [];
