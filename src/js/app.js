@@ -1,16 +1,4 @@
-var currentUser = null;
-import {
-  listenContracts,
-  listenHistory,
-  addContract,
-  updateContract,
-  deleteContract,
-  addHistory,
-  seedIfEmpty,
-  loginWithGoogle,
-  logout,
-  onAuthChange
-} from './db.js';
+import { listenContracts, listenHistory, addContract, updateContract, deleteContract, addHistory, seedIfEmpty } from './db.js';
 import { calcStatus, STATUS_META, fmtDate, toInputDate, monthKey, monthLabel, dDiff, dDayLabel } from './utils.js';
 
 var contracts = [];
@@ -50,66 +38,13 @@ async function init() {
   listenHistory(function(data) { history = data; });
 }
 init();
-onAuthChange(function(user) {
 
-  currentUser = user;
-
-  if (user) {
-
-    document.getElementById('home-screen').style.display = 'flex';
-
-    const authArea = document.getElementById('auth-area');
-
-    if (authArea) {
-      authArea.innerHTML = `
-        <div style="display:flex;gap:8px;align-items:center;">
-          <span style="font-size:13px;">
-            ${user.displayName}
-          </span>
-
-          <button class="btn sm" onclick="logoutUser()">
-            로그아웃
-          </button>
-        </div>
-      `;
-    }
-
- } else {
-
-  document.getElementById('app').style.display = 'none';
-
-  document.getElementById('home-screen').style.display = 'flex';
-
-  const authArea = document.getElementById('auth-area');
-
-  if (authArea) {
-    authArea.innerHTML = `
-      <button class="btn primary" onclick="login()">
-        Google 로그인
-      </button>
-    `;
-  }
-
-}
-
-});
 window.goHome = function() {
   document.getElementById('app').style.display = 'none';
   document.getElementById('home-screen').style.display = 'flex';
 };
 
 window.goPage = function(page) {
-
-  if (!currentUser) {
-    alert('Google 로그인이 필요합니다.');
-    return;
-  }
-
-  document.getElementById('home-screen').style.display = 'none';
-  document.getElementById('app').style.display = 'flex';
-
-  ...
-}
   document.getElementById('home-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   ['businesses','contracts','history','admin'].forEach(function(p) {
@@ -421,15 +356,3 @@ function showToast(msg) {
 document.getElementById('modal-overlay').addEventListener('click', function(e) {
   if (e.target === e.currentTarget) closeModal();
 });
-window.login = async function() {
-  try {
-    await loginWithGoogle();
-  } catch (e) {
-    console.error(e);
-    alert('로그인 실패');
-  }
-};
-
-window.logoutUser = async function() {
-  await logout();
-};
