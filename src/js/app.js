@@ -272,9 +272,9 @@ function renderSupportList() {
   listEl.innerHTML = sorted.length ? sorted.map(function(s){
     var c = contracts.find(function(x){ return x.name===s.bizName; });
     var cid = c?c.id:'';
-    return '<div class="sup-row">' +
+   return '<div class="sup-row">' +
       '<span class="badge-cat">' + (s.category||'') + '</span>' +
-      '<span class="sup-date" style="font-size:12px;color:#888;">' + (s.date||'') + '</span>' +
+      '<span class="sup-date" style="font-size:12px;color:#888;">' + (s.date||'') + (s.time?' '+s.time:'') + '</span>' +
       '<span class="sup-biz"' + (cid?' onclick="goDetail(\''+cid+'\')"':'') + '>' + (s.bizName||'') + '</span>' +
       '<span style="font-size:12px;color:#666;">' + (s.staffName||'') + '</span>' +
       '<button class="btn sm danger" onclick="delSupport(\''+s.id+'\')"><i class="ti ti-trash"></i></button>' +
