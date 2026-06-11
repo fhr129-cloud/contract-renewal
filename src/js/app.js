@@ -202,27 +202,26 @@ window.addNutriRow = function() {
   wrap.appendChild(div);
 };
 window.removeNutriRow = function(btn) {
-  var row=btn.closest('.contact-row'), wrap=document.getElementById('nutritionist-rows');
-  if(wrap&&wrap.children.length>1) row.remove(); else showToast('최소 1명은 있어야 해요.');
+  var row=btn.closest('.nutri-row'), wrap=document.getElementById('nutritionist-rows');
+  if(wrap&&wrap.children.length>1) row.remove();
+  else { wrap.querySelector('.nutri-name').value=''; wrap.querySelector('.nutri-phone').value=''; }
 };
 function getNutritionists() {
-  var rows=document.querySelectorAll('#nutritionist-rows .contact-row'), r=[];
+  var rows=document.querySelectorAll('#nutritionist-rows .nutri-row'), r=[];
   rows.forEach(function(row){
     var n=row.querySelector('.nutri-name').value.trim();
     var p=row.querySelector('.nutri-phone').value.trim();
-    var e=row.querySelector('.nutri-email').value.trim();
-    if(n||p) r.push({name:n,phone:p,email:e});
+    if(n||p) r.push({name:n,phone:p});
   }); return r;
 }
 function setNutritionists(list) {
   var wrap=document.getElementById('nutritionist-rows'); if(!wrap) return;
   wrap.innerHTML='';
-  var data=list&&list.length?list:[{name:'',phone:'',email:''}];
+  var data=list&&list.length?list:[{name:'',phone:''}];
   data.forEach(function(nt){
-    var div=document.createElement('div'); div.className='contact-row';
-    div.innerHTML='<input type="text" placeholder="이름 · 직책" class="nutri-name" value="'+(nt.name||'')+'">'+
-      '<input type="text" placeholder="연락처" class="nutri-phone" value="'+(nt.phone||'')+'" oninput="formatPhone(this)">'+
-      '<input type="text" placeholder="이메일" class="nutri-email" value="'+(nt.email||'')+'">'+
+    var div=document.createElement('div'); div.className='nutri-row'; div.style.cssText='display:flex;gap:8px;align-items:center;margin-bottom:6px;';
+    div.innerHTML='<input type="text" placeholder="이름 · 직책" class="nutri-name" value="'+(nt.name||'')+'" style="flex:1;padding:7px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;">'+
+      '<input type="text" placeholder="연락처" class="nutri-phone" value="'+(nt.phone||'')+'" oninput="formatPhone(this)" style="flex:1;padding:7px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;">'+
       '<button type="button" class="btn sm danger" onclick="removeNutriRow(this)"><i class="ti ti-trash"></i></button>';
     wrap.appendChild(div);
   });
