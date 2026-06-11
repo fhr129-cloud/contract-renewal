@@ -775,6 +775,25 @@ window.saveContract=async function(){
   var name=document.getElementById('f-name').value.trim(), endDate=document.getElementById('f-endDate').value;
   if(!name||!endDate){ showToast('사업장명과 종료일은 필수입니다.'); return; }
   var contacts=getContacts(), meals=getMeals();
+  var addr=document.getElementById('f-addr').value.trim();
+
+  // 주소 → 좌표 자동 변환
+  var lat=null, lng=null;
+  if(addr) {
+    try {
+      await new Promise(function(resolve) {
+        var geocoder = new kakao.maps.services.Geocoder();
+        geocoder.addressSearch(addr, function(result, status) {
+          if(status===kakao.maps.services.Status.OK) {
+            lat=parseFloat(result[0].y);
+            lng=parseFloat(result[0].x);
+          }
+          resolve();
+        });
+      });
+    } catch(e) { console.log('좌표 변환 실패:', e); }
+  }
+
   var data={
     name:name, addr:document.getElementById('f-addr').value.trim(),
     contacts:contacts, contactName:contacts.length?contacts[0].name:'', contactPhone:contacts.length?contacts[0].phone:'', tel:contacts.length?contacts[0].tel:'',
