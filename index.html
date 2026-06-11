@@ -76,18 +76,18 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f0ee;color:#1a1a18;min-
 /* 달력 */
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:#e8e8e4;border-radius:10px;overflow:hidden;}
 .cal-header{background:#f5f5f3;text-align:center;font-size:12px;font-weight:500;color:#888;padding:8px 0;}
-.cal-day{background:#fff;min-height:90px;padding:5px;}
+.cal-day{background:#fff;min-height:80px;padding:4px 3px;}
 .cal-day.empty{background:#fafaf8;}
-.cal-day.today .cal-num{background:#185FA5;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;}
-.cal-num{font-size:12px;font-weight:500;margin-bottom:3px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;}
-.cal-event{font-size:10px;padding:2px 5px;border-radius:4px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.4;}
+.cal-day.today .cal-num{background:#185FA5;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;}
+.cal-num{font-size:11px;font-weight:500;margin-bottom:2px;width:20px;height:20px;display:flex;align-items:center;justify-content:center;}
+.cal-event{font-size:9px;padding:1px 3px;border-radius:3px;margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.4;}
 .cal-event.cat-0{background:#E6F1FB;color:#185FA5;}
 .cal-event.cat-1{background:#EAF3DE;color:#3B6D11;}
 .cal-event.cat-2{background:#FAEEDA;color:#854F0B;}
 .cal-event.cat-3{background:#FCEBEB;color:#A32D2D;}
 .cal-event.cat-4{background:#F3E6FB;color:#6B2FA0;}
 .cal-event.cat-5{background:#f0f0ec;color:#555;}
-.cal-more{font-size:10px;color:#aaa;padding:2px 4px;}
+.cal-more{font-size:9px;color:#aaa;padding:1px 3px;}
 
 /* 운영지원 폼 */
 .sup-form-group{display:flex;flex-direction:column;gap:4px;}
@@ -102,20 +102,22 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f0ee;color:#1a1a18;min-
 .sup-row:last-child{border-bottom:none;}
 .sup-biz{font-weight:500;cursor:pointer;color:#185FA5;}
 
-/* 끼니 선택 */
-.meal-select-wrap{background:#f5f5f3;border-radius:8px;padding:12px;}
-.meal-day-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
-.meal-day-row:last-child{margin-bottom:0;}
-.meal-day-label{font-size:12px;font-weight:600;min-width:50px;color:#444;}
-.meal-check{display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;}
-.meal-check input{cursor:pointer;}
-.meal-sub{display:none;background:#fff;border-radius:6px;padding:8px;margin-top:6px;margin-left:58px;}
-.meal-sub.show{display:flex;flex-wrap:wrap;gap:8px;}
+/* 운영끼니 */
+.meal-select-wrap{border:.5px solid #ccc;border-radius:8px;overflow:hidden;}
+.meal-day-section{border-bottom:.5px solid #f0f0ec;}
+.meal-day-section:last-child{border-bottom:none;}
+.meal-day-header{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fafaf8;}
+.meal-day-label{font-size:12px;font-weight:600;color:#444;min-width:60px;}
+.meal-chips{display:flex;gap:6px;flex-wrap:wrap;padding:8px 12px;}
+.meal-chip{display:flex;align-items:center;gap:4px;padding:5px 12px;border:.5px solid #ddd;border-radius:99px;font-size:12px;cursor:pointer;background:#fff;transition:all .1s;user-select:none;}
+.meal-chip:hover{border-color:#185FA5;color:#185FA5;}
+.meal-chip input{display:none;}
+.meal-chip.checked{background:#185FA5;color:#fff;border-color:#185FA5;}
+.meal-sub-section{padding:6px 12px 10px;background:#fff;}
 
 /* 담당자 */
-.contact-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
-.contact-row input{flex:1;padding:7px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;font-family:inherit;}
-.contact-row .btn{flex-shrink:0;}
+.contact-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:center;margin-bottom:8px;}
+.contact-row input{padding:7px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;font-family:inherit;width:100%;}
 
 /* FS 사업장 현황 */
 .tab-bar{display:flex;gap:4px;border-bottom:.5px solid #e8e8e4;margin-bottom:16px;}
@@ -123,14 +125,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f0ee;color:#1a1a18;min-
 .tab-btn.active{color:#185FA5;border-bottom-color:#185FA5;}
 .team-layout{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 .resp-layout{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
-.team-header{font-size:13px;font-weight:600;color:#fff;padding:10px 14px;border-radius:8px;margin-bottom:10px;display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;}
+.team-header{font-size:13px;font-weight:600;color:#fff;padding:10px 14px;border-radius:8px;margin-bottom:0;display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;}
 .team-header.blue{background:#185FA5;}
 .team-header.green{background:#3B6D11;}
 .team-header.amber{background:#854F0B;}
 .team-header.red{background:#A32D2D;}
 .team-header span{font-size:12px;font-weight:400;margin-left:auto;}
-.team-header .toggle-icon{font-size:14px;transition:transform .2s;}
-.team-body{display:none;}
+.team-header .toggle-icon{font-size:14px;transition:transform .2s;margin-left:4px;}
+.team-body{display:none;padding-top:8px;}
 .team-body.open{display:block;}
 .biz-card{background:#fff;border:.5px solid #e8e8e4;border-radius:10px;padding:12px;cursor:pointer;transition:box-shadow .12s;margin-bottom:8px;}
 .biz-card:hover{box-shadow:0 2px 10px rgba(0,0,0,.08);}
@@ -175,7 +177,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 /* 모달 */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:300;align-items:center;justify-content:center;}
 .modal-overlay.open{display:flex;}
-.modal{background:#fff;border-radius:14px;width:620px;max-width:95vw;max-height:90vh;overflow-y:auto;}
+.modal{background:#fff;border-radius:14px;width:640px;max-width:95vw;max-height:90vh;overflow-y:auto;}
 .modal-header{padding:16px 20px;border-bottom:.5px solid #e8e8e4;display:flex;align-items:center;justify-content:space-between;}
 .modal-header h3{font-size:15px;font-weight:600;}
 .modal-body{padding:20px;}
@@ -196,14 +198,16 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 @media(max-width:900px){
   .resp-layout{grid-template-columns:1fr 1fr;}
   .stat-grid{grid-template-columns:repeat(3,1fr);}
+  .contact-row{grid-template-columns:1fr 1fr auto;}
 }
 @media(max-width:600px){
   .team-layout,.resp-layout{grid-template-columns:1fr;}
   .form-grid{grid-template-columns:1fr;}
-  .stat-grid{grid-template-columns:repeat(2,1fr);}
+  .stat-grid{grid-template-columns:repeat(3,1fr);}
   .page-body,.detail-body{padding:14px 16px;}
-  .cal-day{min-height:60px;}
-  .cal-event{font-size:9px;}
+  .cal-day{min-height:52px;padding:2px;}
+  .cal-event{font-size:8px;padding:1px 2px;}
+  .contact-row{grid-template-columns:1fr auto;}
 }
 </style>
 </head>
@@ -270,7 +274,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
       </div>
     </div>
     <div class="card" style="margin-bottom:16px;">
-      <div class="card-body" style="padding:10px;">
+      <div class="card-body" style="padding:8px;">
         <div id="calendar"></div>
       </div>
     </div>
@@ -279,7 +283,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
         <span class="card-title"><i class="ti ti-plus-circle" style="color:#185FA5;"></i> 운영지원 등록</span>
       </div>
       <div class="card-body">
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:12px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:12px;">
           <div class="sup-form-group">
             <label>업장 선택 *</label>
             <div class="searchable-select">
@@ -404,20 +408,17 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
         <div class="form-grid">
           <div class="form-group"><label>사업장명 *</label><input type="text" id="f-name"></div>
           <div class="form-group"><label>소재지</label><input type="text" id="f-addr"></div>
-
-          <!-- 담당자 여러명 -->
           <div class="form-group full">
             <label>담당자 <button type="button" class="btn sm" onclick="addContactRow()" style="margin-left:8px;"><i class="ti ti-plus"></i> 추가</button></label>
             <div id="contact-rows">
               <div class="contact-row">
                 <input type="text" placeholder="이름 · 직책 (예) 홍길동 과장" class="contact-name">
-                <input type="text" placeholder="연락처 (예) 010-0000-0000" class="contact-phone">
-                <input type="text" placeholder="대표번호 (예) T.031-000-0000" class="contact-tel">
+                <input type="text" placeholder="연락처" class="contact-phone" oninput="formatPhone(this)">
+                <input type="text" placeholder="대표번호" class="contact-tel" oninput="formatPhone(this)">
                 <button type="button" class="btn sm danger" onclick="removeContactRow(this)"><i class="ti ti-trash"></i></button>
               </div>
             </div>
           </div>
-
           <div class="form-group"><label>팀</label>
             <select id="f-team"><option value="1">1팀 (박주형)</option><option value="2">2팀 (김재희)</option></select>
           </div>
@@ -445,29 +446,41 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
           <div class="form-group full">
             <label>운영끼니</label>
             <div class="meal-select-wrap">
-              <div class="meal-day-row">
-                <span class="meal-day-label">평일</span>
-                <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="weekday" value="조"> 조식</label>
-                <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="weekday" value="중"> 중식</label>
-                <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="weekday" value="석"> 석식</label>
-                <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="weekday" value="야"> 야식</label>
-              </div>
-              <div class="meal-day-row">
-                <label class="meal-check"><input type="checkbox" id="meal-sat" onchange="toggleWeekend('sat')"> <span class="meal-day-label" style="min-width:auto;">토요일</span></label>
-                <div class="meal-sub" id="meal-sat-sub">
-                  <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="sat" value="조"> 조식</label>
-                  <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="sat" value="중"> 중식</label>
-                  <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="sat" value="석"> 석식</label>
-                  <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="sat" value="야"> 야식</label>
+              <div class="meal-day-section">
+                <div class="meal-day-header">
+                  <span class="meal-day-label">평일</span>
+                </div>
+                <div class="meal-chips">
+                  <label class="meal-chip"><input type="checkbox" class="meal-cb" data-day="weekday" value="조" onchange="updateChip(this)"> 조식</label>
+                  <label class="meal-chip"><input type="checkbox" class="meal-cb" data-day="weekday" value="중" onchange="updateChip(this)"> 중식</label>
+                  <label class="meal-chip"><input type="checkbox" class="meal-cb" data-day="weekday" value="석" onchange="updateChip(this)"> 석식</label>
+                  <label class="meal-chip"><input type="checkbox" class="meal-cb" data-day="weekday" value="야" onchange="updateChip(this)"> 야식</label>
                 </div>
               </div>
-              <div class="meal-day-row">
-                <label class="meal-check"><input type="checkbox" id="meal-sun" onchange="toggleWeekend('sun')"> <span class="meal-day-label" style="min-width:auto;">일요일</span></label>
-                <div class="meal-sub" id="meal-sun-sub">
-                  <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="sun" value="조"> 조식</label>
-                  <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="sun" value="중"> 중식</label>
-                  <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="sun" value="석"> 석식</label>
-                  <label class="meal-check"><input type="checkbox" class="meal-cb" data-day="sun" value="야"> 야식</label>
+              <div class="meal-day-section">
+                <div class="meal-day-header">
+                  <label class="meal-chip" style="border:none;padding:0;background:none;">
+                    <input type="checkbox" id="meal-sat" onchange="toggleWeekend('sat');updateChip(this)"> 토요일
+                  </label>
+                </div>
+                <div class="meal-chips meal-sub-section" id="meal-sat-sub" style="display:none;">
+                  <label class="meal-chip"><input type="checkbox" class="meal-cb" data-day="sat" value="조" onchange="updateChip(this)"> 조식</label>
+                  <label class="meal-chip"><input type="checkbox" class="meal-cb" data-day="sat" value="중" onchange="updateChip(this)"> 중식</label>
+                  <label class="meal-chip"><input type="checkbox" class="meal-cb" data-day="sat" value="석" onchange="updateChip(this)"> 석식</label>
+                  <label class="meal-chip"><input type="checkbox" class="meal-cb" data-day="sat" value="야" onchange="updateChip(this)"> 야식</label>
+                </div>
+              </div>
+              <div class="meal-day-section">
+                <div class="meal-day-header">
+                  <label class="meal-chip" style="border:none;padding:0;background:none;">
+                    <input type="checkbox" id="meal-sun" onchange="toggleWeekend('sun');updateChip(this)"> 일요일
+                  </label>
+                </div>
+                <div class="meal-chips meal-sub-section" id="meal-sun-sub" style="display:none;">
+                  <label class="meal-chip"><input type="checkbox" class="meal-cb" data-day="sun" value="조" onchange="updateChip(this)"> 조식</label>
+                  <label class="meal-chip"><input type="checkbox" class="meal-cb" data-day="sun" value="중" onchange="updateChip(this)"> 중식</label>
+                  <label class="meal-chip"><input type="checkbox" class="meal-cb" data-day="sun" value="석" onchange="updateChip(this)"> 석식</label>
+                  <label class="meal-chip"><input type="checkbox" class="meal-cb" data-day="sun" value="야" onchange="updateChip(this)"> 야식</label>
                 </div>
               </div>
             </div>
