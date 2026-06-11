@@ -195,10 +195,9 @@ window.addContactRow = function() {
 // ── 담당 영양사 ──────────────────────────
 window.addNutriRow = function() {
   var wrap=document.getElementById('nutritionist-rows'); if(!wrap) return;
-  var div=document.createElement('div'); div.className='contact-row';
-  div.innerHTML='<input type="text" placeholder="이름 · 직책" class="nutri-name">'+
-    '<input type="text" placeholder="연락처" class="nutri-phone" oninput="formatPhone(this)">'+
-    '<input type="text" placeholder="이메일" class="nutri-email">'+
+  var div=document.createElement('div'); div.className='nutri-row'; div.style.cssText='display:flex;gap:8px;align-items:center;margin-bottom:6px;';
+  div.innerHTML='<input type="text" placeholder="이름 · 직책" class="nutri-name" style="flex:1;padding:7px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;">'+
+    '<input type="text" placeholder="연락처" class="nutri-phone" oninput="formatPhone(this)" style="flex:1;padding:7px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;">'+
     '<button type="button" class="btn sm danger" onclick="removeNutriRow(this)"><i class="ti ti-trash"></i></button>';
   wrap.appendChild(div);
 };
