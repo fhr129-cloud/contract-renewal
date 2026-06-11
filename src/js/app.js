@@ -823,6 +823,7 @@ window.saveContract=async function(){
   if(addr) {
     try {
       await new Promise(function(resolve) {
+        if(!window.kakaoReady) { resolve(); return; }
         var geocoder = new kakao.maps.services.Geocoder();
         geocoder.addressSearch(addr, function(result, status) {
           if(status===kakao.maps.services.Status.OK) {
