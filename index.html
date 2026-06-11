@@ -10,7 +10,12 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=aefff94dbfce9edffe1c0e100dc4de55&libraries=services"></script>
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=aefff94dbfce9edffe1c0e100dc4de55&libraries=services&autoload=false"></script>
+<script>
+kakao.maps.load(function(){
+  window.kakaoReady = true;
+});
+</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Noto Sans KR',sans-serif;background:#f0f0ee;color:#1a1a18;min-height:100vh;font-size:14px;}
