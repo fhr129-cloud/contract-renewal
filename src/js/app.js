@@ -634,26 +634,36 @@ function renderSupportList() {
     return db.localeCompare(da);
   });
   var el=document.getElementById('sup-list-count'); if(el) el.textContent=sorted.length+'건';
-  listEl.innerHTML=sorted.length?sorted.map(function(s){
+  if(!sorted.length) {
+    listEl.innerHTML='<div class="empty-state" style="padding:20px;"><i class="ti ti-calendar"></i>지원 이력이 없어요</div>';
+    return;
+  }
+  var header='<div class="sup-row-header">'+
+    '<span>날짜</span>'+
+    '<span>시간</span>'+
+    '<span>업장</span>'+
+    '<span>지원자</span>'+
+    '<span>카테고리 · 내용</span>'+
+    '<span></span>'+
+    '</div>';
+  var rows=sorted.map(function(s){
     var c=contracts.find(function(x){ return x.name===s.bizName; }), cid=c?c.id:'';
-    var tStr=s.timeStart?(s.timeStart+(s.timeEnd?' ~ '+s.timeEnd:'')):(s.time||'');
+    var tStr=s.timeStart?(s.timeStart+(s.timeEnd?' ~ '+s.timeEnd:'')):'';
     var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
+    var catContent=(s.category||'')+(s.content?' · '+s.content:'');
     return '<div class="sup-row">'+
-      '<div style="min-width:0;flex:1;display:flex;flex-direction:column;gap:3px;">'+
-        '<div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;">'+
-          '<span class="badge-cat">'+(s.category||'')+'</span>'+
-          '<span class="sup-biz"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+'>'+( s.bizName||'')+'</span>'+
-        '</div>'+
-        '<div style="font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+
-          (s.date||'')+(tStr?' '+tStr:'')+(staffStr?' · '+staffStr:'')+(s.content?' · '+s.content:'')+
-        '</div>'+
-      '</div>'+
-      '<div style="display:flex;gap:4px;flex-shrink:0;">'+
+      '<span style="color:#888;font-size:12px;">'+(s.date||'')+'</span>'+
+      '<span style="color:#888;font-size:12px;">'+(tStr||'-')+'</span>'+
+      '<span class="sup-biz"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+'>'+( s.bizName||'')+'</span>'+
+      '<span style="font-size:12px;color:#555;">'+(staffStr||'-')+'</span>'+
+      '<span style="font-size:12px;color:#555;">'+(catContent||'-')+'</span>'+
+      '<span style="display:flex;gap:4px;">'+
         '<button class="btn sm" onclick="editSupport(\''+s.id+'\')" ><i class="ti ti-edit"></i></button>'+
         '<button class="btn sm danger" onclick="delSupport(\''+s.id+'\')" ><i class="ti ti-trash"></i></button>'+
-      '</div>'+
+      '</span>'+
       '</div>';
-  }).join(''):'<div class="empty-state" style="padding:20px;"><i class="ti ti-calendar"></i>지원 이력이 없어요</div>';
+  }).join('');
+  listEl.innerHTML=header+rows;
 }
 
 window.openCalPopup=function(dateKey) {
