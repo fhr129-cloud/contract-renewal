@@ -449,16 +449,14 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
           <div class="form-group"><label>사업장명 *</label><input type="text" id="f-name"></div>
           <div class="form-group"><label>소재지</label><input type="text" id="f-addr"></div>
           <div class="form-group full">
-            <label>담당 영양사</label>
+            <label>담당 영양사 <button type="button" class="btn sm" onclick="addNutriRow()" style="margin-left:8px;"><i class="ti ti-plus"></i> 추가</button></label>
             <div id="nutritionist-rows">
-              <div class="contact-row">
-                <input type="text" placeholder="이름 · 직책 (예) 홍길동 영양사" class="nutri-name">
-                <input type="text" placeholder="연락처" class="nutri-phone" oninput="formatPhone(this)">
-                <input type="text" placeholder="이메일" class="nutri-email">
+              <div class="nutri-row" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+                <input type="text" placeholder="이름 · 직책 (예) 홍길동 영양사" class="nutri-name" style="flex:1;padding:7px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;">
+                <input type="text" placeholder="연락처" class="nutri-phone" oninput="formatPhone(this)" style="flex:1;padding:7px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;">
                 <button type="button" class="btn sm danger" onclick="removeNutriRow(this)"><i class="ti ti-trash"></i></button>
               </div>
             </div>
-            <button type="button" class="btn sm" onclick="addNutriRow()" style="margin-top:6px;"><i class="ti ti-plus"></i> 영양사 추가</button>
           </div>
           <div class="form-group full">
             <label>담당자 <button type="button" class="btn sm" onclick="addContactRow()" style="margin-left:8px;"><i class="ti ti-plus"></i> 추가</button></label>
