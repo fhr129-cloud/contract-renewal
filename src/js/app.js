@@ -476,29 +476,7 @@ function renderDashboard() {
   mk('card-auto','blue2','ti-refresh','자동연장',counts.auto);
   mk('card-ok','green','ti-check','여유',counts.ok);
 
-  // 팀별 현황
-  var t1=contracts.filter(function(c){ return c.team===1; });
-  var t2=contracts.filter(function(c){ return c.team===2; });
-  var respGroups={};
-  contracts.forEach(function(c){ var r=c.resp||'미지정'; if(!respGroups[r]) respGroups[r]=0; respGroups[r]++; });
 
-  function teamStatHtml(list) {
-    var rg={};
-    list.forEach(function(c){ var r=c.resp||'미지정'; if(!rg[r]) rg[r]={total:0,urgent:0,near:0}; rg[r].total++; var s=calcStatus(c); if(s==='urgent') rg[r].urgent++; else if(s==='near') rg[r].near++; });
-    return Object.keys(rg).map(function(r){
-      return '<div class="team-stat-row">'+
-        '<span style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">'+r+'</span>'+
-        '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;margin-left:8px;">'+
-        '<span style="color:#888;font-size:11px;white-space:nowrap;">'+rg[r].total+'개소</span>'+
-        (rg[r].urgent?'<span class="badge urgent">긴급 '+rg[r].urgent+'</span>':'')+
-        (rg[r].near?'<span class="badge near">임박 '+rg[r].near+'</span>':'')+
-        '</div></div>';
-    }).join('') || '<div style="color:#aaa;font-size:12px;padding:8px 0;">없음</div>';
-  }
-  var t1el=document.getElementById('dash-team1'); if(t1el) t1el.innerHTML=teamStatHtml(t1);
-  var t2el=document.getElementById('dash-team2'); if(t2el) t2el.innerHTML=teamStatHtml(t2);
-  var t1c=document.getElementById('dash-team1-count'); if(t1c) t1c.textContent=t1.length+'개소';
-  var t2c=document.getElementById('dash-team2-count'); if(t2c) t2c.textContent=t2.length+'개소';
 
   // 이번달/다음달 만료
   var thisY=now.getFullYear(), thisM=now.getMonth();
