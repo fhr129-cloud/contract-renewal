@@ -721,8 +721,9 @@ window.renderBizTab=function(){
 };
 
 // ── 관리자 수정 ──────────────────────────
-function renderAdmin(){
-  var q=(document.getElementById('admin-search')?document.getElementById('admin-search').value:'').toLowerCase();
+window.renderAdmin = function(){
+  var el = document.getElementById('admin-search');
+  var q = el ? el.value.toLowerCase() : '';
   var rows=contracts.filter(function(c){ return !q||c.name.toLowerCase().includes(q); }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
   var el=document.getElementById('admin-count'); if(el) el.textContent=rows.length+'건';
   var tbody=document.getElementById('admin-tbody'); if(!tbody) return;
