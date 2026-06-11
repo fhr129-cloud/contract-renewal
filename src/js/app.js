@@ -394,16 +394,16 @@ function renderCalendar() {
     var key=calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
     var items=dayMap[key]||[];
     var isToday=key===today;
-    html+='<div class="cal-day'+(isToday?' today':'')+'">'+
+    html+='<div class="cal-day'+(isToday?' today':'')+'" onclick="openCalPopup(\''+key+'\')" style="cursor:pointer;">'+
       '<div class="cal-num">'+d+'</div>'+
       items.slice(0,3).map(function(s){
         var catIdx=SUPPORT_CATS.indexOf(s.category);
-        // 모바일: 업장명만, PC: 업장명+카테고리
-        return '<div class="cal-event cat-'+catIdx+'" title="'+s.bizName+' ['+s.category+'] '+(s.staffName||'')+(s.timeStart?' '+s.timeStart:'')+'">'+
-          (s.bizName||'')+
+        var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(','):(s.staffName||'');
+        return '<div class="cal-event cat-'+catIdx+'" title="'+s.bizName+'">'+
+          (s.bizName||'')+(staffStr?' / '+staffStr:'')+
           '</div>';
       }).join('')+
-      (items.length>3?'<div class="cal-more">+' +(items.length-3)+'</div>':'')+
+      (items.length>3?'<div class="cal-more">+' +(items.length-3)+'건</div>':'')+
       '</div>';
   }
   html+='</div>';
@@ -449,11 +449,14 @@ window.submitSupport=async function() {
   var date=document.getElementById('sup-date').value;
   var timeStart=document.getElementById('sup-time-start')?document.getElementById('sup-time-start').value:'';
   var timeEnd=document.getElementById('sup-time-end')?document.getElementById('sup-time-end').value:'';
-  var staff=document.getElementById('sup-staff').value.trim();
+  var staffInputs = document.querySelectorAll('.staff-input');
+  var staffNames = [];
+  staffInputs.forEach(function(inp){ if(inp.value.trim()) staffNames.push(inp.value.trim()); });
+  var staff = staffNames.join(', ');
   var cat=document.getElementById('sup-cat').value;
   var content=document.getElementById('sup-content').value.trim();
   if(!biz||!date||!cat){ showToast('업장, 일자, 카테고리는 필수예요.'); return; }
-  var data={bizName:biz,date:date,timeStart:timeStart,timeEnd:timeEnd,staffName:staff,category:cat,content:content};
+  var data={bizName:biz,date:date,timeStart:timeStart,timeEnd:timeEnd,staffName:staff,staffNames:staffNames,category:cat,content:content};
   try {
     if(editingSupportId){ await updateSupport(editingSupportId,data); editingSupportId=null; showToast('수정되었습니다.'); }
     else { await addSupport(data); showToast('등록되었습니다.'); }
@@ -474,7 +477,20 @@ window.editSupport=function(id) {
   document.getElementById('sup-date').value=s.date||'';
   if(document.getElementById('sup-time-start')) document.getElementById('sup-time-start').value=s.timeStart||s.time||'';
   if(document.getElementById('sup-time-end')) document.getElementById('sup-time-end').value=s.timeEnd||'';
-  document.getElementById('sup-staff').value=s.staffName||'';
+  var staffRows = document.getElementById('staff-rows');
+  if(staffRows) {
+    staffRows.innerHTML = '';
+    var names = s.staffNames&&s.staffNames.length ? s.staffNames : (s.staffName?[s.staffName]:[]);
+    if(!names.length) names = [''];
+    names.forEach(function(name){
+      var div = document.createElement('div');
+      div.className = 'staff-row';
+      div.style.cssText = 'display:flex;gap:6px;align-items:center;';
+      div.innerHTML = '<input type="text" class="staff-input" value="'+name+'" placeholder="예) 손도란" style="padding:8px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;width:140px;">'+
+        '<button type="button" class="btn sm danger" onclick="removeStaffRow(this)"><i class="ti ti-x"></i></button>';
+      staffRows.appendChild(div);
+    });
+  }
   document.getElementById('sup-cat').value=s.category||'';
   document.getElementById('sup-content').value=s.content||'';
   document.getElementById('sup-submit-btn').innerHTML='<i class="ti ti-check"></i> 수정 저장';
@@ -485,7 +501,8 @@ window.editSupport=function(id) {
 
 window.cancelEditSupport=function() {
   editingSupportId=null;
-  ['ss-input','sup-date','sup-staff','sup-content'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+ ['ss-input','sup-date','sup-content'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  document.querySelectorAll('.staff-input').forEach(function(inp){ inp.value=''; });
   document.getElementById('sup-biz').value='';
   if(document.getElementById('sup-time-start')) document.getElementById('sup-time-start').value='';
   if(document.getElementById('sup-time-end')) document.getElementById('sup-time-end').value='';
@@ -509,7 +526,68 @@ window.setBizTab=function(tab) {
   if(mapInstance&&tab!=='region'){mapInstance.remove();mapInstance=null;}
   renderBizTab();
 };
+window.openCalPopup = function(dateKey) {
+  var items = supports.filter(function(s){ return s.date && s.date.slice(0,10)===dateKey; });
+  if(!items.length) return;
 
+  var html = items.map(function(s){
+    var tStr = s.timeStart?(s.timeStart+(s.timeEnd?' ~ '+s.timeEnd:'')):(s.time||'');
+    var staffStr = s.staffNames&&s.staffNames.length ? s.staffNames.join(', ') : (s.staffName||'');
+    return '<div class="cal-sup-item">'+
+      '<div>'+
+        '<div style="font-weight:500;font-size:14px;">'+s.bizName+'</div>'+
+        '<div style="font-size:12px;color:#888;margin-top:3px;">'+
+          '<span class="badge-cat">'+s.category+'</span>'+
+          (tStr?' '+tStr:'')+
+          (staffStr?' · '+staffStr:'')+
+        '</div>'+
+        (s.content?'<div style="font-size:12px;color:#555;margin-top:4px;">'+s.content+'</div>':'')+
+      '</div>'+
+      '<div style="display:flex;gap:6px;flex-shrink:0;">'+
+        '<button class="btn sm" onclick="editSupportFromPopup(\''+s.id+'\')"><i class="ti ti-edit"></i></button>'+
+        '<button class="btn sm danger" onclick="delSupportFromPopup(\''+s.id+'\',\''+dateKey+'\')"><i class="ti ti-trash"></i></button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  var popup = document.getElementById('cal-popup');
+  if(!popup) {
+    popup = document.createElement('div');
+    popup.className = 'cal-popup';
+    popup.id = 'cal-popup';
+    popup.innerHTML = '<div class="cal-popup-inner">'+
+      '<div class="cal-popup-header">'+
+        '<h4 id="cal-popup-title"></h4>'+
+        '<button class="btn sm" onclick="closeCalPopup()"><i class="ti ti-x"></i></button>'+
+      '</div>'+
+      '<div class="cal-popup-body" id="cal-popup-body"></div>'+
+    '</div>';
+    popup.addEventListener('click', function(e){ if(e.target===popup) closeCalPopup(); });
+    document.body.appendChild(popup);
+  }
+  document.getElementById('cal-popup-title').textContent = dateKey + ' 지원 내역';
+  document.getElementById('cal-popup-body').innerHTML = html;
+  popup.classList.add('open');
+};
+
+window.closeCalPopup = function() {
+  var popup = document.getElementById('cal-popup');
+  if(popup) popup.classList.remove('open');
+};
+
+window.editSupportFromPopup = function(id) {
+  closeCalPopup();
+  window.editSupport(id);
+};
+
+window.delSupportFromPopup = async function(id, dateKey) {
+  if(!confirm('삭제할까요?')) return;
+  try {
+    await deleteSupport(id);
+    showToast('삭제되었습니다.');
+    closeCalPopup();
+  } catch(e){ showToast('오류 발생'); }
+};
 window.toggleTeam=function(id) {
   var body=document.getElementById(id); if(!body) return;
   body.classList.toggle('open');
@@ -684,7 +762,22 @@ window.exportExcel=function() {
   XLSX.writeFile(wb,'FS사업장현황_'+new Date().toISOString().slice(0,10)+'.xlsx');
   showToast('엑셀 저장되었습니다.');
 };
+window.addStaffRow = function() {
+  var wrap = document.getElementById('staff-rows'); if(!wrap) return;
+  var div = document.createElement('div');
+  div.className = 'staff-row';
+  div.style.cssText = 'display:flex;gap:6px;align-items:center;';
+  div.innerHTML = '<input type="text" class="staff-input" placeholder="예) 이소영" style="padding:8px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;width:140px;">'+
+    '<button type="button" class="btn sm danger" onclick="removeStaffRow(this)"><i class="ti ti-x"></i></button>';
+  wrap.appendChild(div);
+};
 
+window.removeStaffRow = function(btn) {
+  var row = btn.closest('.staff-row');
+  var wrap = document.getElementById('staff-rows');
+  if(wrap && wrap.children.length > 1) row.remove();
+  else { var inp = wrap.querySelector('.staff-input'); if(inp) inp.value=''; }
+};
 function showToast(msg) {
   var el=document.createElement('div'); el.className='toast'; el.textContent=msg;
   document.body.appendChild(el); setTimeout(function(){ el.remove(); },2800);
