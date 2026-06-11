@@ -241,6 +241,18 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
   .cal-event{font-size:8px;padding:1px 2px;}
   .contact-row{grid-template-columns:1fr auto;}
 }
+  .dash-mini-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:.5px solid #f0f0ec;font-size:13px;cursor:pointer;}
+.dash-mini-item:last-child{border-bottom:none;}
+.dash-mini-item:hover{color:#185FA5;}
+.dash-mini-name{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;}
+.dash-mini-right{font-size:12px;color:#888;white-space:nowrap;flex-shrink:0;margin-left:8px;}
+.dash-bar-wrap{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:.5px solid #f0f0ec;}
+.dash-bar-wrap:last-child{border-bottom:none;}
+.dash-bar-name{font-size:13px;font-weight:500;min-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dash-bar{height:8px;border-radius:4px;background:#185FA5;transition:width .3s;}
+.dash-bar-val{font-size:12px;color:#888;white-space:nowrap;margin-left:4px;}
+.team-stat-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:.5px solid #f0f0ec;font-size:12px;}
+.team-stat-row:last-child{border-bottom:none;}
 </style>
 </head>
 <body>
@@ -283,7 +295,11 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 
   <!-- 대시보드 -->
   <div id="page-dashboard" class="page-body" style="display:none;">
-    <div class="stat-grid">
+    <!-- 오늘 날짜 -->
+    <div id="dash-today" style="font-size:13px;color:#888;margin-bottom:14px;"></div>
+
+    <!-- 계약 현황 카드 -->
+    <div class="stat-grid" style="margin-bottom:16px;">
       <div class="stat-card" id="card-total" onclick="window.toggleDashCard(this,'all')"></div>
       <div class="stat-card" id="card-urgent" onclick="window.toggleDashCard(this,'urgent')"></div>
       <div class="stat-card" id="card-near" onclick="window.toggleDashCard(this,'near')"></div>
@@ -292,6 +308,47 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
     </div>
     <div class="dash-list-wrap" id="dash-list-wrap" style="display:none;">
       <div id="dash-list"></div>
+    </div>
+
+    <!-- 팀별 현황 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+      <div class="card">
+        <div class="card-header"><span class="card-title"><i class="ti ti-users" style="color:#185FA5;"></i> 1팀 — 박주형 본부장</span><span id="dash-team1-count" class="count-badge"></span></div>
+        <div class="card-body" style="padding:10px 16px;" id="dash-team1"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title"><i class="ti ti-users" style="color:#3B6D11;"></i> 2팀 — 김재희 차장</span><span id="dash-team2-count" class="count-badge"></span></div>
+        <div class="card-body" style="padding:10px 16px;" id="dash-team2"></div>
+      </div>
+    </div>
+
+    <!-- 이번달/다음달 만료 + 최근 지원 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+      <div class="card">
+        <div class="card-header"><span class="card-title"><i class="ti ti-calendar-event" style="color:#854F0B;"></i> 이번달 만료 예정</span><span id="dash-thismonth-count" class="count-badge"></span></div>
+        <div class="card-body" style="padding:0 16px;" id="dash-thismonth"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title"><i class="ti ti-calendar-event" style="color:#185FA5;"></i> 다음달 만료 예정</span><span id="dash-nextmonth-count" class="count-badge"></span></div>
+        <div class="card-body" style="padding:0 16px;" id="dash-nextmonth"></div>
+      </div>
+    </div>
+
+    <!-- 최근 운영지원 -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header">
+        <span class="card-title"><i class="ti ti-history" style="color:#185FA5;"></i> 최근 7일 운영지원</span>
+        <span id="dash-sup-count" class="count-badge"></span>
+      </div>
+      <div class="card-body" style="padding:0 16px;" id="dash-recent-sup"></div>
+    </div>
+
+    <!-- 이번달 지원 많은 사업장 -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><i class="ti ti-chart-bar" style="color:#185FA5;"></i> 이번달 지원 현황</span>
+      </div>
+      <div class="card-body" style="padding:0 16px;" id="dash-sup-stat"></div>
     </div>
   </div>
 
