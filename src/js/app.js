@@ -211,7 +211,13 @@ function getNutritionists() {
   rows.forEach(function(row){
     var n=row.querySelector('.nutri-name').value.trim();
     var p=row.querySelector('.nutri-phone').value.trim();
-    if(n||p) r.push({name:n,phone:p});
+    if(n||p) {
+      // 이미 직책이 없으면 "영양사" 자동 추가
+      if(n && !n.includes('영양사') && !n.includes('팀장') && !n.includes('과장') && !n.includes('대리') && !n.includes('주임') && !n.includes('차장') && !n.includes('부장') && !n.includes('이사') && !n.includes('사원')) {
+        n = n + ' 영양사';
+      }
+      r.push({name:n,phone:p});
+    }
   }); return r;
 }
 function setNutritionists(list) {
@@ -399,6 +405,7 @@ async function init() {
     contracts=data;
     ssOptions=data.slice().sort(function(a,b){ return a.name.localeCompare(b.name,'ko'); });
     if(currentPage) renderPage(currentPage);
+    else if(document.getElementById('page-dashboard')&&document.getElementById('page-dashboard').style.display!=='none') renderDashboard();
   });
   listenHistory(function(data){ historyData=data; });
  listenSupports(function(data){
