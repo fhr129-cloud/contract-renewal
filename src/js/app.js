@@ -401,9 +401,10 @@ async function init() {
     if(currentPage) renderPage(currentPage);
   });
   listenHistory(function(data){ historyData=data; });
-  listenSupports(function(data){
+ listenSupports(function(data){
     supports=data;
     if(currentPage==='support'){ renderCalendar(); renderSupportList(); }
+    if(currentPage==='dashboard') renderDashboard();
   });
 }
 init();
