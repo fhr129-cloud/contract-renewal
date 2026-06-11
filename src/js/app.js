@@ -192,6 +192,42 @@ window.addContactRow = function() {
     '<button type="button" class="btn sm danger" onclick="removeContactRow(this)"><i class="ti ti-trash"></i></button>';
   wrap.appendChild(div);
 };
+// ── 담당 영양사 ──────────────────────────
+window.addNutriRow = function() {
+  var wrap=document.getElementById('nutritionist-rows'); if(!wrap) return;
+  var div=document.createElement('div'); div.className='contact-row';
+  div.innerHTML='<input type="text" placeholder="이름 · 직책" class="nutri-name">'+
+    '<input type="text" placeholder="연락처" class="nutri-phone" oninput="formatPhone(this)">'+
+    '<input type="text" placeholder="이메일" class="nutri-email">'+
+    '<button type="button" class="btn sm danger" onclick="removeNutriRow(this)"><i class="ti ti-trash"></i></button>';
+  wrap.appendChild(div);
+};
+window.removeNutriRow = function(btn) {
+  var row=btn.closest('.contact-row'), wrap=document.getElementById('nutritionist-rows');
+  if(wrap&&wrap.children.length>1) row.remove(); else showToast('최소 1명은 있어야 해요.');
+};
+function getNutritionists() {
+  var rows=document.querySelectorAll('#nutritionist-rows .contact-row'), r=[];
+  rows.forEach(function(row){
+    var n=row.querySelector('.nutri-name').value.trim();
+    var p=row.querySelector('.nutri-phone').value.trim();
+    var e=row.querySelector('.nutri-email').value.trim();
+    if(n||p) r.push({name:n,phone:p,email:e});
+  }); return r;
+}
+function setNutritionists(list) {
+  var wrap=document.getElementById('nutritionist-rows'); if(!wrap) return;
+  wrap.innerHTML='';
+  var data=list&&list.length?list:[{name:'',phone:'',email:''}];
+  data.forEach(function(nt){
+    var div=document.createElement('div'); div.className='contact-row';
+    div.innerHTML='<input type="text" placeholder="이름 · 직책" class="nutri-name" value="'+(nt.name||'')+'">'+
+      '<input type="text" placeholder="연락처" class="nutri-phone" value="'+(nt.phone||'')+'" oninput="formatPhone(this)">'+
+      '<input type="text" placeholder="이메일" class="nutri-email" value="'+(nt.email||'')+'">'+
+      '<button type="button" class="btn sm danger" onclick="removeNutriRow(this)"><i class="ti ti-trash"></i></button>';
+    wrap.appendChild(div);
+  });
+}
 window.removeContactRow = function(btn) {
   var row=btn.closest('.contact-row'), wrap=document.getElementById('contact-rows');
   if(wrap&&wrap.children.length>1) row.remove(); else showToast('최소 1명은 있어야 해요.');
@@ -473,7 +509,8 @@ function renderDetail(c) {
     '<div class="detail-row"><span class="detail-label">계약 상태</span><div class="detail-val" style="display:flex;align-items:center;gap:8px;"><span class="badge '+s+'">'+STATUS_META[s].label+'</span><span style="color:'+col+';font-weight:500;">'+dDayLabel(d)+'</span></div></div>'+
     '<div class="detail-row"><span class="detail-label">소재지</span><span class="detail-val">'+(c.addr||'-')+'</span></div>'+
     '<div class="detail-row"><span class="detail-label">담당자</span><span class="detail-val">'+contactHtml+'</span></div>'+
-    '<div class="detail-row"><span class="detail-label">팀/책임</span><span class="detail-val">'+(c.team?c.team+'팀':'-')+' / '+(c.resp||'-')+'</span></div>'+
+  '<div class="detail-row"><span class="detail-label">담당영양사</span><span class="detail-val">'+(c.nutritionists&&c.nutritionists.length?c.nutritionists.map(function(nt){ return (nt.name||'')+(nt.phone?' · '+nt.phone:'')+(nt.email?' · '+nt.email:''); }).join('<br>'):'-')+'</span></div>'+
+  '<div class="detail-row"><span class="detail-label">팀/책임</span><span class="detail-val">'+(c.team?c.team+'팀':'-')+' / '+(c.resp||'-')+'</span></div>'+
     '</div>'+
     '<div class="detail-section"><div class="detail-section-title">계약 정보</div>'+
     '<div class="detail-row"><span class="detail-label">계약기간</span><span class="detail-val">'+fmtDate(c.startDate)+' ~ '+fmtDate(c.endDate)+'</span></div>'+
@@ -744,7 +781,7 @@ window.openAddModal=function(){
   editingId=null;
   document.getElementById('modal-title').textContent='계약 추가';
   document.getElementById('contract-form').reset();
-  setContacts([]); setMeals(null);
+  setContacts([]); setMeals(null); setNutritionists([]);
   switchModalTab('basic');
   document.getElementById('tab-hist-btn').style.display='none';
   document.getElementById('modal-overlay').classList.add('open');
@@ -764,9 +801,10 @@ window.openEditModal=function(id){
   document.getElementById('f-priceType').value=c.priceType||'per-meal';
   document.getElementById('f-avgMeals').value=c.avgMeals||'';
   document.getElementById('f-note').value=c.note||'';
-  if(c.contacts&&c.contacts.length) setContacts(c.contacts);
+if(c.contacts&&c.contacts.length) setContacts(c.contacts);
   else setContacts([{name:c.contactName||'',phone:c.contactPhone||'',tel:c.tel||''}]);
   setMeals(c.meals);
+  setNutritionists(c.nutritionists||[]);
   switchModalTab('basic');
   document.getElementById('tab-hist-btn').style.display='inline-block';
   document.getElementById('modal-overlay').classList.add('open');
@@ -804,6 +842,7 @@ window.saveContract=async function(){
     meals:meals, avgMeals:parseInt(document.getElementById('f-avgMeals').value)||0,
    autoRenew:true, note:document.getElementById('f-note').value.trim(),
     lat:lat, lng:lng,
+    nutritionists:getNutritionists(),
   };
   try{
     if(editingId){
