@@ -2,8 +2,10 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>좌표 변환</title>
+<title>좌표 일괄 업데이트</title>
 <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=aefff94dbfce9edffe1c0e100dc4de55&libraries=services"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
 body{font-family:sans-serif;padding:24px;background:#f5f5f5;max-width:900px;margin:0 auto;}
 h2{margin-bottom:16px;color:#185FA5;}
@@ -12,162 +14,94 @@ progress{width:100%;height:10px;margin-bottom:16px;accent-color:#185FA5;}
 button{padding:10px 24px;background:#185FA5;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;margin-bottom:16px;}
 button:hover{background:#0C447C;}
 #result{background:#1a1a18;color:#a8ff78;padding:16px;border-radius:8px;font-size:12px;font-family:monospace;white-space:pre-wrap;height:400px;overflow-y:auto;}
-#copy-btn{background:#3B6D11;display:none;}
 </style>
 </head>
 <body>
-<h2>📍 주소 → 좌표 변환 (카카오맵)</h2>
-<button onclick="startGeocode()">▶ 변환 시작</button>
-<button id="copy-btn" onclick="copyResult()">📋 결과 복사</button>
+<h2>📍 Firebase 좌표 일괄 업데이트</h2>
+<button onclick="startUpdate()">▶ 업데이트 시작</button>
 <div id="status">버튼을 눌러 시작하세요</div>
-<progress id="prog" value="0" max="86"></progress>
+<progress id="prog" value="0" max="100"></progress>
 <div id="result">여기에 결과가 나타납니다...</div>
 
 <script>
-var addresses = [
-  ["SK가스","경기도 평택시 포승읍 원정리 1009-1"],
-  ["그린씨알피","경기도 안성시 고삼면 군내길 22-65"],
-  ["다원체어스","경기도 남양주시 수동면 소래비로 474-16"],
-  ["대덕농협","경기도 안성시 대덕면 서동대로 4670"],
-  ["덕일산업","경기도 평택시 세교산단로 21-20"],
-  ["동인물산","경기도 평택시 청북읍 청북로 222"],
-  ["동인산업","충청북도 청주시 청원구 오창읍 두릉1길 16"],
-  ["드림메카텍","경기도 화성시 정남면 정남산단로 41"],
-  ["롯데웰푸드","경기도 화성시 정남면 괘랑1길 42-27"],
-  ["메카로","경기도 평택시 산단로 103-14"],
-  ["발렉스","경기도 평택시 청북읍 한산길 32"],
-  ["보성정보통신","경기도 평택시 팽성읍 추팔산단로 63"],
-  ["삼양화학공업","충청북도 영동군 매곡면 수원동길 32-40"],
-  ["삼일엘리베이터","충청남도 홍성군 홍북읍 내포첨단산단3길 32"],
-  ["삼전순약","경기도 평택시 산단로16번길 117"],
-  ["삼정펄프","충청남도 천안시 동남구 풍세면 잔다리길 48"],
-  ["성문전자","경기도 평택시 세교산단로 61"],
-  ["세종알로이","경기도 화성시 양감면 사격장길 95"],
-  ["솔레오","경기도 평택시 산단로 24"],
-  ["승우플라텍","경기도 용인시 처인구 남사읍 당하로 47"],
-  ["신덕산업","충청남도 아산시 둔포면 윤보선로336번길 55-22"],
-  ["신양물류","경기도 평택시 포승읍 평택항만길 255"],
-  ["신한전기(엠투엔)","경기도 화성시 동탄산단2길 7-21"],
-  ["에스아이","경기도 화성시 정남면 정남산단1길 13"],
-  ["엠아이텍","경기도 평택시 진위면 하북2길 174"],
-  ["연암","충청남도 천안시 서북구 성거읍 모전1길 172"],
-  ["오뚜기 논산","충청남도 논산시 은진면 관촉로 58번길 138"],
-  ["오뚜기 평택","경기도 평택시 진위면 가곡4길 60"],
-  ["오뚜기 포승","경기도 평택시 포승읍 포승공단로 2"],
-  ["우보테크","경기도 평택시 청북읍 양교1길 134"],
-  ["우진티엠씨","인천광역시 서구 원전로 16"],
-  ["유니젠","경기도 평택시 서탄면 수월암리 126"],
-  ["윤지양행","경기도 오산시 가장산업서북로 23"],
-  ["일렉콤","경기도 이천시 마장면 덕이로 202번길 99"],
-  ["지에스아이","충청남도 아산시 둔포면 아산밸리동로 194"],
-  ["청우코아","경기도 평택시 청북읍 토진3길 80-8"],
-  ["KC글라스","충청남도 천안시 서북구 입장면 도림리 330"],
-  ["코오롱 인더스트리","경기도 화성시 동탄산단10길 74"],
-  ["티엔씨","충청남도 아산시 둔포면 아산밸리로 304-29"],
-  ["파트라","경기도 용인시 처인구 남사읍 완장천로 118-22"],
-  ["퍼슨","충청남도 천안시 서북구 백석공단1로 47"],
-  ["퓨어앤텍","경기도 화성시 정남면 정남산단로 11"],
-  ["한보일렉트","경기도 화성시 양감면 초록로 706"],
-  ["한석시스템","경기도 용인시 처인구 백암면 고안로 51번길 34"],
-  ["한양로보틱스","충청남도 홍성군 홍북읍 첨단산단5길 175"],
-  ["한온시스템 아산","충청남도 아산시 둔포면 아산밸리서로 20"],
-  ["한온시스템 둔포","충청남도 아산시 둔포면 관대길 90-14"],
-  ["에치와이","경기도 평택시 진위면 동부대로 2"],
-  ["쏘나브이피씨","경기도 화성시 우정읍 배미능골길 112-37"],
-  ["나래산업","경기도 평택시 청북읍 광승길 159-47"],
-  ["한미에프쓰리 1공장","충청남도 아산시 둔포면 충무로 1342"],
-  ["한미에프쓰리 2공장","충청남도 아산시 음봉면 원남리 9-1"],
-  ["카길 애그리 퓨리나","경기도 평택시 포승읍 평택항안로 45"],
-  ["한국바이린","경기도 평택시 오성면 청오로 367-61"],
-  ["디이엔티 오산","경기도 오산시 가장산업서북로 40-56"],
-  ["수퍼빈(아이엠팩토리)","경기도 화성시 우정읍 화산리 364-24"],
-  ["한국가스공사","경기도 평택시 포승읍 남양만로 175-88"],
-  ["동천","경기도 평택시 오성면 오성북로 145"],
-  ["비씨젠","경기도 안산시 단원구 별망로128번길 41"],
-  ["삼영잉크","경기도 평택시 포승읍 내기리 679-13"],
-  ["디오토모티브","충청남도 아산시 둔포면 신항리 215-1"],
-  ["주강로보테크","경기도 평택시 청북읍 광승길 72-3"],
-  ["피엘에스","경기도 평택시 포승읍 서동대로 437-158"],
-  ["이구산업","경기도 평택시 포승읍 포승공단로 42"],
-  ["진보","경기도 평택시 모곡동 438-3"],
-  ["EPS코리아","경기도 평택시 포승읍 평택항로 294"],
-  ["두손","경기도 안성시 미양면 개정산업단지1로 69"],
-  ["지푸드","경기도 평택시 청북읍 토진리 349-22"],
-  ["머크","경기도 평택시 포승읍 원정리 1173-2"],
-  ["동아전기부품","경기도 화성시 동탄천로 31"],
-  ["에스앤지(바스노바)","경기도 용인시 처인구 포곡읍 부곡로 82"],
-  ["대한송유관공사","경기도 성남시 분당구 안양판교로828번길 201"],
-  ["미소찬","충청남도 천안시 서북구 입장면 성진로 643"],
-  ["비와이티","경기도 평택시 포승읍 석정리 895-1"],
-  ["대성아이앤지","경기도 평택시 청북읍 한산리 879-3"],
-  ["무봉산수련원","경기도 평택시 진위면 진위로 181-94"],
-  ["진성티이씨 1공장","경기도 평택시 세교산단로 3"],
-  ["진성티이씨 2공장","경기도 평택시 세교산단로 22번길 35"],
-  ["대코","경기도 시흥시 공단1대로196번길 37"],
-  ["동아전장","충청북도 음성군 감곡면 대학길 247-20"],
-  ["린데코리아","경기도 평택시 고덕면 여염리 1673"],
-  ["신세대여행사","경기도 수원시 권선구 서수원로 19"],
-  ["삼아알미늄","경기도 평택시 포승읍 평택항로 92"],
-  ["필코코스팜","경기도 평택시 청북읍 현곡산단로 11"],
-  ["세명테크","충청남도 아산시 둔포면 장영실로 922-5"],
-  ["효림정공","경기도 평택시 세교산단로101번길 99"]
-];
-
-var results = {};
+var firebaseConfig = {
+  apiKey: "AIzaSyDd67rNSC-d2GzZaLAcT2XP8m9c_2K1gzo",
+  authDomain: "contract-renewal-e0c6d.firebaseapp.com",
+  projectId: "contract-renewal-e0c6d",
+  storageBucket: "contract-renewal-e0c6d.firebasestorage.app",
+  messagingSenderId: "977225940543",
+  appId: "1:977225940543:web:6080359213deca262bc28a"
+};
+firebase.initializeApp(firebaseConfig);
+var db = firebase.firestore();
 var geocoder;
-var finalCode = '';
+var log = '';
 
-function startGeocode() {
+function addLog(msg) {
+  log += msg + '\n';
+  document.getElementById('result').textContent = log;
+  document.getElementById('result').scrollTop = 9999;
+}
+
+async function startUpdate() {
   geocoder = new kakao.maps.services.Geocoder();
-  var idx = 0;
-  var total = addresses.length;
-  var log = '';
-  document.getElementById('result').textContent = '변환 시작...\n';
-  document.getElementById('copy-btn').style.display = 'none';
+  addLog('Firebase에서 계약 데이터 불러오는 중...');
 
-  function next() {
-    if(idx >= total) {
-      finish(log);
-      return;
+  var snap = await db.collection('contracts').get();
+  var docs = snap.docs;
+  var total = docs.length;
+  document.getElementById('prog').max = total;
+  addLog('총 ' + total + '개 사업장 처리 시작\n');
+
+  var done = 0, success = 0, fail = 0;
+
+  for(var i=0; i<docs.length; i++) {
+    var doc = docs[i];
+    var data = doc.data();
+    var name = data.name;
+    var addr = data.addr || '';
+
+    document.getElementById('status').textContent = '(' + (i+1) + '/' + total + ') ' + name;
+    document.getElementById('prog').value = i+1;
+
+    if(!addr) {
+      addLog('✗ ' + name + ': 주소 없음');
+      fail++; done++; continue;
     }
-    var name = addresses[idx][0];
-    var addr = addresses[idx][1];
-    document.getElementById('status').textContent = '(' + (idx+1) + '/' + total + ') ' + name;
-    document.getElementById('prog').value = idx+1;
 
-    geocoder.addressSearch(addr, function(res, status) {
-      if(status === kakao.maps.services.Status.OK) {
-        var lat = parseFloat(res[0].y).toFixed(4);
-        var lng = parseFloat(res[0].x).toFixed(4);
-        results[name] = {lat:lat, lng:lng};
-        log += '✓ ' + name + ': ' + lat + ', ' + lng + '\n';
+    // 이미 좌표 있으면 스킵
+    if(data.lat && data.lng) {
+      addLog('- ' + name + ': 이미 좌표 있음 (' + data.lat + ', ' + data.lng + ')');
+      done++; continue;
+    }
+
+    try {
+      var result = await new Promise(function(resolve) {
+        geocoder.addressSearch(addr, function(res, status) {
+          resolve({res:res, status:status});
+        });
+      });
+
+      if(result.status === kakao.maps.services.Status.OK) {
+        var lat = parseFloat(result.res[0].y);
+        var lng = parseFloat(result.res[0].x);
+        await db.collection('contracts').doc(doc.id).update({lat:lat, lng:lng});
+        addLog('✓ ' + name + ': ' + lat.toFixed(4) + ', ' + lng.toFixed(4));
+        success++;
       } else {
-        log += '✗ ' + name + ': 실패\n';
+        addLog('✗ ' + name + ': 주소 변환 실패 (' + addr + ')');
+        fail++;
       }
-      document.getElementById('result').textContent = log;
-      document.getElementById('result').scrollTop = 9999;
-      idx++;
-      setTimeout(next, 120);
-    });
+    } catch(e) {
+      addLog('✗ ' + name + ': 오류 - ' + e.message);
+      fail++;
+    }
+    done++;
+    await new Promise(function(r){ setTimeout(r, 150); });
   }
-  next();
-}
 
-function finish(log) {
-  document.getElementById('status').textContent = '✅ 완료! 아래 코드를 복사해서 app.js에 붙여넣으세요';
-  finalCode = '\nvar COORDS = {\n';
-  for(var name in results) {
-    finalCode += "  '" + name + "':{lat:" + results[name].lat + ",lng:" + results[name].lng + "},\n";
-  }
-  finalCode += '};';
-  document.getElementById('result').textContent = log + finalCode;
-  document.getElementById('copy-btn').style.display = 'inline-block';
-}
-
-function copyResult() {
-  navigator.clipboard.writeText(finalCode).then(function(){
-    alert('복사되었습니다! app.js의 var COORDS = { ... } 부분을 이걸로 교체하세요 😊');
-  });
+  addLog('\n✅ 완료! 성공: ' + success + '개 / 실패: ' + fail + '개');
+  document.getElementById('status').textContent = '완료!';
 }
 </script>
 </body>
