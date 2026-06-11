@@ -474,7 +474,7 @@ window.toggleDashCard=function(el,filter) {
   listEl.innerHTML=list.length?list.map(function(c){
     var s=calcStatus(c),d=dDiff(c.endDate),col=s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':s==='near'?'#854F0B':'#3B6D11';
     return '<div class="dash-item" onclick="goDetail(\''+c.id+'\')">' +
-      '<div class="dash-left"><div class="dash-name">'+c.name+'</div><div class="dash-sub">'+(c.resp||'')+' · '+(c.addr||'').split(' ').slice(0,2).join(' ')+'</div></div>'+
+      '<div class="dash-left"><div class="dash-name">'+c.name+'</div>'<div class="dash-sub">'+(c.nutritionists&&c.nutritionists.length?c.nutritionists[0].name+' · ':'')+(c.resp||'')+'</div></div>'+
       '<div class="dash-right"><span class="badge '+s+'">'+STATUS_META[s].label+'</span><div class="dash-dday" style="color:'+col+'">'+dDayLabel(d)+'</div></div></div>';
   }).join(''):'<div class="empty-state"><i class="ti ti-check"></i>해당 없음</div>';
 };
@@ -715,11 +715,13 @@ window.renderBizTab=function(){
     var contactStr='';
     if(c.contacts&&c.contacts.length) contactStr=c.contacts.map(function(ct){ return (ct.name||'')+(ct.phone?' '+ct.phone:''); }).join(' / ');
     else contactStr=(c.contactName||'')+(c.contactPhone?' '+c.contactPhone:'');
+    var nutriStr=c.nutritionists&&c.nutritionists.length?c.nutritionists.map(function(nt){ return (nt.name||'')+(nt.phone?' '+nt.phone:''); }).join(' / '):'';
     return '<div class="biz-card" onclick="goDetail(\''+c.id+'\')">' +
       '<div class="biz-card-top"><span class="biz-name">'+c.name+'</span><span class="badge '+s+'">'+STATUS_META[s].label+'</span></div>'+
       '<div class="biz-info">'+
         '<span><i class="ti ti-map-pin"></i>'+(c.addr||'-')+'</span>'+
-        (contactStr?'<span><i class="ti ti-user"></i>'+contactStr+'</span>':'')+
+        (currentBizTab==='team'?(nutriStr?'<span><i class="ti ti-user"></i>'+nutriStr+'</span>':'')+(c.resp?'<span><i class="ti ti-user-check"></i>'+c.resp+'</span>':''):'')+
+        (currentBizTab==='resp'?(nutriStr?'<span><i class="ti ti-user"></i>'+nutriStr+'</span>':''):'')+
       '</div>'+
       '<div class="biz-bottom"><span>'+fmtDate(c.endDate)+'</span><span style="font-weight:500;color:'+col+'">'+dDayLabel(d)+'</span></div>'+
       '</div>';
