@@ -487,11 +487,12 @@ function renderDashboard() {
     list.forEach(function(c){ var r=c.resp||'미지정'; if(!rg[r]) rg[r]={total:0,urgent:0,near:0}; rg[r].total++; var s=calcStatus(c); if(s==='urgent') rg[r].urgent++; else if(s==='near') rg[r].near++; });
     return Object.keys(rg).map(function(r){
       return '<div class="team-stat-row">'+
-        '<span style="font-weight:500;">'+r+'</span>'+
-        '<span style="color:#888;">'+rg[r].total+'개소</span>'+
+        '<span style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">'+r+'</span>'+
+        '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;margin-left:8px;">'+
+        '<span style="color:#888;font-size:11px;white-space:nowrap;">'+rg[r].total+'개소</span>'+
         (rg[r].urgent?'<span class="badge urgent">긴급 '+rg[r].urgent+'</span>':'')+
         (rg[r].near?'<span class="badge near">임박 '+rg[r].near+'</span>':'')+
-        '</div>';
+        '</div></div>';
     }).join('') || '<div style="color:#aaa;font-size:12px;padding:8px 0;">없음</div>';
   }
   var t1el=document.getElementById('dash-team1'); if(t1el) t1el.innerHTML=teamStatHtml(t1);
