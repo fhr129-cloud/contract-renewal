@@ -87,8 +87,10 @@ window.updateChip = function(cb) {
 window.toggleWeekend = function(day) {
   var cb = document.getElementById('meal-'+day);
   var sub = document.getElementById('meal-'+day+'-sub');
+  var chip = document.getElementById('meal-'+day+'-chip');
   if(!cb||!sub) return;
   sub.style.display = cb.checked ? 'flex' : 'none';
+  if(chip) chip.classList.toggle('checked', cb.checked);
   if(!cb.checked) {
     sub.querySelectorAll('input[type=checkbox]').forEach(function(c){ c.checked=false; c.closest('.meal-chip').classList.remove('checked'); });
   }
@@ -333,12 +335,15 @@ function renderDetail(c) {
   } else {
     contactHtml=(c.contactName||'-')+(c.contactPhone?' · '+c.contactPhone:'')+(c.tel?' · '+c.tel:'');
   }
-  var h=historyData.find(function(h){ return h.contractId===c.id; });
+var h=historyData.find(function(h){ return h.contractId===c.id; });
   var histHtml=h&&h.records&&h.records.length?h.records.map(function(r,i){
-    return '<div class="hist-record"><span class="hist-round">'+(i===0?'최초':i+'차')+'</span>'+
+    return '<div class="hist-record">' +
+      '<span class="hist-round">'+(i===0?'최초':i+'차')+'</span>'+
       '<span>'+(r.startDate?fmtDate(r.startDate):'-')+' ~ '+(r.endDate?fmtDate(r.endDate):'-')+'</span>'+
       '<span style="font-weight:500;">'+(r.price?Number(r.price).toLocaleString()+'원/식':'관리비제')+'</span>'+
-      (r.note?'<span style="color:#888;font-size:12px;">'+r.note+'</span>':'')+'</div>';
+      (r.note?'<span style="color:#888;font-size:12px;">'+r.note+'</span>':'')+
+      '<button class="btn sm" style="margin-left:auto;flex-shrink:0;" onclick="openHistModal(\''+c.id+'\','+i+')"><i class="ti ti-edit"></i></button>'+
+      '</div>';
   }).join(''):'<div style="color:#aaa;font-size:13px;padding:12px 0;">히스토리 없음</div>';
   var bizSups=supports.filter(function(sp){ return sp.bizName===c.name; }).sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
   var supHtml=bizSups.length?bizSups.map(function(sp){
@@ -698,7 +703,7 @@ window.openEditModal=function(id) {
   document.getElementById('f-price').value=c.price||'';
   document.getElementById('f-priceType').value=c.priceType||'per-meal';
   document.getElementById('f-avgMeals').value=c.avgMeals||'';
-  document.getElementById('f-autoRenew').value=c.autoRenew?'true':'false';
+
   document.getElementById('f-note').value=c.note||'';
   if(c.contacts&&c.contacts.length) setContacts(c.contacts);
   else setContacts([{name:c.contactName||'',phone:c.contactPhone||'',tel:c.tel||''}]);
@@ -726,7 +731,7 @@ window.saveContract=async function() {
     priceType:document.getElementById('f-priceType').value,
     meals:meals,
     avgMeals:parseInt(document.getElementById('f-avgMeals').value)||0,
-    autoRenew:document.getElementById('f-autoRenew').value==='true',
+   autoRenew:true,
     note:document.getElementById('f-note').value.trim(),
   };
   try {
@@ -761,6 +766,73 @@ window.exportExcel=function() {
   XLSX.utils.book_append_sheet(wb,ws,'계약현황');
   XLSX.writeFile(wb,'FS사업장현황_'+new Date().toISOString().slice(0,10)+'.xlsx');
   showToast('엑셀 저장되었습니다.');
+};
+// ── 히스토리 수정 ──────────────────────────
+window.openHistModal = function(contractId, idx) {
+  var h = historyData.find(function(x){ return x.contractId===contractId; });
+  if(!h||!h.records||!h.records[idx]) return;
+  var r = h.records[idx];
+
+  var existing = document.getElementById('hist-modal');
+  if(existing) existing.remove();
+
+  var modal = document.createElement('div');
+  modal.id = 'hist-modal';
+  modal.className = 'cal-popup open';
+  modal.innerHTML =
+    '<div class="cal-popup-inner">'+
+    '<div class="cal-popup-header">'+
+      '<h4>'+(idx===0?'최초':idx+'차')+' 계약 수정</h4>'+
+      '<button class="btn sm" onclick="closeHistModal()"><i class="ti ti-x"></i></button>'+
+    '</div>'+
+    '<div class="cal-popup-body">'+
+      '<div style="display:flex;flex-direction:column;gap:10px;">'+
+        '<div class="form-group"><label>시작일</label><input type="date" id="hf-start" value="'+(r.startDate||'')+'"></div>'+
+        '<div class="form-group"><label>종료일</label><input type="date" id="hf-end" value="'+(r.endDate||'')+'"></div>'+
+        '<div class="form-group"><label>단가 (원/식, 0=관리비제)</label><input type="number" id="hf-price" value="'+(r.price||0)+'"></div>'+
+        '<div class="form-group"><label>비고</label><input type="text" id="hf-note" value="'+(r.note||'')+'" placeholder="특이사항"></div>'+
+        '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px;">'+
+          '<button class="btn" onclick="closeHistModal()">취소</button>'+
+          '<button class="btn primary" onclick="saveHistModal(\''+contractId+'\','+idx+')"><i class="ti ti-check"></i> 저장</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+    '</div>';
+  modal.addEventListener('click', function(e){ if(e.target===modal) closeHistModal(); });
+  document.body.appendChild(modal);
+};
+
+window.closeHistModal = function() {
+  var modal = document.getElementById('hist-modal');
+  if(modal) modal.remove();
+};
+
+window.saveHistModal = async function(contractId, idx) {
+  var h = historyData.find(function(x){ return x.contractId===contractId; });
+  if(!h||!h.records) return;
+  var records = h.records.slice();
+  records[idx] = {
+    startDate: document.getElementById('hf-start').value,
+    endDate: document.getElementById('hf-end').value,
+    price: parseInt(document.getElementById('hf-price').value)||0,
+    note: document.getElementById('hf-note').value.trim(),
+    updatedAt: new Date().toISOString()
+  };
+  try {
+    var { db } = await import('./db.js');
+    var { doc, setDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await setDoc(doc(db,'history',contractId), {
+      contractId: contractId,
+      name: h.name,
+      records: records,
+      updatedAt: serverTimestamp()
+    });
+    closeHistModal();
+    showToast('히스토리가 수정되었습니다.');
+    // 상세화면 새로고침
+    var c = contracts.find(function(x){ return x.id===contractId; });
+    if(c) renderDetail(c);
+  } catch(e){ console.error(e); showToast('저장 중 오류가 발생했습니다.'); }
 };
 window.addStaffRow = function() {
   var wrap = document.getElementById('staff-rows'); if(!wrap) return;
