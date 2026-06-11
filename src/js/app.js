@@ -474,7 +474,7 @@ window.toggleDashCard=function(el,filter) {
   listEl.innerHTML=list.length?list.map(function(c){
     var s=calcStatus(c),d=dDiff(c.endDate),col=s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':s==='near'?'#854F0B':'#3B6D11';
     return '<div class="dash-item" onclick="goDetail(\''+c.id+'\')">' +
-      '<div class="dash-left"><div class="dash-name">'+c.name+'</div>'<div class="dash-sub">'+(c.nutritionists&&c.nutritionists.length?c.nutritionists[0].name+' · ':'')+(c.resp||'')+'</div></div>'+
+      '<div class="dash-left"><div class="dash-name">'+c.name+'</div><div class="dash-sub">'+(c.nutritionists&&c.nutritionists.length?c.nutritionists[0].name+' · ':'')+(c.resp||'')+'</div></div>'+
       '<div class="dash-right"><span class="badge '+s+'">'+STATUS_META[s].label+'</span><div class="dash-dday" style="color:'+col+'">'+dDayLabel(d)+'</div></div></div>';
   }).join(''):'<div class="empty-state"><i class="ti ti-check"></i>해당 없음</div>';
 };
