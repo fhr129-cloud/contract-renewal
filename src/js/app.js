@@ -710,7 +710,7 @@ window.renderBizTab=function(){
       mapInstance=L.map('map').setView([36.98,127.05],9);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapInstance);
       filtered.forEach(function(c){
-        var coord=COORDS[c.name]; if(!coord) return;
+        var coord=(c.lat&&c.lng)?{lat:c.lat,lng:c.lng}:COORDS[c.name]; if(!coord) return;
         var s=calcStatus(c), color=s==='urgent'?'#E24B4A':s==='near'?'#EF9F27':'#4A90D9';
         var marker=L.circleMarker([coord.lat,coord.lng],{radius:s==='urgent'?10:8,fillColor:color,color:'#fff',weight:2,fillOpacity:0.9}).addTo(mapInstance);
         marker.bindTooltip('<b>'+c.name+'</b><br><span style="color:'+color+';font-weight:500;">'+STATUS_META[s].label+' '+dDayLabel(dDiff(c.endDate))+'</span><br><span style="color:#888;font-size:12px;">'+(c.addr||'')+'</span>',{permanent:false,direction:'top',offset:[0,-8],opacity:0.97});
@@ -801,7 +801,8 @@ window.saveContract=async function(){
     startDate:document.getElementById('f-startDate').value, endDate:endDate,
     price:parseInt(document.getElementById('f-price').value)||0, priceType:document.getElementById('f-priceType').value,
     meals:meals, avgMeals:parseInt(document.getElementById('f-avgMeals').value)||0,
-    autoRenew:true, note:document.getElementById('f-note').value.trim(),
+   autoRenew:true, note:document.getElementById('f-note').value.trim(),
+    lat:lat, lng:lng,
   };
   try{
     if(editingId){
