@@ -604,6 +604,7 @@ function renderCalendar() {
   var el=document.getElementById('cal-title'); if(el) el.textContent=calYear+'년 '+(calMonth+1)+'월';
   var dayMap={};
   supports.forEach(function(s){ if(!s.date) return; var k=s.date.slice(0,10); if(!dayMap[k]) dayMap[k]=[]; dayMap[k].push(s); });
+  Object.keys(dayMap).forEach(function(k){ dayMap[k].sort(function(a,b){ return (a.timeStart||'').localeCompare(b.timeStart||''); }); });
   var firstDay=new Date(calYear,calMonth,1).getDay(), lastDate=new Date(calYear,calMonth+1,0).getDate();
   var today=new Date().toISOString().slice(0,10);
   var html='<div class="cal-grid">';
@@ -627,20 +628,30 @@ function renderCalendar() {
 
 function renderSupportList() {
   var listEl=document.getElementById('support-list'); if(!listEl) return;
-  var sorted=supports.slice().sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+  var sorted=supports.slice().sort(function(a,b){
+    var da=(a.date||'')+(a.timeStart||'');
+    var db=(b.date||'')+(b.timeStart||'');
+    return db.localeCompare(da);
+  });
   var el=document.getElementById('sup-list-count'); if(el) el.textContent=sorted.length+'건';
   listEl.innerHTML=sorted.length?sorted.map(function(s){
     var c=contracts.find(function(x){ return x.name===s.bizName; }), cid=c?c.id:'';
     var tStr=s.timeStart?(s.timeStart+(s.timeEnd?' ~ '+s.timeEnd:'')):(s.time||'');
     var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
     return '<div class="sup-row">'+
-      '<span class="badge-cat">'+(s.category||'')+'</span>'+
-      '<span class="sup-meta">'+(s.date||'')+(tStr?' '+tStr:'')+'</span>'+
-      '<span class="sup-biz"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+'>'+( s.bizName||'')+'</span>'+
-      '<span class="sup-staff-str">'+staffStr+'</span>'+
-      '<span class="sup-content-str">'+(s.content||'')+'</span>'+
-      '<button class="btn sm" onclick="editSupport(\''+s.id+'\')" style="flex-shrink:0;"><i class="ti ti-edit"></i></button>'+
-      '<button class="btn sm danger" onclick="delSupport(\''+s.id+'\')" style="flex-shrink:0;"><i class="ti ti-trash"></i></button>'+
+      '<div style="min-width:0;flex:1;display:flex;flex-direction:column;gap:3px;">'+
+        '<div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;">'+
+          '<span class="badge-cat">'+(s.category||'')+'</span>'+
+          '<span class="sup-biz"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+'>'+( s.bizName||'')+'</span>'+
+        '</div>'+
+        '<div style="font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+
+          (s.date||'')+(tStr?' '+tStr:'')+(staffStr?' · '+staffStr:'')+(s.content?' · '+s.content:'')+
+        '</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:4px;flex-shrink:0;">'+
+        '<button class="btn sm" onclick="editSupport(\''+s.id+'\')" ><i class="ti ti-edit"></i></button>'+
+        '<button class="btn sm danger" onclick="delSupport(\''+s.id+'\')" ><i class="ti ti-trash"></i></button>'+
+      '</div>'+
       '</div>';
   }).join(''):'<div class="empty-state" style="padding:20px;"><i class="ti ti-calendar"></i>지원 이력이 없어요</div>';
 }
