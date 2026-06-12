@@ -284,6 +284,11 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
   .sup-row-header{display:none;}
   .week-grid{grid-template-columns:40px repeat(7,1fr);}
 }
+  .staff-option{padding:8px 14px;font-size:13px;cursor:pointer;white-space:nowrap;}
+.staff-option:hover{background:#f0f0ee;}
+.staff-chip{padding:5px 12px;border:.5px solid #ddd;border-radius:99px;font-size:12px;cursor:pointer;background:#fff;user-select:none;white-space:nowrap;transition:all .1s;}
+.staff-chip:hover{border-color:#185FA5;color:#185FA5;}
+.staff-chip.selected{background:#185FA5;color:#fff;border-color:#185FA5;}
 </style>
 </head>
 <body>
@@ -459,12 +464,19 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
             </select>
           </div>
           <div class="sup-form-group" style="grid-column:1/-1;">
-            <label>지원자 <button type="button" class="btn sm" onclick="addStaffRow()" style="margin-left:8px;"><i class="ti ti-plus"></i> 추가</button></label>
-            <div id="staff-rows" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">
-              <div class="staff-row" style="display:flex;gap:6px;align-items:center;">
-                <input type="text" class="staff-input" placeholder="예) 손도란 대리" style="padding:8px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;width:160px;">
-                <button type="button" class="btn sm danger" onclick="removeStaffRow(this)"><i class="ti ti-x"></i></button>
-              </div>
+            <label>지원자</label>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;" id="staff-chip-wrap">
+              <div style="font-size:11px;color:#888;width:100%;margin-bottom:2px;">운영팀</div>
+              <div class="staff-chip" onclick="toggleStaffChip(this,'박주형 본부장')">박주형 본부장</div>
+              <div class="staff-chip" onclick="toggleStaffChip(this,'김재희 차장')">김재희 차장</div>
+              <div class="staff-chip" onclick="toggleStaffChip(this,'손도란 대리')">손도란 대리</div>
+              <div class="staff-chip" onclick="toggleStaffChip(this,'이소영 주임')">이소영 주임</div>
+              <div class="staff-chip" onclick="toggleStaffChip(this,'김상준 주임')">김상준 주임</div>
+              <div class="staff-chip" onclick="toggleStaffChip(this,'안은재 주임')">안은재 주임</div>
+              <div class="staff-chip" onclick="toggleStaffChip(this,'견병록 매니저')">견병록 매니저</div>
+              <div style="font-size:11px;color:#888;width:100%;margin-bottom:2px;margin-top:4px;">지원팀</div>
+              <div class="staff-chip" onclick="toggleStaffChip(this,'임성창 차장')">임성창 차장</div>
+              <div class="staff-chip" onclick="toggleStaffChip(this,'김동현 대리')">김동현 대리</div>
             </div>
           </div>
           <div class="sup-form-group" style="grid-column:1/-1;">
