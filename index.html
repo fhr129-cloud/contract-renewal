@@ -267,6 +267,39 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
   .map-label{background:rgba(255,255,255,0.92);border:.5px solid #ddd;border-radius:6px;font-size:11px;padding:3px 7px;box-shadow:0 1px 4px rgba(0,0,0,.12);}
 .map-label::before{display:none;}
 .leaflet-tooltip-top.map-label::before{display:none;}
+  /* 대시보드 목록 그리드 */
+.dash-item{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:10px 16px;border-bottom:.5px solid #f0f0ec;cursor:pointer;}
+.dash-item:hover{background:#fafaf8;}
+.dash-item:last-child{border-bottom:none;}
+.dash-left{min-width:0;}
+.dash-name{font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dash-sub{font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+.dash-right{text-align:right;flex-shrink:0;}
+.dash-dday{font-size:11px;font-weight:500;margin-top:3px;white-space:nowrap;}
+
+/* 운영지원 지원이력 그리드 - 모바일 대응 */
+@media(max-width:700px){
+  .sup-row{grid-template-columns:70px 90px 1fr 60px 50px;font-size:12px;}
+  .sup-row-header{grid-template-columns:70px 90px 1fr 60px 50px;font-size:11px;}
+}
+@media(max-width:500px){
+  .sup-row{grid-template-columns:1fr auto;}
+  .sup-row-header{display:none;}
+}
+
+/* 사업장 카드 내부 정렬 */
+.biz-info{display:flex;flex-direction:column;gap:3px;margin-bottom:6px;}
+.biz-info-row{display:grid;grid-template-columns:14px 1fr;gap:4px;align-items:flex-start;font-size:11px;color:#888;}
+.biz-info-row i{font-size:11px;margin-top:1px;flex-shrink:0;}
+.biz-info-row span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* 히스토리 레코드 그리드 */
+.hist-record{display:grid;grid-template-columns:44px 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:.5px solid #f0f0ec;font-size:13px;min-width:0;}
+.hist-record:last-child{border-bottom:none;}
+
+/* 운영지원 상세 이력 그리드 */
+.sup-hist-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:.5px solid #f0f0ec;font-size:13px;min-width:0;}
+.sup-hist-row:last-child{border-bottom:none;}
 </style>
 </head>
 <body>
