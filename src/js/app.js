@@ -810,9 +810,9 @@ window.renderBizTab=function(){
     return '<div class="biz-card" onclick="goDetail(\''+c.id+'\')">' +
       '<div class="biz-card-top"><span class="biz-name">'+c.name+'</span><span class="badge '+s+'">'+STATUS_META[s].label+'</span></div>'+
       '<div class="biz-info">'+
-        '<span><i class="ti ti-map-pin"></i>'+(c.addr||'-')+'</span>'+
-        (currentBizTab==='team'?(nutriStr?'<span><i class="ti ti-user"></i>'+nutriStr+'</span>':'')+(c.resp?'<span><i class="ti ti-user-check"></i>'+c.resp+'</span>':''):'')+
-        (currentBizTab==='resp'?(nutriStr?'<span><i class="ti ti-user"></i>'+nutriStr+'</span>':''):'')+
+        '<div class="biz-info-row"><i class="ti ti-map-pin"></i><span>'+(c.addr||'-')+'</span></div>'+
+        (currentBizTab==='team'?(nutriStr?'<div class="biz-info-row"><i class="ti ti-user"></i><span>'+nutriStr+'</span></div>':'')+(c.resp?'<div class="biz-info-row"><i class="ti ti-user-check"></i><span>'+c.resp+'</span></div>':''):'')+
+        (currentBizTab==='resp'?(nutriStr?'<div class="biz-info-row"><i class="ti ti-user"></i><span>'+nutriStr+'</span></div>':''):'')+
       '</div>'+
       '<div class="biz-bottom"><span>'+fmtDate(c.endDate)+'</span><span style="font-weight:500;color:'+col+'">'+dDayLabel(d)+'</span></div>'+
       '</div>';
