@@ -388,4 +388,91 @@ export const SEED_HISTORY = [
     {label:'최초',startDate:'2024-01-01',endDate:'2026-12-31',price:'6200',note:'',autoRenew:false},
   ]},
   {name:'비씨젠', records:[
-    {label:'최초',startDate:'2024-01-01',endDate:'2025-12-31'
+    {label:'최초',startDate:'2024-01-01',endDate:'2025-12-31',price:'6000',note:'조식 3,000원, 중식 6,000원, 석식 4,500원',autoRenew:true},
+    {label:'1',startDate:'2025-04-01',endDate:'2026-12-31',price:'6000',note:'조식 3,000원, 중식 6,000원, 석식 5,000원',autoRenew:false},
+  ]},
+  {name:'삼영잉크', records:[
+    {label:'최초',startDate:'2024-03-01',endDate:'2026-02-28',price:'5000',note:'특식비 월 150만원, 간식비 월 80만원',autoRenew:true},
+  ]},
+  {name:'디오토모티브', records:[
+    {label:'최초',startDate:'2024-03-01',endDate:'2025-02-28',price:'6500',note:'주말 보장식수 30식',autoRenew:true},
+    {label:'1',startDate:'2025-03-01',endDate:'2026-02-28',price:'7000',note:'주말 보장식수 30식',autoRenew:true},
+  ]},
+  {name:'주강로보테크', records:[
+    {label:'최초',startDate:'2024-04-22',endDate:'2026-04-21',price:'6000',note:'일 보장식수 100식',autoRenew:true},
+  ]},
+  {name:'피엘에스', records:[
+    {label:'최초',startDate:'2024-05-07',endDate:'2025-05-06',price:'6000',note:'월 보장식수 3,000식',autoRenew:true},
+  ]},
+  {name:'이구산업', records:[
+    {label:'최초',startDate:'2024-07-13',endDate:'2026-12-31',price:'5200',note:'365일 운영',autoRenew:false},
+    {label:'1',startDate:'2026-01-01',endDate:'2027-12-31',price:'5500',note:'',autoRenew:false},
+  ]},
+  {name:'진보', records:[
+    {label:'최초',startDate:'2024-08-08',endDate:'2026-08-07',price:'7000',note:'월 보장식수 2,000식',autoRenew:false},
+  ]},
+  {name:'EPS코리아', records:[
+    {label:'최초',startDate:'2024-09-01',endDate:'2026-08-31',price:'5000',note:'월 보장식수 2,500식',autoRenew:false},
+  ]},
+  {name:'두손', records:[
+    {label:'최초',startDate:'2024-11-01',endDate:'2026-10-31',price:'8000',note:'월 보장식수 800식',autoRenew:false},
+  ]},
+  {name:'지푸드', records:[
+    {label:'최초',startDate:'2024-12-18',endDate:'2026-12-17',price:'6500',note:'월 보장식수 1,400식',autoRenew:false},
+  ]},
+  {name:'머크', records:[
+    {label:'최초',startDate:'2025-01-01',endDate:'2026-12-31',price:'4900',note:'플러스바: 1일 150,000원',autoRenew:false},
+  ]},
+  {name:'동아전기부품', records:[
+    {label:'최초',startDate:'2025-01-02',endDate:'2026-12-31',price:'7075',note:'월 보장식수 2,400식',autoRenew:false},
+    {label:'1',startDate:'2026-02-01',endDate:'2028-01-31',price:'5100',note:'월 보장식수 1,900식',autoRenew:false},
+  ]},
+  {name:'에스앤지(바스노바)', records:[
+    {label:'최초',startDate:'2025-02-17',endDate:'2026-02-16',price:'8000',note:'월 보장식수 1,000식',autoRenew:true},
+  ]},
+  {name:'대한송유관공사', records:[
+    {label:'최초',startDate:'2025-03-01',endDate:'2027-02-28',price:'7700',note:'부가세포함',autoRenew:false},
+  ]},
+  {name:'미소찬', records:[
+    {label:'최초',startDate:'2025-03-17',endDate:'2027-03-16',price:'5800',note:'일 보장식수 40식',autoRenew:false},
+  ]},
+  {name:'비와이티', records:[
+    {label:'최초',startDate:'2025-04-01',endDate:'2027-03-31',price:'7000',note:'월 보장식수 2,000식',autoRenew:false},
+  ]},
+  {name:'대성아이앤지', records:[
+    {label:'최초',startDate:'2025-06-30',endDate:'2027-06-30',price:'5800',note:'',autoRenew:false},
+  ]},
+  {name:'무봉산수련원', records:[
+    {label:'최초',startDate:'2025-09-01',endDate:'2027-08-31',price:'변동단가',note:'초등: 3,870원, 중: 4,140원, 고: 4,410원',autoRenew:false},
+  ]},
+  {name:'진성티이씨 1공장', records:[
+    {label:'최초',startDate:'2025-10-01',endDate:'2027-09-30',price:'6050',note:'',autoRenew:false},
+  ]},
+  {name:'진성티이씨 2공장', records:[
+    {label:'최초',startDate:'2025-10-01',endDate:'2027-09-30',price:'6050',note:'',autoRenew:false},
+  ]},
+  {name:'대코', records:[
+    {label:'최초',startDate:'2026-01-01',endDate:'2026-12-31',price:'7000',note:'',autoRenew:false},
+  ]},
+  {name:'동아전장', records:[
+    {label:'최초',startDate:'2026-02-01',endDate:'2028-01-31',price:'5100',note:'월 보장식수 1,900식',autoRenew:false},
+  ]},
+  {name:'린데코리아', records:[
+    {label:'최초',startDate:'2026-02-23',endDate:'2028-02-22',price:'9000',note:'월 보장식수 1,000식',autoRenew:false},
+  ]},
+  {name:'신세대여행사', records:[
+    {label:'최초',startDate:'2026-03-01',endDate:'2028-02-28',price:'6000',note:'월 보장식수 1,600식',autoRenew:false},
+  ]},
+  {name:'삼아알미늄', records:[
+    {label:'최초',startDate:'2026-03-01',endDate:'2026-08-31',price:'관리비제',note:'관리수수료 월 1,500,000원',autoRenew:false},
+  ]},
+  {name:'필코코스팜', records:[
+    {label:'최초',startDate:'2026-05-01',endDate:'2027-04-30',price:'7000',note:'',autoRenew:false},
+  ]},
+  {name:'세명테크', records:[
+    {label:'최초',startDate:'2026-05-01',endDate:'2027-04-30',price:'9000',note:'월 보장식수 1,600식',autoRenew:false},
+  ]},
+  {name:'효림정공', records:[
+    {label:'최초',startDate:'2026-05-01',endDate:'2028-04-30',price:'6000',note:'',autoRenew:false},
+  ]},
+];
