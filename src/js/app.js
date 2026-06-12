@@ -570,9 +570,11 @@ function renderDetail(c) {
   var supHtml=bizSups.length?bizSups.map(function(sp){
     var tStr=sp.timeStart?(sp.timeStart+(sp.timeEnd?' ~ '+sp.timeEnd:'')):(sp.time||'');
     var staffStr=sp.staffNames&&sp.staffNames.length?sp.staffNames.join(', '):(sp.staffName||'');
-    return '<div class="hist-record"><span class="badge-cat">'+(sp.category||'')+'</span>'+
-      '<span class="hist-dates">'+(sp.date||'')+(tStr?' '+tStr:'')+(staffStr?' · '+staffStr:'')+'</span>'+
-      '<span class="hist-price" style="font-weight:400;color:#555;">'+(sp.content||'')+'</span></div>';
+    return '<div class="sup-hist-row">'+
+      '<span class="badge-cat">'+(sp.category||'')+'</span>'+
+      '<span style="font-size:12px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(sp.date||'')+(tStr?' '+tStr:'')+(staffStr?' · '+staffStr:'')+'</span>'+
+      '<span style="font-size:12px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">'+(sp.content||'')+'</span>'+
+      '</div>';
   }).join(''):'<div style="color:#aaa;font-size:13px;padding:12px 0;">지원 이력 없음</div>';
   document.getElementById('detail-body').innerHTML=
     '<div class="detail-section">'+
