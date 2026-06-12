@@ -19,16 +19,16 @@ window.detailId = null;
 
 // 담당자별 색상
 var STAFF_COLORS = {
-  '박주형': 0, '김재희': 1, '손도란': 2, '이소영': 3,
-  '김상준': 4, '안은재': 5, '견병록': 6, '임성창': 7, '김동현': 8,
+  '박주형': 'sc-박주형', '김재희': 'sc-김재희', '손도란': 'sc-손도란',
+  '이소영': 'sc-이소영', '김상준': 'sc-김상준', '안은재': 'sc-안은재',
+  '견병록': 'sc-견병록', '임성창': 'sc-임성창', '김동현': 'sc-김동현',
 };
-
 function getStaffColor(staffName) {
-  if(!staffName) return 4;
+  if(!staffName) return '';
   for(var key in STAFF_COLORS) {
-    if(staffName.includes(key.split(' ')[0])) return STAFF_COLORS[key];
+    if(staffName.includes(key)) return STAFF_COLORS[key];
   }
-  return 4;
+  return '';
 }
 
 var COORDS = {
@@ -232,6 +232,12 @@ function setNutritionists(list) {
 // ── 지원자 칩 ──────────────────────────
 window.toggleStaffChip = function(el, name) {
   el.classList.toggle('selected');
+  var cls = getStaffColor(name);
+  if(el.classList.contains('selected')) {
+    if(cls) { el.className='staff-chip '+cls; el.classList.add('selected'); }
+  } else {
+    el.className='staff-chip';
+  }
 };
 
 window.toggleTeamDropdown = function(id) {
@@ -455,7 +461,7 @@ function renderDashboard() {
       var colorIdx=getStaffColor(staffStr);
       var tStr=s.timeStart?(s.timeStart+(s.timeEnd?' ~ '+s.timeEnd:'')):'' ;
       return '<div class="today-item">'+
-        '<span class="badge-cat staff-color-'+colorIdx+'">'+staffStr+'</span>'+
+        '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span>'+
         '<span style="font-weight:500;">'+s.bizName+'</span>'+
         '<span style="font-size:12px;color:#888;">'+tStr+'</span>'+
         '</div>';
@@ -491,7 +497,7 @@ function renderDashboard() {
       var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
       var colorIdx=getStaffColor(staffStr);
       return '<div class="dash-mini-item"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+'>'+
-        '<span class="badge-cat staff-color-'+colorIdx+'" style="flex-shrink:0;">'+staffStr+'</span>'+
+        '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'" style="flex-shrink:0;">'+staffStr+'</span>'+
         '<span class="dash-mini-name" style="margin-left:8px;">'+s.bizName+'</span>'+
         '<span class="dash-mini-right">'+s.date+'</span></div>';
     }).join(''):'<div style="color:#aaa;font-size:12px;padding:12px 0;">최근 7일 지원 내역이 없어요</div>';
@@ -634,7 +640,8 @@ function renderMonthView() {
       items.slice(0,3).map(function(s){
         var staffStr=s.staffNames&&s.staffNames.length?s.staffNames[0]:(s.staffName||'');
         var colorIdx=getStaffColor(staffStr);
-        return '<div class="cal-event staff-color-'+colorIdx+'">'+s.bizName+(staffStr?'/'+staffStr.split(' ')[0]:'')+'</div>';
+        var cls=getStaffColor(staffStr);
+        return '<div class="cal-event '+(cls||'staff-color-4')+'">'+s.bizName+(staffStr?'/'+staffStr.split(' ')[0]:'')+'</div>';
       }).join('')+
       (items.length>3?'<div class="cal-more">+' +(items.length-3)+'건</div>':'')+
       '</div>';
@@ -681,7 +688,8 @@ function renderWeekView() {
       });
       html+='<div class="week-cell'+(isToday?' today-col':'')+'">'+
         items.map(function(s){
-          return '<div class="week-event staff-color-'+colorIdx+'">'+s.bizName+'</div>';
+          var cls2=getStaffColor(staff);
+          return '<div class="week-event '+(cls2||'staff-color-4')+'">'+s.bizName+'</div>';
         }).join('')+'</div>';
     });
   });
@@ -709,7 +717,7 @@ function renderSupportList() {
       '<span style="color:#888;font-size:12px;">'+(s.date||'')+'</span>'+
       '<span style="color:#888;font-size:12px;">'+(tStr||'-')+'</span>'+
       '<span class="sup-biz"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+'>'+s.bizName+'</span>'+
-      '<span class="badge-cat staff-color-'+colorIdx+'" style="font-size:11px;">'+(staffStr||'-')+'</span>'+
+      '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+( staffStr||'-')+'</span>'+
       '<span style="font-size:12px;color:#555;">'+(catContent||'-')+'</span>'+
       '<span style="display:flex;gap:4px;">'+
         '<button class="btn sm" onclick="editSupport(\''+s.id+'\')" ><i class="ti ti-edit"></i></button>'+
@@ -730,7 +738,7 @@ window.openCalPopup=function(dateKey) {
       '<div style="min-width:0;flex:1;">'+
         '<div style="font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+s.bizName+'</div>'+
         '<div style="font-size:12px;color:#888;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+
-          '<span class="badge-cat staff-color-'+colorIdx+'">'+staffStr+'</span>'+(tStr?' '+tStr:'')+'</div>'+
+          '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span>'+(tStr?' '+tStr:'')+'</div>'+
         (s.content?'<div style="font-size:12px;color:#555;margin-top:3px;">'+s.content+'</div>':'')+
       '</div>'+
       '<div style="display:flex;gap:4px;flex-shrink:0;">'+
