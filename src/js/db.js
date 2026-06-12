@@ -35,7 +35,7 @@ export function deleteContract(id) {
 export async function addHistory(contractId, name, record) {
   var ref = doc(db,'history',contractId);
   var snap = await getDoc(ref);
-  if (snap.exists()) {
+  if(snap.exists()) {
     var ex = snap.data();
     return setDoc(ref, {
       contractId: contractId, name: name,
@@ -98,8 +98,9 @@ async function seedHistory() {
   const { SEED_HISTORY } = await import('./seed-data.js');
   const contractSnap = await getDocs(collection(db,'contracts'));
   const contractMap = {};
-  contractSnap.docs.forEach(function(d) { contractMap[d.data().name] = d.id; });
-
+  contractSnap.docs.forEach(function(d) {
+    contractMap[d.data().name] = d.id;
+  });
   const batch = writeBatch(db);
   SEED_HISTORY.forEach(function(h) {
     const contractId = contractMap[h.name];
