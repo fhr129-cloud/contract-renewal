@@ -22,13 +22,7 @@ var STAFF_COLORS = {
   '박주형': 0, '김재희': 1, '손도란': 2, '이소영': 3,
   '김상준': 4, '안은재': 5, '견병록': 6, '임성창': 7, '김동현': 8,
 };
-function getStaffColor(staffName) {
-  if(!staffName) return 9;
-  for(var key in STAFF_COLORS) {
-    if(staffName.includes(key)) return STAFF_COLORS[key]%5;
-  }
-  return 4;
-}
+
 function getStaffColor(staffName) {
   if(!staffName) return 4;
   for(var key in STAFF_COLORS) {
