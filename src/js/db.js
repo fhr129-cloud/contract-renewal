@@ -81,7 +81,7 @@ export function updateSupport(id, data) {
 export async function seedIfEmpty() {
   const snap = await getDocs(collection(db,'contracts'));
   if(snap.empty) {
-    const { SEED_DATA } = await import('./seed-data.js');
+    const { SEED_CONTRACTS: SEED_DATA } = await import('./seed-data.js');
     const batch = writeBatch(db);
     SEED_DATA.forEach(function(c) {
       const ref = doc(collection(db,'contracts'));
