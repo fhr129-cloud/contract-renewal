@@ -5,6 +5,7 @@ import {
   serverTimestamp, writeBatch, getDocs
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import firebaseConfig from './firebase-config.js';
+import { SEED_CONTRACTS, SEED_HISTORY } from './seed-data.js';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
@@ -81,7 +82,7 @@ export function updateSupport(id, data) {
 export async function seedIfEmpty() {
   const snap = await getDocs(collection(db,'contracts'));
   if(snap.empty) {
-    const { SEED_CONTRACTS: SEED_DATA } = await import('./seed-data.js');
+    const SEED_DATA = SEED_CONTRACTS;
     const batch = writeBatch(db);
     SEED_DATA.forEach(function(c) {
       const ref = doc(collection(db,'contracts'));
@@ -95,7 +96,7 @@ export async function seedIfEmpty() {
 }
 
 async function seedHistory() {
-  const { SEED_HISTORY } = await import('./seed-data.js');
+  // SEED_HISTORY already imported at top
   const contractSnap = await getDocs(collection(db,'contracts'));
   const contractMap = {};
   contractSnap.docs.forEach(function(d) {
