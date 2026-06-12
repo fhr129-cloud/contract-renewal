@@ -557,14 +557,14 @@ window.toggleDashCard=function(el,filter) {
   listEl.innerHTML=list.length?list.map(function(c){
     var s=calcStatus(c),d=dDiff(c.endDate),col=s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':s==='near'?'#854F0B':'#3B6D11';
     var nutriStr=c.nutritionists&&c.nutritionists.length?c.nutritionists[0].name:'';
-    return '<div class="dash-item" onclick="goDetail(\''+c.id+'\')">' +
-      '<div class="dash-left">'+
-        '<div class="dash-name">'+c.name+'</div>'+
-        '<div class="dash-sub">'+(nutriStr?nutriStr+' · ':'')+(c.resp||'')+'</div>'+
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:.5px solid #f0f0ec;cursor:pointer;gap:8px;" onclick="goDetail(\''+c.id+'\')">' +
+      '<div style="min-width:0;flex:1;">'+
+        '<div style="font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+c.name+'</div>'+
+        '<div style="font-size:11px;color:#888;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(nutriStr?nutriStr+' · ':'')+(c.resp||'')+'</div>'+
       '</div>'+
-      '<div class="dash-right">'+
+      '<div style="text-align:right;flex-shrink:0;">'+
         '<span class="badge '+s+'">'+STATUS_META[s].label+'</span>'+
-        '<div class="dash-dday" style="color:'+col+'">'+dDayLabel(d)+'</div>'+
+        '<div style="font-size:11px;font-weight:500;margin-top:3px;color:'+col+'">'+dDayLabel(d)+'</div>'+
       '</div>'+
       '</div>';
   }).join(''):'<div class="empty-state"><i class="ti ti-check"></i>해당 없음</div>';
@@ -865,7 +865,7 @@ window.renderBizTab=function(){
         var coord=(c.lat&&c.lng)?{lat:c.lat,lng:c.lng}:COORDS[c.name]; if(!coord) return;
         var s=calcStatus(c), color=s==='urgent'?'#E24B4A':s==='near'?'#EF9F27':'#4A90D9';
         var marker=L.circleMarker([coord.lat,coord.lng],{radius:s==='urgent'?10:8,fillColor:color,color:'#fff',weight:2,fillOpacity:0.9}).addTo(mapInstance);
-        marker.bindTooltip('<b>'+c.name+'</b><br><span style="color:'+color+';font-weight:500;">'+STATUS_META[s].label+' '+dDayLabel(dDiff(c.endDate))+'</span><br><span style="color:#888;font-size:12px;">'+(c.addr||'')+'</span>',{permanent:true,direction:'top',offset:[0,-8],opacity:0.97,className:'map-label'});
+        marker.bindTooltip(c.name,{permanent:true,direction:'top',offset:[0,-8],opacity:0.97,className:'map-label'});
         marker.on('click',function(){ window.goDetail(c.id); });
       });
     },100);
