@@ -229,18 +229,47 @@ function setNutritionists(list) {
 }
 
 // ── 지원자 ──────────────────────────
-window.addStaffRow = function() {
-  var wrap=document.getElementById('staff-rows'); if(!wrap) return;
-  var div=document.createElement('div'); div.className='staff-row'; div.style.cssText='display:flex;gap:6px;align-items:center;';
-  div.innerHTML='<input type="text" class="staff-input" placeholder="예) 손도란 대리" style="padding:8px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;width:160px;">'+
-    '<button type="button" class="btn sm danger" onclick="removeStaffRow(this)"><i class="ti ti-x"></i></button>';
-  wrap.appendChild(div);
+// ── 지원자 칩 ──────────────────────────
+window.toggleStaffChip = function(el, name) {
+  el.classList.toggle('selected');
 };
-window.removeStaffRow = function(btn) {
-  var row=btn.closest('.staff-row'), wrap=document.getElementById('staff-rows');
-  if(wrap&&wrap.children.length>1) row.remove();
-  else { var inp=wrap.querySelector('.staff-input'); if(inp) inp.value=''; }
+
+window.toggleTeamDropdown = function(id) {
+  closeDropdowns();
+  var el = document.getElementById(id);
+  if(el) el.style.display = el.style.display==='none'?'block':'none';
 };
+
+window.closeDropdowns = function() {
+  ['op-dropdown','sup-dropdown'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.style.display='none';
+  });
+};
+
+document.addEventListener('click', function(e) {
+  if(!e.target.closest('[onclick*="toggleTeamDropdown"]') && !e.target.closest('[id$="-dropdown"]')) {
+    window.closeDropdowns();
+  }
+});
+
+function getSelectedStaff() {
+  var chips = document.querySelectorAll('#staff-chip-wrap .staff-chip.selected');
+  var names = [];
+  chips.forEach(function(c){ names.push(c.textContent.trim()); });
+  return names;
+}
+
+function resetStaffChips() {
+  document.querySelectorAll('#staff-chip-wrap .staff-chip').forEach(function(c){ c.classList.remove('selected'); });
+}
+
+function setSelectedStaff(names) {
+  resetStaffChips();
+  if(!names||!names.length) return;
+  document.querySelectorAll('#staff-chip-wrap .staff-chip').forEach(function(c){
+    if(names.some(function(n){ return n===c.textContent.trim(); })) c.classList.add('selected');
+  });
+}
 
 // ── 모달 탭 ──────────────────────────
 window.switchModalTab = function(tab) {
@@ -556,10 +585,13 @@ window.setCalView = function(view) {
 
 window.setStaffFilter = function(name) {
   staffFilter = name;
-  document.querySelectorAll('[id^="filter-"]').forEach(function(b){ b.classList.remove('active-filter'); });
-  var targetId = name ? 'filter-'+name : 'filter-all';
-  var targetEl = document.getElementById(targetId);
-  if(targetEl) targetEl.classList.add('active-filter');
+  var labelEl = document.getElementById('active-filter-label');
+  if(labelEl) {
+    if(name) { labelEl.textContent = name+' 필터 중'; labelEl.style.display='inline'; }
+    else { labelEl.style.display='none'; }
+  }
+  var allBtn = document.getElementById('filter-all');
+  if(allBtn) allBtn.classList.toggle('active-filter', !name);
   renderCalendar();
 };
 
@@ -739,8 +771,7 @@ window.submitSupport=async function(){
   var biz=document.getElementById('sup-biz').value, date=document.getElementById('sup-date').value;
   var timeStart=document.getElementById('sup-time-start')?document.getElementById('sup-time-start').value:'';
   var timeEnd=document.getElementById('sup-time-end')?document.getElementById('sup-time-end').value:'';
-  var staffInputs=document.querySelectorAll('.staff-input'), staffNames=[];
-  staffInputs.forEach(function(inp){ if(inp.value.trim()) staffNames.push(inp.value.trim()); });
+  var staffNames = getSelectedStaff();
   var cat=document.getElementById('sup-cat').value, content=document.getElementById('sup-content').value.trim();
   if(!biz||!date||!cat){ showToast('업장, 일자, 카테고리는 필수예요.'); return; }
   var data={bizName:biz,date:date,timeStart:timeStart,timeEnd:timeEnd,staffName:staffNames.join(', '),staffNames:staffNames,category:cat,content:content};
@@ -752,8 +783,7 @@ window.submitSupport=async function(){
     if(document.getElementById('sup-time-start')) document.getElementById('sup-time-start').value='';
     if(document.getElementById('sup-time-end')) document.getElementById('sup-time-end').value='';
     document.getElementById('sup-cat').value=''; document.getElementById('sup-content').value='';
-    var wrap=document.getElementById('staff-rows');
-    if(wrap){ wrap.innerHTML=''; var div=document.createElement('div'); div.className='staff-row'; div.style.cssText='display:flex;gap:6px;align-items:center;'; div.innerHTML='<input type="text" class="staff-input" placeholder="예) 손도란 대리" style="padding:8px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;width:160px;"><button type="button" class="btn sm danger" onclick="removeStaffRow(this)"><i class="ti ti-x"></i></button>'; wrap.appendChild(div); }
+    resetStaffChips();
     document.getElementById('sup-submit-btn').innerHTML='<i class="ti ti-check"></i> 등록';
     document.getElementById('sup-cancel-btn').style.display='none';
   } catch(e){ showToast('오류가 발생했습니다.'); }
@@ -768,17 +798,8 @@ window.editSupport=function(id){
   if(document.getElementById('sup-time-end')) document.getElementById('sup-time-end').value=s.timeEnd||'';
   document.getElementById('sup-cat').value=s.category||'';
   document.getElementById('sup-content').value=s.content||'';
-  var wrap=document.getElementById('staff-rows');
-  if(wrap){
-    wrap.innerHTML='';
-    var names=s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]);
-    if(!names.length) names=[''];
-    names.forEach(function(name){
-      var div=document.createElement('div'); div.className='staff-row'; div.style.cssText='display:flex;gap:6px;align-items:center;';
-      div.innerHTML='<input type="text" class="staff-input" value="'+name+'" style="padding:8px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;width:160px;"><button type="button" class="btn sm danger" onclick="removeStaffRow(this)"><i class="ti ti-x"></i></button>';
-      wrap.appendChild(div);
-    });
-  }
+  var names=s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]);
+  setSelectedStaff(names);
   document.getElementById('sup-submit-btn').innerHTML='<i class="ti ti-check"></i> 수정 저장';
   document.getElementById('sup-cancel-btn').style.display='inline-flex';
   window.scrollTo({top:0,behavior:'smooth'});
@@ -792,8 +813,7 @@ window.cancelEditSupport=function(){
   if(document.getElementById('sup-time-start')) document.getElementById('sup-time-start').value='';
   if(document.getElementById('sup-time-end')) document.getElementById('sup-time-end').value='';
   document.getElementById('sup-cat').value='';
-  var wrap=document.getElementById('staff-rows');
-  if(wrap){ wrap.innerHTML=''; var div=document.createElement('div'); div.className='staff-row'; div.style.cssText='display:flex;gap:6px;align-items:center;'; div.innerHTML='<input type="text" class="staff-input" placeholder="예) 손도란 대리" style="padding:8px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;width:160px;"><button type="button" class="btn sm danger" onclick="removeStaffRow(this)"><i class="ti ti-x"></i></button>'; wrap.appendChild(div); }
+  resetStaffChips();
   document.getElementById('sup-submit-btn').innerHTML='<i class="ti ti-check"></i> 등록';
   document.getElementById('sup-cancel-btn').style.display='none';
 };
