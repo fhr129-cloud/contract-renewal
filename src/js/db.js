@@ -80,13 +80,34 @@ export function updateSupport(id, data) {
 }
 
 export async function seedIfEmpty() {
-  var snap = await getDocs(collection(db,'contracts'));
-  if (!snap.empty) {
-    // 히스토리만 없으면 추가
-    var histSnap = await getDocs(collection(db,'history'));
-    if (histSnap.empty) await seedHistory();
-    return;
+  const snap = await getDocs(collection(db,'contracts'));
+  if(snap.empty) {
+    const { SEED_DATA } = await import('./seed-data.js');
+    for(const c of SEED_DATA) {
+      await addDoc(collection(db,'contracts'), c);
+    }
   }
+  // 히스토리 항상 최신 데이터로 갱신
+  await seedHistory();
+}
+
+async function seedHistory() {
+  const { SEED_HISTORY } = await import('./seed-data.js');
+  const contractSnap = await getDocs(collection(db,'contracts'));
+  const contractMap = {};
+  contractSnap.docs.forEach(d => { contractMap[d.data().name] = d.id; });
+
+  for(const h of SEED_HISTORY) {
+    const contractId = contractMap[h.name];
+    if(!contractId) continue;
+    await setDoc(doc(db,'history',contractId), {
+      contractId,
+      name: h.name,
+      records: h.records,
+      updatedAt: serverTimestamp()
+    });
+  }
+}
 
   // 계약 데이터 업로드
   var batch = writeBatch(db);
