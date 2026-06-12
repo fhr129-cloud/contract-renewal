@@ -843,7 +843,7 @@ window.renderBizTab=function(){
         var coord=(c.lat&&c.lng)?{lat:c.lat,lng:c.lng}:COORDS[c.name]; if(!coord) return;
         var s=calcStatus(c), color=s==='urgent'?'#E24B4A':s==='near'?'#EF9F27':'#4A90D9';
         var marker=L.circleMarker([coord.lat,coord.lng],{radius:s==='urgent'?10:8,fillColor:color,color:'#fff',weight:2,fillOpacity:0.9}).addTo(mapInstance);
-        marker.bindTooltip('<b>'+c.name+'</b><br><span style="color:'+color+';font-weight:500;">'+STATUS_META[s].label+' '+dDayLabel(dDiff(c.endDate))+'</span><br><span style="color:#888;font-size:12px;">'+(c.addr||'')+'</span>',{permanent:false,direction:'top',offset:[0,-8],opacity:0.97});
+        marker.bindTooltip('<b>'+c.name+'</b><br><span style="color:'+color+';font-weight:500;">'+STATUS_META[s].label+' '+dDayLabel(dDiff(c.endDate))+'</span><br><span style="color:#888;font-size:12px;">'+(c.addr||'')+'</span>',{permanent:true,direction:'top',offset:[0,-8],opacity:0.97,className:'map-label'});
         marker.on('click',function(){ window.goDetail(c.id); });
       });
     },100);
