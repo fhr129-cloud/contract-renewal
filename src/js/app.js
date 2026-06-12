@@ -548,7 +548,27 @@ function renderDashboard() {
     }).join(''):'<div style="color:#aaa;font-size:12px;padding:12px 0;">이번달 지원 내역이 없어요</div>';
   }
 }
-
+window.toggleDashCard=function(el,filter) {
+  document.querySelectorAll('.stat-card').forEach(function(c){ c.classList.remove('active-card'); });
+  var wrap=document.getElementById('dash-list-wrap'), listEl=document.getElementById('dash-list');
+  if(el.dataset.lastFilter===filter){ el.dataset.lastFilter=''; wrap.style.display='none'; return; }
+  el.classList.add('active-card'); el.dataset.lastFilter=filter; wrap.style.display='block';
+  var list=contracts.filter(function(c){ var s=calcStatus(c); return filter==='all'?true:s===filter; }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
+  listEl.innerHTML=list.length?list.map(function(c){
+    var s=calcStatus(c),d=dDiff(c.endDate),col=s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':s==='near'?'#854F0B':'#3B6D11';
+    var nutriStr=c.nutritionists&&c.nutritionists.length?c.nutritionists[0].name:'';
+    return '<div class="dash-item" onclick="goDetail(\''+c.id+'\')">' +
+      '<div class="dash-left">'+
+        '<div class="dash-name">'+c.name+'</div>'+
+        '<div class="dash-sub">'+(nutriStr?nutriStr+' · ':'')+(c.resp||'')+'</div>'+
+      '</div>'+
+      '<div class="dash-right">'+
+        '<span class="badge '+s+'">'+STATUS_META[s].label+'</span>'+
+        '<div class="dash-dday" style="color:'+col+'">'+dDayLabel(d)+'</div>'+
+      '</div>'+
+      '</div>';
+  }).join(''):'<div class="empty-state"><i class="ti ti-check"></i>해당 없음</div>';
+};
 // ── 사업장 상세 ──────────────────────────
 function renderDetail(c) {
   var s=calcStatus(c),d=dDiff(c.endDate),col=s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':s==='near'?'#854F0B':'#3B6D11';
