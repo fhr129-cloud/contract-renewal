@@ -386,10 +386,17 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
     <!-- 담당자 필터 -->
     <div class="cal-filter-wrap" style="margin-bottom:12px;" id="staff-filter-wrap">
       <button class="btn sm active-filter" onclick="setStaffFilter(null)" id="filter-all">전체</button>
-      <button class="btn sm" onclick="setStaffFilter('손도란 대리')" id="filter-손도란 대리">손도란 대리</button>
-      <button class="btn sm" onclick="setStaffFilter('이소영 주임')" id="filter-이소영 주임">이소영 주임</button>
-      <button class="btn sm" onclick="setStaffFilter('김상준 주임')" id="filter-김상준 주임">김상준 주임</button>
-      <button class="btn sm" onclick="setStaffFilter('견병록 매니저')" id="filter-견병록 매니저">견병록 매니저</button>
+      <span style="font-size:11px;color:#aaa;padding:0 4px;">운영팀</span>
+      <button class="btn sm" onclick="setStaffFilter('박주형')" id="filter-박주형">박주형 본부장</button>
+      <button class="btn sm" onclick="setStaffFilter('김재희')" id="filter-김재희">김재희 차장</button>
+      <button class="btn sm" onclick="setStaffFilter('손도란')" id="filter-손도란">손도란 대리</button>
+      <button class="btn sm" onclick="setStaffFilter('이소영')" id="filter-이소영">이소영 주임</button>
+      <button class="btn sm" onclick="setStaffFilter('김상준')" id="filter-김상준">김상준 주임</button>
+      <button class="btn sm" onclick="setStaffFilter('안은재')" id="filter-안은재">안은재 주임</button>
+      <button class="btn sm" onclick="setStaffFilter('견병록')" id="filter-견병록">견병록 매니저</button>
+      <span style="font-size:11px;color:#aaa;padding:0 4px;">지원팀</span>
+      <button class="btn sm" onclick="setStaffFilter('임성창')" id="filter-임성창">임성창 차장</button>
+      <button class="btn sm" onclick="setStaffFilter('김동현')" id="filter-김동현">김동현 대리</button>
     </div>
     <div class="card" style="margin-bottom:16px;">
       <div class="card-body" style="padding:8px;"><div id="calendar"></div></div>
