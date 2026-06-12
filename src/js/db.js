@@ -5,7 +5,6 @@ import {
   serverTimestamp, writeBatch, getDocs
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import firebaseConfig from './firebase-config.js';
-import { SEED_CONTRACTS, SEED_HISTORY } from './seed-data.js';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
@@ -83,11 +82,15 @@ export async function seedIfEmpty() {
   const snap = await getDocs(collection(db,'contracts'));
   if(snap.empty) {
     const { SEED_DATA } = await import('./seed-data.js');
-    for(const c of SEED_DATA) {
-      await addDoc(collection(db,'contracts'), c);
-    }
+    const batch = writeBatch(db);
+    SEED_DATA.forEach(function(c) {
+      const ref = doc(collection(db,'contracts'));
+      batch.set(ref, Object.assign({}, c, {
+        createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+      }));
+    });
+    await batch.commit();
   }
-  // 히스토리 항상 최신 데이터로 갱신
   await seedHistory();
 }
 
@@ -95,56 +98,17 @@ async function seedHistory() {
   const { SEED_HISTORY } = await import('./seed-data.js');
   const contractSnap = await getDocs(collection(db,'contracts'));
   const contractMap = {};
-  contractSnap.docs.forEach(d => { contractMap[d.data().name] = d.id; });
+  contractSnap.docs.forEach(function(d) { contractMap[d.data().name] = d.id; });
 
-  for(const h of SEED_HISTORY) {
-    const contractId = contractMap[h.name];
-    if(!contractId) continue;
-    await setDoc(doc(db,'history',contractId), {
-      contractId,
-      name: h.name,
-      records: h.records,
-      updatedAt: serverTimestamp()
-    });
-  }
-}
-
-  // 계약 데이터 업로드
-  var batch = writeBatch(db);
-  var contractIds = {};
-  SEED_CONTRACTS.forEach(function(c) {
-    var ref = doc(collection(db,'contracts'));
-    contractIds[c.name] = ref.id;
-    batch.set(ref, Object.assign({}, c, {
-      createdAt: serverTimestamp(), updatedAt: serverTimestamp()
-    }));
-  });
-  await batch.commit();
-
-  // 히스토리 업로드
-  await seedHistory(contractIds);
-}
-
-async function seedHistory(contractIds) {
-  // contractIds 없으면 Firebase에서 직접 조회
-  if (!contractIds) {
-    var snap = await getDocs(collection(db,'contracts'));
-    contractIds = {};
-    snap.docs.forEach(function(d) {
-      contractIds[d.data().name] = d.id;
-    });
-  }
-
-  var batch = writeBatch(db);
+  const batch = writeBatch(db);
   SEED_HISTORY.forEach(function(h) {
-    var cid = contractIds[h.name];
-    if (!cid) return;
-    var ref = doc(db,'history', cid);
+    const contractId = contractMap[h.name];
+    if(!contractId) return;
+    const ref = doc(db,'history',contractId);
     batch.set(ref, {
-      contractId: cid,
+      contractId: contractId,
       name: h.name,
       records: h.records,
-      createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
   });
