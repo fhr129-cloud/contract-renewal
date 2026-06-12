@@ -10,11 +10,17 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=aefff94dbfce9edffe1c0e100dc4de55&libraries=services&autoload=false"></script>
 <script>
-kakao.maps.load(function(){
-  window.kakaoReady = true;
-});
+window.kakaoReady = false;
+function loadKakao() {
+  var script = document.createElement('script');
+  script.src = '//dapi.kakao.com/v2/maps/sdk.js?appkey=aefff94dbfce9edffe1c0e100dc4de55&libraries=services&autoload=false';
+  script.onload = function() {
+    kakao.maps.load(function(){ window.kakaoReady = true; });
+  };
+  document.head.appendChild(script);
+}
+window.addEventListener('load', loadKakao);
 </script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
