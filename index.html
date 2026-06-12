@@ -264,6 +264,9 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 .sup-row:hover{background:#fafaf8;}
 .sup-row-header{display:grid;grid-template-columns:80px 110px 120px 80px 1fr 70px;gap:0;padding:7px 12px;border-bottom:.5px solid #e8e8e4;font-size:11px;color:#888;font-weight:500;background:#fafaf8;}
 .sup-row span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .map-label{background:rgba(255,255,255,0.92);border:.5px solid #ddd;border-radius:6px;font-size:11px;padding:3px 7px;box-shadow:0 1px 4px rgba(0,0,0,.12);}
+.map-label::before{display:none;}
+.leaflet-tooltip-top.map-label::before{display:none;}
 </style>
 </head>
 <body>
