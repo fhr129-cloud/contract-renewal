@@ -630,7 +630,7 @@ function renderWeekView() {
   }
   var todayStr=today.toISOString().slice(0,10);
   var filtered=filterSupports();
-  var staffOrder=['손도란 대리','이소영 주임','김상준 주임','견병록 매니저'];
+  var staffOrder=['박주형 본부장','김재희 차장','손도란 대리','이소영 주임','김상준 주임','안은재 주임','견병록 매니저','임성창 차장','김동현 대리'];
   var dayLabels=['월','화','수','목','금','토','일'];
 
   var html='<div class="week-grid">';
