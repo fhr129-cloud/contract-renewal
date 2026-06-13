@@ -979,7 +979,18 @@ window.saveContract=async function(){
   };
   try{
     if(editingId){
-      await updateContract(editingId,data); showToast('수정되었습니다.');
+      await updateContract(editingId,data);
+      var oldContract=contracts.find(function(x){ return x.id===editingId; });
+      if(oldContract && oldContract.name !== name) {
+        var supsToUpdate=supports.filter(function(s){ return s.bizName===oldContract.name; });
+        for(var i=0;i<supsToUpdate.length;i++) {
+          await updateSupport(supsToUpdate[i].id, Object.assign({}, supsToUpdate[i], {bizName:name}));
+        }
+        var { db } = await import('./db.js');
+        var { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+        await updateDoc(doc(db,'history',editingId), {name:name});
+      }
+      showToast('수정되었습니다.');
     } else {
       var ref=await addContract(data);
       editingId=ref.id;
