@@ -983,7 +983,7 @@ window.saveContract=async function(){
       var oldName=oldContract?oldContract.name:'';
       await updateContract(editingId,data);
       if(oldName && oldName !== name) {
-        var supsToUpdate=supports.filter(function(s){ return s.bizName===oldContract.name; });
+        var supsToUpdate=supports.filter(function(s){ return s.bizName===oldName; });
         for(var i=0;i<supsToUpdate.length;i++) {
           await updateSupport(supsToUpdate[i].id, Object.assign({}, supsToUpdate[i], {bizName:name}));
         }
