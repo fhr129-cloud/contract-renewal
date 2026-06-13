@@ -986,7 +986,9 @@ window.saveContract=async function(){
       await updateContract(editingId,data);
       if(oldName && oldName !== name) {
         var supsToUpdate=supports.filter(function(s){ return s.bizName===oldName; });
+        console.log('업데이트할 지원이력 수:', supsToUpdate.length);
         for(var i=0;i<supsToUpdate.length;i++) {
+          console.log('업데이트 중:', supsToUpdate[i].id, supsToUpdate[i].bizName);
           await updateSupportBizName(supsToUpdate[i].id, name);
         }
         var { db } = await import('./db.js');
