@@ -11,7 +11,7 @@ var currentBizTab = 'team';
 var mapInstance = null;
 var calYear = new Date().getFullYear();
 var calMonth = new Date().getMonth();
-var calView = 'month'; // 'month' or 'week'
+var calView = 'week'; // 'month' or 'week'
 var staffFilter = null; // null = 전체
 var ssOptions = [];
 var currentModalTab = 'basic';
@@ -251,7 +251,25 @@ window.closeDropdowns = function() {
     var el=document.getElementById(id); if(el) el.style.display='none';
   });
 };
+window.openSupportModal = function() {
+  editingSupportId = null;
+  document.getElementById('sup-modal-title').textContent = '운영지원 등록';
+  document.getElementById('ss-input').value = '';
+  document.getElementById('sup-biz').value = '';
+  document.getElementById('sup-date').value = '';
+  if(document.getElementById('sup-time-start')) document.getElementById('sup-time-start').value = '';
+  if(document.getElementById('sup-time-end')) document.getElementById('sup-time-end').value = '';
+  document.getElementById('sup-cat').value = '';
+  document.getElementById('sup-content').value = '';
+  resetStaffChips();
+  document.getElementById('sup-submit-btn').innerHTML = '<i class="ti ti-check"></i> 등록';
+  document.getElementById('sup-modal').classList.add('open');
+};
 
+window.closeSupportModal = function() {
+  document.getElementById('sup-modal').classList.remove('open');
+  editingSupportId = null;
+};
 document.addEventListener('click', function(e) {
   if(!e.target.closest('[onclick*="toggleTeamDropdown"]') && !e.target.closest('[id$="-dropdown"]')) {
     window.closeDropdowns();
@@ -800,7 +818,7 @@ window.submitSupport=async function(){
     document.getElementById('sup-cat').value=''; document.getElementById('sup-content').value='';
     resetStaffChips();
     document.getElementById('sup-submit-btn').innerHTML='<i class="ti ti-check"></i> 등록';
-    document.getElementById('sup-cancel-btn').style.display='none';
+    closeSupportModal();
   } catch(e){ showToast('오류가 발생했습니다.'); }
 };
 
@@ -816,8 +834,8 @@ window.editSupport=function(id){
   var names=s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]);
   setSelectedStaff(names);
   document.getElementById('sup-submit-btn').innerHTML='<i class="ti ti-check"></i> 수정 저장';
-  document.getElementById('sup-cancel-btn').style.display='inline-flex';
-  window.scrollTo({top:0,behavior:'smooth'});
+  document.getElementById('sup-modal-title').textContent='운영지원 수정';
+  document.getElementById('sup-modal').classList.add('open');
   showToast('내용 수정 후 저장하세요.');
 };
 
@@ -1038,4 +1056,5 @@ function showToast(msg){
   document.body.appendChild(el); setTimeout(function(){ el.remove(); },2800);
 }
 document.getElementById('modal-overlay').addEventListener('mousedown',function(e){ if(e.target===e.currentTarget) closeModal(); });
+document.getElementById('sup-modal').addEventListener('mousedown',function(e){ if(e.target===e.currentTarget) closeSupportModal(); });
 history.replaceState({screen:'home'},'','');
