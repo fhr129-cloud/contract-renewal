@@ -752,7 +752,6 @@ function renderSupportList() {
   var el=document.getElementById('sup-list-count'); if(el) el.textContent=sorted.length+'건';
   if(!sorted.length) { listEl.innerHTML='<div class="empty-state" style="padding:20px;"><i class="ti ti-calendar"></i>지원 이력이 없어요</div>'; return; }
   var header='<div class="sup-row-header"><span>날짜</span><span>끼니</span><span>업장</span><span>지원자</span><span>카테고리 · 내용</span><span></span></div>';
-  var rows=sorted.map(function(s){
     var c=contracts.find(function(x){ return x.name===s.bizName; }), cid=c?c.id:'';
     var tStr=s.timeStart?(s.timeStart+(s.timeEnd?' ~ '+s.timeEnd:'')):'';
     var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
