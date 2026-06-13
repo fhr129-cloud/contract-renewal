@@ -950,6 +950,7 @@ window.openEditModal=function(id){
 };
 window.closeModal=function(){ document.getElementById('modal-overlay').classList.remove('open'); };
 window.saveContract=async function(){
+  console.log('saveContract 실행, editingId:', editingId);
   var name=document.getElementById('f-name').value.trim(), endDate=document.getElementById('f-endDate').value;
   if(!name||!endDate){ showToast('사업장명과 종료일은 필수입니다.'); return; }
   var contacts=getContacts(), meals=getMeals();
