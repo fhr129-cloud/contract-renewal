@@ -1009,7 +1009,7 @@ window.openEditModal=function(id){
 };
 window.closeModal=function(){ document.getElementById('modal-overlay').classList.remove('open'); };
 window.saveContract=async function(){
-  console.log('saveContract 실행, editingId:', editingId);
+  
   var name=document.getElementById('f-name').value.trim(), endDate=document.getElementById('f-endDate').value;
   if(!name||!endDate){ showToast('사업장명과 종료일은 필수입니다.'); return; }
   var contacts=getContacts(), meals=getMeals();
@@ -1041,13 +1041,13 @@ window.saveContract=async function(){
     if(editingId){
      var oldContract=contracts.find(function(x){ return x.id===editingId; });
       var oldName=oldContract?oldContract.name:'';
-      console.log('oldName:', oldName, '/ newName:', name, '/ 같음?', oldName===name);
+
       await updateContract(editingId,data);
       if(oldName && oldName !== name) {
         var supsToUpdate=supports.filter(function(s){ return s.bizName===oldName; });
-        console.log('업데이트할 지원이력 수:', supsToUpdate.length);
+
         for(var i=0;i<supsToUpdate.length;i++) {
-          console.log('업데이트 중:', supsToUpdate[i].id, supsToUpdate[i].bizName);
+
           await updateSupportBizName(supsToUpdate[i].id, name);
         }
         var { db } = await import('./db.js');
