@@ -239,7 +239,28 @@ window.toggleStaffChip = function(el, name) {
     el.className='staff-chip';
   }
 };
+window.toggleMealChip = function(el, name) {
+  el.classList.toggle('selected');
+};
 
+function getSelectedMeals() {
+  var chips = document.querySelectorAll('#meal-chip-wrap .staff-chip.selected');
+  var meals = [];
+  chips.forEach(function(c){ meals.push(c.textContent.trim()); });
+  return meals;
+}
+
+function resetMealChips() {
+  document.querySelectorAll('#meal-chip-wrap .staff-chip').forEach(function(c){ c.className='staff-chip'; });
+}
+
+function setSelectedMeals(meals) {
+  resetMealChips();
+  if(!meals||!meals.length) return;
+  document.querySelectorAll('#meal-chip-wrap .staff-chip').forEach(function(c){
+    if(meals.indexOf(c.textContent.trim())!==-1) c.classList.add('selected');
+  });
+}
 window.toggleTeamDropdown = function(id) {
   closeDropdowns();
   var el = document.getElementById(id);
@@ -257,8 +278,7 @@ window.openSupportModal = function() {
   document.getElementById('ss-input').value = '';
   document.getElementById('sup-biz').value = '';
   document.getElementById('sup-date').value = '';
-  if(document.getElementById('sup-time-start')) document.getElementById('sup-time-start').value = '';
-  if(document.getElementById('sup-time-end')) document.getElementById('sup-time-end').value = '';
+  resetMealChips();
   document.getElementById('sup-cat').value = '';
   document.getElementById('sup-content').value = '';
   resetStaffChips();
@@ -737,13 +757,14 @@ function renderSupportList() {
     var tStr=s.timeStart?(s.timeStart+(s.timeEnd?' ~ '+s.timeEnd:'')):'';
     var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
     var colorIdx=getStaffColor(staffStr);
-    var catContent=(s.category||'')+(s.content?' · '+s.content:'');
+    var mealStr=s.meals&&s.meals.length?s.meals.join('/') :'';
+    var catContent=(s.category||'')+(mealStr?' · '+mealStr:'')+(s.content?' · '+s.content:'');
     return '<div class="sup-row">'+
       '<span style="color:#888;font-size:12px;">'+(s.date||'')+'</span>'+
-      '<span style="color:#888;font-size:12px;">'+(tStr||'-')+'</span>'+
+      '<span style="color:#888;font-size:12px;">'+(mealStr?'<span class="badge-cat">'+mealStr+'</span>':'-')+'</span>'+
       '<span class="sup-biz"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+'>'+s.bizName+'</span>'+
       '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+( staffStr||'-')+'</span>'+
-      '<span style="font-size:12px;color:#555;">'+(catContent||'-')+'</span>'+
+      '<span style="font-size:12px;color:#555;">'+(s.category||'')+(s.content?' · '+s.content:'')+'</span>'+
       '<span style="display:flex;gap:4px;">'+
         '<button class="btn sm" onclick="editSupport(\''+s.id+'\')" ><i class="ti ti-edit"></i></button>'+
         '<button class="btn sm danger" onclick="delSupport(\''+s.id+'\')" ><i class="ti ti-trash"></i></button>'+
@@ -798,16 +819,30 @@ function renderSSOptions(q){
 window.filterSS=function(){ renderSSOptions(document.getElementById('ss-input').value); document.getElementById('sup-biz').value=''; };
 window.openSS=function(){ document.getElementById('ss-dropdown').classList.add('open'); renderSSOptions(document.getElementById('ss-input').value); };
 window.closeSS=function(){ document.getElementById('ss-dropdown').classList.remove('open'); };
-window.selectSS=function(name){ document.getElementById('ss-input').value=name; document.getElementById('sup-biz').value=name; document.getElementById('ss-dropdown').classList.remove('open'); };
-
+window.selectSS=function(name){
+  document.getElementById('ss-input').value=name;
+  document.getElementById('sup-biz').value=name;
+  document.getElementById('ss-dropdown').classList.remove('open');
+  // 담당 영양사 자동 표시
+  var c=contracts.find(function(x){ return x.name===name; });
+  var nutriEl=document.getElementById('sup-nutri-info');
+  if(nutriEl) {
+    if(c&&c.nutritionists&&c.nutritionists.length) {
+      nutriEl.textContent='담당영양사: '+c.nutritionists.map(function(n){ return n.name; }).join(', ');
+      nutriEl.style.display='block';
+    } else {
+      nutriEl.style.display='none';
+    }
+  }
+};
 window.submitSupport=async function(){
   var biz=document.getElementById('sup-biz').value, date=document.getElementById('sup-date').value;
-  var timeStart=document.getElementById('sup-time-start')?document.getElementById('sup-time-start').value:'';
-  var timeEnd=document.getElementById('sup-time-end')?document.getElementById('sup-time-end').value:'';
+  var timeStart=''; var timeEnd='';
+  var meals=getSelectedMeals();
   var staffNames = getSelectedStaff();
   var cat=document.getElementById('sup-cat').value, content=document.getElementById('sup-content').value.trim();
   if(!biz||!date||!cat){ showToast('업장, 일자, 카테고리는 필수예요.'); return; }
-  var data={bizName:biz,date:date,timeStart:timeStart,timeEnd:timeEnd,staffName:staffNames.join(', '),staffNames:staffNames,category:cat,content:content};
+  var data={bizName:biz,date:date,timeStart:timeStart,timeEnd:timeEnd,meals:meals,staffName:staffNames.join(', '),staffNames:staffNames,category:cat,content:content};
   try{
     if(editingSupportId){ await updateSupport(editingSupportId,data); editingSupportId=null; showToast('수정되었습니다.'); }
     else{ await addSupport(data); showToast('등록되었습니다.'); }
@@ -817,6 +852,7 @@ window.submitSupport=async function(){
     if(document.getElementById('sup-time-end')) document.getElementById('sup-time-end').value='';
     document.getElementById('sup-cat').value=''; document.getElementById('sup-content').value='';
     resetStaffChips();
+    resetMealChips();
     document.getElementById('sup-submit-btn').innerHTML='<i class="ti ti-check"></i> 등록';
     closeSupportModal();
   } catch(e){ showToast('오류가 발생했습니다.'); }
@@ -827,8 +863,7 @@ window.editSupport=function(id){
   editingSupportId=id;
   window.selectSS(s.bizName||'');
   document.getElementById('sup-date').value=s.date||'';
-  if(document.getElementById('sup-time-start')) document.getElementById('sup-time-start').value=s.timeStart||s.time||'';
-  if(document.getElementById('sup-time-end')) document.getElementById('sup-time-end').value=s.timeEnd||'';
+  setSelectedMeals(s.meals||[]);
   document.getElementById('sup-cat').value=s.category||'';
   document.getElementById('sup-content').value=s.content||'';
   var names=s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]);
