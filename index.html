@@ -517,30 +517,21 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
           <label>카테고리 *</label>
           <select id="sup-cat">
             <option value="">선택...</option>
-            <option>위생점검</option><option>운영상황체크</option>
+            <option>위생점검</option><option>운영점검</option>
             <option>특식지원</option><option>배식지원</option>
-            <option>미팅</option><option>기타</option>
+            <option>식사제공</option><option>미팅상담</option>
+            <option>기타지원</option>
           </select>
         </div>
-        <div class="sup-form-group">
-          <label>시작 시간</label>
-          <select id="sup-time-start">
-            <option value="">선택...</option>
-            <option>08:00</option><option>09:00</option><option>10:00</option>
-            <option>11:00</option><option>12:00</option><option>13:00</option>
-            <option>14:00</option><option>15:00</option><option>16:00</option>
-            <option>17:00</option><option>18:00</option><option>19:00</option><option>20:00</option>
-          </select>
-        </div>
-        <div class="sup-form-group">
-          <label>종료 시간</label>
-          <select id="sup-time-end">
-            <option value="">선택...</option>
-            <option>09:00</option><option>10:00</option><option>11:00</option>
-            <option>12:00</option><option>13:00</option><option>14:00</option>
-            <option>15:00</option><option>16:00</option><option>17:00</option>
-            <option>18:00</option><option>19:00</option><option>20:00</option><option>21:00</option>
-          </select>
+        <div class="sup-form-group" style="grid-column:1/-1;">
+          <label>끼니</label>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;" id="meal-chip-wrap">
+            <div class="staff-chip" onclick="toggleMealChip(this,'조식')">조식</div>
+            <div class="staff-chip" onclick="toggleMealChip(this,'중식')">중식</div>
+            <div class="staff-chip" onclick="toggleMealChip(this,'석식')">석식</div>
+            <div class="staff-chip" onclick="toggleMealChip(this,'야식')">야식</div>
+            <div class="staff-chip" onclick="toggleMealChip(this,'기타')">기타</div>
+          </div>
         </div>
       </div>
       <div class="sup-form-group">
