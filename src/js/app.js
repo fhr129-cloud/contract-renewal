@@ -985,7 +985,7 @@ window.saveContract=async function(){
       if(oldName && oldName !== name) {
         var supsToUpdate=supports.filter(function(s){ return s.bizName===oldName; });
         for(var i=0;i<supsToUpdate.length;i++) {
-          await updateSupport(supsToUpdate[i].id, Object.assign({}, supsToUpdate[i], {bizName:name}));
+          await updateSupportBizName(supsToUpdate[i].id, name);
         }
         var { db } = await import('./db.js');
         var { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
