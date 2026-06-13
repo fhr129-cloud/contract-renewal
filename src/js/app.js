@@ -980,8 +980,9 @@ window.saveContract=async function(){
   };
   try{
     if(editingId){
-      var oldContract=contracts.find(function(x){ return x.id===editingId; });
+     var oldContract=contracts.find(function(x){ return x.id===editingId; });
       var oldName=oldContract?oldContract.name:'';
+      console.log('oldName:', oldName, '/ newName:', name, '/ 같음?', oldName===name);
       await updateContract(editingId,data);
       if(oldName && oldName !== name) {
         var supsToUpdate=supports.filter(function(s){ return s.bizName===oldName; });
