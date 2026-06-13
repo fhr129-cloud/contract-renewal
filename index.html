@@ -299,6 +299,16 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 .sc-견병록{background:#FBF6E6;color:#6B5B0B;border-color:#EDE0A8;}
 .sc-임성창{background:#F0F0EC;color:#444;border-color:#ccc;}
 .sc-김동현{background:#FBE6F0;color:#A32D6B;border-color:#F0A8D0;}
+  @media(max-width:600px){
+  .cal-event{display:none;}
+  .cal-more{display:none;}
+  .cal-day{min-height:44px;padding:2px;}
+  .cal-dots{display:flex;gap:2px;flex-wrap:wrap;padding:2px 3px;}
+  .cal-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+}
+@media(min-width:601px){
+  .cal-dots{display:none;}
+}
 </style>
 </head>
 <body>
