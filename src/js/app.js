@@ -425,7 +425,8 @@ function renderDashboard() {
         var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
         var cls=getStaffChipClass(staffStr);
         var mealStr=s.meals&&s.meals.length?s.meals.join('/'):'';
-        return '<div class="list-item" onclick="goDetail(\''+(contracts.find(function(x){ return x.name===s.bizName; })||{}).id+'\'||\'')">'+
+        var cid2=(contracts.find(function(x){ return x.name===s.bizName; })||{}).id||'';
+        return '<div class="list-item"'+(cid2?' onclick="goDetail(\''+cid2+'\')"':'')+'>'+
           '<div class="list-item-icon" style="background:var(--blue-light);"><i class="ti ti-map-pin" style="color:var(--blue);"></i></div>'+
           '<div class="list-item-body">'+
             '<div class="list-item-title">'+s.bizName+'</div>'+
