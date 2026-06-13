@@ -981,8 +981,9 @@ window.saveContract=async function(){
     if(editingId){
       var oldContract=contracts.find(function(x){ return x.id===editingId; });
       var oldName=oldContract?oldContract.name:'';
+      console.log('oldName:', oldName, 'newName:', name);
       await updateContract(editingId,data);
-      if(oldName && oldName !== name) {
+      if(oldName !== name) {
         if(oldName && oldName !== name) {
         console.log('이름 변경 감지:', oldName, '->', name, '지원이력 수:', supports.filter(function(s){ return s.bizName===oldName; }).length);
         var supsToUpdate=supports.filter(function(s){ return s.bizName===oldName; });
