@@ -639,11 +639,18 @@ function renderMonthView() {
       '<div class="cal-num">'+d+'</div>'+
       items.slice(0,3).map(function(s){
         var staffStr=s.staffNames&&s.staffNames.length?s.staffNames[0]:(s.staffName||'');
-        var colorIdx=getStaffColor(staffStr);
         var cls=getStaffColor(staffStr);
-        return '<div class="cal-event '+(cls||'staff-color-4')+'">'+s.bizName+(staffStr?'/'+staffStr.split(' ')[0]:'')+'</div>';
+        return '<div class="cal-event '+(cls||'')+'">'+s.bizName+(staffStr?'/'+staffStr.split(' ')[0]:'')+'</div>';
       }).join('')+
-      (items.length>3?'<div class="cal-more">+' +(items.length-3)+'건</div>':'')+
+      (items.length>3?'<div class="cal-more">+'+(items.length-3)+'건</div>':'')+
+      '<div class="cal-dots">'+
+        items.slice(0,5).map(function(s){
+          var staffStr=s.staffNames&&s.staffNames.length?s.staffNames[0]:(s.staffName||'');
+          var cls=getStaffColor(staffStr);
+          return '<div class="cal-dot '+(cls||'')+'" style="'+(cls?'':'background:#aaa;')+'"></div>';
+        }).join('')+
+        (items.length>5?'<div style="font-size:8px;color:#aaa;line-height:6px;">+</div>':'')+
+      '</div>'+
       '</div>';
   }
   html+='</div>';
