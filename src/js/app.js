@@ -983,6 +983,8 @@ window.saveContract=async function(){
       var oldName=oldContract?oldContract.name:'';
       await updateContract(editingId,data);
       if(oldName && oldName !== name) {
+        if(oldName && oldName !== name) {
+        console.log('이름 변경 감지:', oldName, '->', name, '지원이력 수:', supports.filter(function(s){ return s.bizName===oldName; }).length);
         var supsToUpdate=supports.filter(function(s){ return s.bizName===oldName; });
         for(var i=0;i<supsToUpdate.length;i++) {
           await updateSupportBizName(supsToUpdate[i].id, name);
