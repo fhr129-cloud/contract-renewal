@@ -460,7 +460,9 @@ function applyState(state) {
   }
 }
 window.goHome=function(){ var s={screen:'home'}; history.pushState(s,'',''); applyState(s); };
+window._goHome=window.goHome;
 window.goPage=function(page){ var s={screen:'page',page:page}; history.pushState(s,'',''); applyState(s); };
+window._goPage=window.goPage;
 window.goDetail=function(id){ if(!id||id==='undefined') return; var s={screen:'detail',id:id}; history.pushState(s,'',''); applyState(s); };
 window.goBackFromDetail=function(){ history.back(); };
 function renderPage(page) {
