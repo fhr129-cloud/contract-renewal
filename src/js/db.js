@@ -79,6 +79,9 @@ export function updateSupport(id, data) {
   }));
 }
 
+export function updateSupportBizName(id, bizName) {
+  return updateDoc(doc(db,'supports',id), { bizName: bizName, updatedAt: serverTimestamp() });
+}
 export async function seedIfEmpty() {
   const snap = await getDocs(collection(db,'contracts'));
   if(snap.empty) {
