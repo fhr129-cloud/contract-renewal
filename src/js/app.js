@@ -753,16 +753,14 @@ function renderSupportList() {
   });
   var el=document.getElementById('sup-list-count'); if(el) el.textContent=sorted.length+'건';
   if(!sorted.length) { listEl.innerHTML='<div class="empty-state" style="padding:20px;"><i class="ti ti-calendar"></i>지원 이력이 없어요</div>'; return; }
-  var header='<div class="sup-row-header"><span>날짜</span><span>끼니</span><span>업장</span><span>지원자</span><span>카테고리 · 내용</span><span></span></div>';
+ var header='<div class="sup-row-header"><span>날짜</span><span>끼니</span><span>업장</span><span>지원자</span><span>카테고리 · 내용</span><span></span></div>';
+  var rows=sorted.map(function(s){
     var c=contracts.find(function(x){ return x.name===s.bizName; }), cid=c?c.id:'';
-    var tStr=s.timeStart?(s.timeStart+(s.timeEnd?' ~ '+s.timeEnd:'')):'';
     var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
-    var colorIdx=getStaffColor(staffStr);
-    var mealStr=s.meals&&s.meals.length?s.meals.join('/') :'';
-    var catContent=(s.category||'')+(mealStr?' · '+mealStr:'')+(s.content?' · '+s.content:'');
+    var mealStr=s.meals&&s.meals.length?s.meals.join('/'):'';
     return '<div class="sup-row">'+
       '<span style="color:#888;font-size:12px;">'+(s.date||'')+'</span>'+
-      '<span style="color:#888;font-size:12px;">'+(mealStr?'<span class="badge-cat">'+mealStr+'</span>':'-')+'</span>'+
+      '<span>'+(mealStr?'<span class="badge-cat">'+mealStr+'</span>':'-')+'</span>'+
       '<span class="sup-biz"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+'>'+s.bizName+'</span>'+
       '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+( staffStr||'-')+'</span>'+
       '<span style="font-size:12px;color:#555;">'+(s.category||'')+(s.content?' · '+s.content:'')+'</span>'+
