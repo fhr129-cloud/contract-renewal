@@ -979,9 +979,10 @@ window.saveContract=async function(){
   };
   try{
     if(editingId){
-      await updateContract(editingId,data);
       var oldContract=contracts.find(function(x){ return x.id===editingId; });
-      if(oldContract && oldContract.name !== name) {
+      var oldName=oldContract?oldContract.name:'';
+      await updateContract(editingId,data);
+      if(oldName && oldName !== name) {
         var supsToUpdate=supports.filter(function(s){ return s.bizName===oldContract.name; });
         for(var i=0;i<supsToUpdate.length;i++) {
           await updateSupport(supsToUpdate[i].id, Object.assign({}, supsToUpdate[i], {bizName:name}));
