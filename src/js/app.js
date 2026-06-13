@@ -1030,5 +1030,5 @@ function showToast(msg){
   var el=document.createElement('div'); el.className='toast'; el.textContent=msg;
   document.body.appendChild(el); setTimeout(function(){ el.remove(); },2800);
 }
-document.getElementById('modal-overlay').addEventListener('click',function(e){ if(e.target===e.currentTarget) closeModal(); });
+document.getElementById('modal-overlay').addEventListener('mousedown',function(e){ if(e.target===e.currentTarget) closeModal(); });
 history.replaceState({screen:'home'},'','');
