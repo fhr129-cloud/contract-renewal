@@ -849,7 +849,18 @@ window.renderBizTab=function(){
       '<div class="biz-bottom"><span>'+fmtDate(c.endDate)+'</span><span style="font-weight:500;color:'+col+'">'+dDayLabel(d)+'</span></div>'+
       '</div>';
   }
-  var filtered=contracts.filter(function(c){ return !q||c.name.toLowerCase().includes(q)||(c.addr||'').toLowerCase().includes(q); });
+  var filtered=contracts.filter(function(c){
+    if(!q) return true;
+    if(c.name.toLowerCase().includes(q)) return true;
+    if((c.addr||'').toLowerCase().includes(q)) return true;
+    if(c.nutritionists&&c.nutritionists.length){
+      if(c.nutritionists.some(function(nt){
+        return (nt.name||'').toLowerCase().includes(q)||(nt.phone||'').replace(/-/g,'').includes(q.replace(/-/g,''));
+      })) return true;
+    }
+    if((c.resp||'').toLowerCase().includes(q)) return true;
+    return false;
+  });
   if(currentBizTab==='team'){
     var t1=filtered.filter(function(c){ return c.team===1; }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
     var t2=filtered.filter(function(c){ return c.team===2; }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
