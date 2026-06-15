@@ -586,7 +586,17 @@ function renderCalendar(){
 }
 function renderMonthView(){
   var filtered=filterSupports(),dayMap={};
-  filtered.forEach(function(s){ if(!s.date) return; var k=s.date.slice(0,10); if(!dayMap[k]) dayMap[k]=[]; dayMap[k].push(s); });
+  filtered.forEach(function(s){
+    if(!s.date) return;
+    var start=s.date.slice(0,10), end=s.dateEnd?s.dateEnd.slice(0,10):start;
+    var cur=new Date(start), endD=new Date(end);
+    while(cur<=endD){
+      var k=cur.toISOString().slice(0,10);
+      if(!dayMap[k]) dayMap[k]=[];
+      dayMap[k].push(s);
+      cur.setDate(cur.getDate()+1);
+    }
+  });
   Object.keys(dayMap).forEach(function(k){ dayMap[k].sort(function(a,b){ return (a.timeStart||'').localeCompare(b.timeStart||''); }); });
   var firstDay=new Date(calYear,calMonth,1).getDay(),lastDate=new Date(calYear,calMonth+1,0).getDate();
   var today=new Date().toISOString().slice(0,10);
@@ -637,7 +647,9 @@ function renderWeekView(){
     days.forEach(function(d){
       var dStr=d.toISOString().slice(0,10),isToday=dStr===todayStr;
       var items=filtered.filter(function(s){
-        if(!s.date||s.date.slice(0,10)!==dStr) return false;
+        if(!s.date) return false;
+        var start=s.date.slice(0,10), end=s.dateEnd?s.dateEnd.slice(0,10):start;
+        if(dStr<start||dStr>end) return false;
         var names=s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]);
         return names.some(function(n){ return n&&n.includes(staff.split(' ')[0]); });
       });
