@@ -852,13 +852,7 @@ window.renderBizTab=function(){
   var filtered=contracts.filter(function(c){
     if(!q) return true;
     if(c.name.toLowerCase().includes(q)) return true;
-    if((c.addr||'').toLowerCase().includes(q)) return true;
-    if(c.nutritionists&&c.nutritionists.length){
-      if(c.nutritionists.some(function(nt){
-        return (nt.name||'').toLowerCase().includes(q)||(nt.phone||'').replace(/-/g,'').includes(q.replace(/-/g,''));
-      })) return true;
-    }
-    if((c.resp||'').toLowerCase().includes(q)) return true;
+    if(c.nutritionists&&c.nutritionists.some(function(nt){ return (nt.name||'').toLowerCase().includes(q); })) return true;
     return false;
   });
   if(currentBizTab==='team'){
