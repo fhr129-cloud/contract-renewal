@@ -11,23 +11,20 @@ var currentBizTab = 'team';
 var mapInstance = null;
 var calYear = new Date().getFullYear();
 var calMonth = new Date().getMonth();
-var calView = 'week'; // 'month' or 'week'
-var staffFilter = null; // null = 전체
+var calView = 'week';
+var staffFilter = null;
 var ssOptions = [];
 var currentModalTab = 'basic';
 window.detailId = null;
 
-// 담당자별 색상
 var STAFF_COLORS = {
-  '박주형': 'sc-박주형', '김재희': 'sc-김재희', '손도란': 'sc-손도란',
-  '이소영': 'sc-이소영', '김상준': 'sc-김상준', '안은재': 'sc-안은재',
-  '견병록': 'sc-견병록', '임성창': 'sc-임성창', '김동현': 'sc-김동현',
+  '박주형':'sc-박주형','김재희':'sc-김재희','손도란':'sc-손도란',
+  '이소영':'sc-이소영','김상준':'sc-김상준','안은재':'sc-안은재',
+  '견병록':'sc-견병록','임성창':'sc-임성창','김동현':'sc-김동현',
 };
-function getStaffColor(staffName) {
-  if(!staffName) return '';
-  for(var key in STAFF_COLORS) {
-    if(staffName.includes(key)) return STAFF_COLORS[key];
-  }
+function getStaffColor(name) {
+  if(!name) return '';
+  for(var k in STAFF_COLORS) { if(name.includes(k)) return STAFF_COLORS[k]; }
   return '';
 }
 
@@ -77,12 +74,10 @@ var COORDS = {
   '세명테크':{lat:36.9092,lng:127.0088},'효림정공':{lat:37.0091,lng:127.0788},
 };
 
-var SUPPORT_CATS = ['위생점검','운영상황체크','특식지원','배식지원','미팅','기타'];
-
-// ── 전화번호 자동 하이픈 ──────────────────────────
+// ── 전화번호 ──────────────────────────
 window.formatPhone = function(input) {
-  var v = input.value.replace(/[^0-9]/g,'');
-  if(v.startsWith('02')) {
+  var v=input.value.replace(/[^0-9]/g,'');
+  if(v.startsWith('02')){
     if(v.length<=2) input.value=v;
     else if(v.length<=5) input.value=v.slice(0,2)+'-'+v.slice(2);
     else if(v.length<=9) input.value=v.slice(0,2)+'-'+v.slice(2,5)+'-'+v.slice(5);
@@ -95,16 +90,15 @@ window.formatPhone = function(input) {
   }
 };
 
-// ── 끼니 칩 ──────────────────────────
+// ── 끼니 칩 (계약 모달) ──────────────────────────
 window.updateChip = function(cb) {
-  var label = cb.closest('.meal-chip');
-  if(label) label.classList.toggle('checked', cb.checked);
+  var label=cb.closest('.meal-chip');
+  if(label) label.classList.toggle('checked',cb.checked);
 };
 window.toggleWeekend = function(day) {
-  var cb = document.getElementById('meal-'+day);
-  var sub = document.getElementById('meal-'+day+'-sub');
+  var cb=document.getElementById('meal-'+day),sub=document.getElementById('meal-'+day+'-sub');
   if(!cb||!sub) return;
-  sub.style.display = cb.checked ? 'flex' : 'none';
+  sub.style.display=cb.checked?'flex':'none';
   if(!cb.checked) sub.querySelectorAll('input[type=checkbox]').forEach(function(c){ c.checked=false; c.closest('.meal-chip')&&c.closest('.meal-chip').classList.remove('checked'); });
 };
 function getMeals() {
@@ -118,27 +112,13 @@ function getMeals() {
 }
 function setMeals(meals) {
   document.querySelectorAll('.meal-cb').forEach(function(cb){ cb.checked=false; cb.closest('.meal-chip')&&cb.closest('.meal-chip').classList.remove('checked'); });
-  ['sat','sun'].forEach(function(d){
-    var cb=document.getElementById('meal-'+d), sub=document.getElementById('meal-'+d+'-sub');
-    if(cb) cb.checked=false; if(sub) sub.style.display='none';
-  });
+  ['sat','sun'].forEach(function(d){ var cb=document.getElementById('meal-'+d),sub=document.getElementById('meal-'+d+'-sub'); if(cb)cb.checked=false; if(sub)sub.style.display='none'; });
   if(!meals) return;
-  if(typeof meals==='string') {
-    meals.split('/').forEach(function(v){
-      var cb=document.querySelector('.meal-cb[data-day="weekday"][value="'+v.trim()+'"]');
-      if(cb){cb.checked=true;cb.closest('.meal-chip')&&cb.closest('.meal-chip').classList.add('checked');}
-    }); return;
-  }
+  if(typeof meals==='string'){ meals.split('/').forEach(function(v){ var cb=document.querySelector('.meal-cb[data-day="weekday"][value="'+v.trim()+'"]'); if(cb){cb.checked=true;cb.closest('.meal-chip')&&cb.closest('.meal-chip').classList.add('checked');} }); return; }
   ['weekday','sat','sun'].forEach(function(day){
     if(!meals[day]||!meals[day].length) return;
-    if(day!=='weekday') {
-      var cb=document.getElementById('meal-'+day), sub=document.getElementById('meal-'+day+'-sub');
-      if(cb){cb.checked=true;} if(sub) sub.style.display='flex';
-    }
-    meals[day].forEach(function(v){
-      var cb=document.querySelector('.meal-cb[data-day="'+day+'"][value="'+v+'"]');
-      if(cb){cb.checked=true;cb.closest('.meal-chip')&&cb.closest('.meal-chip').classList.add('checked');}
-    });
+    if(day!=='weekday'){ var cb=document.getElementById('meal-'+day),sub=document.getElementById('meal-'+day+'-sub'); if(cb)cb.checked=true; if(sub)sub.style.display='flex'; }
+    meals[day].forEach(function(v){ var cb=document.querySelector('.meal-cb[data-day="'+day+'"][value="'+v+'"]'); if(cb){cb.checked=true;cb.closest('.meal-chip')&&cb.closest('.meal-chip').classList.add('checked');} });
   });
 }
 function mealsDisplay(meals) {
@@ -149,6 +129,11 @@ function mealsDisplay(meals) {
   if(meals.sat&&meals.sat.length) p.push('토:'+meals.sat.join('/'));
   if(meals.sun&&meals.sun.length) p.push('일:'+meals.sun.join('/'));
   return p.join(' | ')||'-';
+}
+function priceHistLabel(r) {
+  if(r.priceType==='management') return '관리비제';
+  if(r.priceType==='fixed') return (r.price?Number(r.price).toLocaleString()+'원':'0원')+' (고정)';
+  return (r.price?Number(r.price).toLocaleString()+'원':'0원')+'/식';
 }
 
 // ── 담당자 ──────────────────────────
@@ -162,15 +147,13 @@ window.addContactRow = function() {
   wrap.appendChild(div);
 };
 window.removeContactRow = function(btn) {
-  var row=btn.closest('.contact-row'), wrap=document.getElementById('contact-rows');
+  var row=btn.closest('.contact-row'),wrap=document.getElementById('contact-rows');
   if(wrap&&wrap.children.length>1) row.remove(); else showToast('최소 1명은 있어야 해요.');
 };
 function getContacts() {
-  var rows=document.querySelectorAll('#contact-rows .contact-row'), r=[];
+  var rows=document.querySelectorAll('#contact-rows .contact-row'),r=[];
   rows.forEach(function(row){
-    var n=row.querySelector('.contact-name').value.trim();
-    var p=row.querySelector('.contact-phone').value.trim();
-    var t=row.querySelector('.contact-tel').value.trim();
+    var n=row.querySelector('.contact-name').value.trim(),p=row.querySelector('.contact-phone').value.trim(),t=row.querySelector('.contact-tel').value.trim();
     if(n||p) r.push({name:n,phone:p,tel:t});
   }); return r;
 }
@@ -187,8 +170,6 @@ function setContacts(contacts) {
     wrap.appendChild(div);
   });
 }
-
-// ── 담당 영양사 ──────────────────────────
 window.addNutriRow = function() {
   var wrap=document.getElementById('nutritionist-rows'); if(!wrap) return;
   var div=document.createElement('div'); div.className='nutri-row'; div.style.cssText='display:flex;gap:8px;align-items:center;margin-bottom:6px;';
@@ -198,19 +179,16 @@ window.addNutriRow = function() {
   wrap.appendChild(div);
 };
 window.removeNutriRow = function(btn) {
-  var row=btn.closest('.nutri-row'), wrap=document.getElementById('nutritionist-rows');
+  var row=btn.closest('.nutri-row'),wrap=document.getElementById('nutritionist-rows');
   if(wrap&&wrap.children.length>1) row.remove();
   else { wrap.querySelector('.nutri-name').value=''; wrap.querySelector('.nutri-phone').value=''; }
 };
 function getNutritionists() {
-  var rows=document.querySelectorAll('#nutritionist-rows .nutri-row'), r=[];
+  var rows=document.querySelectorAll('#nutritionist-rows .nutri-row'),r=[];
   rows.forEach(function(row){
-    var n=row.querySelector('.nutri-name').value.trim();
-    var p=row.querySelector('.nutri-phone').value.trim();
-    if(n||p) {
-      if(n && !n.includes('영양사') && !n.includes('팀장') && !n.includes('과장') && !n.includes('대리') && !n.includes('주임') && !n.includes('차장') && !n.includes('부장') && !n.includes('이사') && !n.includes('사원')) {
-        n = n + ' 영양사';
-      }
+    var n=row.querySelector('.nutri-name').value.trim(),p=row.querySelector('.nutri-phone').value.trim();
+    if(n||p){
+      if(n&&!n.includes('영양사')&&!n.includes('팀장')&&!n.includes('과장')&&!n.includes('대리')&&!n.includes('주임')&&!n.includes('차장')&&!n.includes('부장')&&!n.includes('이사')&&!n.includes('사원')) n=n+' 영양사';
       r.push({name:n,phone:p});
     }
   }); return r;
@@ -228,101 +206,55 @@ function setNutritionists(list) {
   });
 }
 
-// ── 지원자 ──────────────────────────
-// ── 지원자 칩 ──────────────────────────
+// ── 운영지원 칩 ──────────────────────────
 window.toggleStaffChip = function(el, name) {
   el.classList.toggle('selected');
-  var cls = getStaffColor(name);
-  if(el.classList.contains('selected')) {
-    if(cls) { el.className='staff-chip '+cls; el.classList.add('selected'); }
-  } else {
-    el.className='staff-chip';
-  }
+  var cls=getStaffColor(name);
+  if(el.classList.contains('selected')){ if(cls){ el.className='staff-chip '+cls; el.classList.add('selected'); } }
+  else el.className='staff-chip';
 };
-window.toggleMealChip = function(el, name) {
-  el.classList.toggle('selected');
+window.toggleMealChip = function(el) { el.classList.toggle('selected'); };
+window.toggleTeamDropdown = function(id) {
+  closeDropdowns();
+  var el=document.getElementById(id); if(el) el.style.display=el.style.display==='none'?'block':'none';
 };
-
+window.closeDropdowns = function() {
+  ['op-dropdown','sup-dropdown'].forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display='none'; });
+};
+document.addEventListener('click',function(e){
+  if(!e.target.closest('[onclick*="toggleTeamDropdown"]')&&!e.target.closest('[id$="-dropdown"]')) window.closeDropdowns();
+});
 function getSelectedMeals() {
-  var chips = document.querySelectorAll('#meal-chip-wrap .staff-chip.selected');
-  var meals = [];
-  chips.forEach(function(c){ meals.push(c.textContent.trim()); });
-  return meals;
+  var r=[]; document.querySelectorAll('#meal-chip-wrap .staff-chip.selected').forEach(function(c){ r.push(c.textContent.trim()); }); return r;
 }
-
 function resetMealChips() {
   document.querySelectorAll('#meal-chip-wrap .staff-chip').forEach(function(c){ c.className='staff-chip'; });
 }
-
 function setSelectedMeals(meals) {
   resetMealChips();
   if(!meals||!meals.length) return;
-  document.querySelectorAll('#meal-chip-wrap .staff-chip').forEach(function(c){
-    if(meals.indexOf(c.textContent.trim())!==-1) c.classList.add('selected');
-  });
+  document.querySelectorAll('#meal-chip-wrap .staff-chip').forEach(function(c){ if(meals.indexOf(c.textContent.trim())!==-1) c.classList.add('selected'); });
 }
-window.toggleTeamDropdown = function(id) {
-  closeDropdowns();
-  var el = document.getElementById(id);
-  if(el) el.style.display = el.style.display==='none'?'block':'none';
-};
-
-window.closeDropdowns = function() {
-  ['op-dropdown','sup-dropdown'].forEach(function(id){
-    var el=document.getElementById(id); if(el) el.style.display='none';
-  });
-};
-window.openSupportModal = function() {
-  editingSupportId = null;
-  document.getElementById('sup-modal-title').textContent = '운영지원 등록';
-  document.getElementById('ss-input').value = '';
-  document.getElementById('sup-biz').value = '';
-  document.getElementById('sup-date').value = '';
-  resetMealChips();
-  document.getElementById('sup-cat').value = '';
-  document.getElementById('sup-content').value = '';
-  resetStaffChips();
-  document.getElementById('sup-submit-btn').innerHTML = '<i class="ti ti-check"></i> 등록';
-  document.getElementById('sup-modal').classList.add('open');
-};
-
-window.closeSupportModal = function() {
-  document.getElementById('sup-modal').classList.remove('open');
-  editingSupportId = null;
-};
-document.addEventListener('click', function(e) {
-  if(!e.target.closest('[onclick*="toggleTeamDropdown"]') && !e.target.closest('[id$="-dropdown"]')) {
-    window.closeDropdowns();
-  }
-});
-
 function getSelectedStaff() {
-  var chips = document.querySelectorAll('#staff-chip-wrap .staff-chip.selected');
-  var names = [];
-  chips.forEach(function(c){ names.push(c.textContent.trim()); });
-  return names;
+  var r=[]; document.querySelectorAll('#staff-chip-wrap .staff-chip.selected').forEach(function(c){ r.push(c.textContent.trim()); }); return r;
 }
-
 function resetStaffChips() {
   document.querySelectorAll('#staff-chip-wrap .staff-chip').forEach(function(c){ c.classList.remove('selected'); });
 }
-
 function setSelectedStaff(names) {
   resetStaffChips();
   if(!names||!names.length) return;
-  document.querySelectorAll('#staff-chip-wrap .staff-chip').forEach(function(c){
-    if(names.some(function(n){ return n===c.textContent.trim(); })) c.classList.add('selected');
-  });
+  document.querySelectorAll('#staff-chip-wrap .staff-chip').forEach(function(c){ if(names.some(function(n){ return n===c.textContent.trim(); })) c.classList.add('selected'); });
 }
 
 // ── 모달 탭 ──────────────────────────
 window.switchModalTab = function(tab) {
-  currentModalTab = tab;
-  document.getElementById('tab-basic').style.display = tab==='basic'?'block':'none';
-  document.getElementById('tab-hist').style.display = tab==='hist'?'block':'none';
-  document.getElementById('tab-basic-btn').classList.toggle('active', tab==='basic');
-  document.getElementById('tab-hist-btn').classList.toggle('active', tab==='hist');
-  document.getElementById('modal-save-btn').style.display = tab==='basic'?'inline-flex':'none';
+  currentModalTab=tab;
+  document.getElementById('tab-basic').style.display=tab==='basic'?'block':'none';
+  document.getElementById('tab-hist').style.display=tab==='hist'?'block':'none';
+  document.getElementById('tab-basic-btn').classList.toggle('active',tab==='basic');
+  document.getElementById('tab-hist-btn').classList.toggle('active',tab==='hist');
+  document.getElementById('modal-save-btn').style.display=tab==='basic'?'inline-flex':'none';
   if(tab==='hist') renderHistTab();
 };
 
@@ -331,35 +263,34 @@ function renderHistTab() {
   var el=document.getElementById('hist-list'); if(!el) return;
   var h=editingId?historyData.find(function(x){ return x.contractId===editingId; }):null;
   var records=h&&h.records?h.records:[];
-  if(!records.length) { el.innerHTML='<div class="empty-state"><i class="ti ti-history"></i>이력이 없어요</div>'; return; }
+  if(!records.length){ el.innerHTML='<div class="empty-state"><i class="ti ti-history"></i>이력이 없어요</div>'; return; }
   el.innerHTML=records.map(function(r,i){
-    var isCurrent=i===records.length-1;
-    var label=i===0?'최초':i+'차'; if(isCurrent) label='현재';
+    var isCurrent=i===records.length-1,label=i===0?'최초':i+'차'; if(isCurrent) label='현재';
     return '<div class="hist-tab-row">'+
       '<span class="hist-tab-label'+(isCurrent?' current':'')+'">'+label+'</span>'+
       '<span class="hist-tab-info">'+(r.startDate?fmtDate(r.startDate):'-')+' ~ '+(r.endDate?fmtDate(r.endDate):'-')+
-      ' · '+(r.price?Number(r.price).toLocaleString()+'원':'관리비제')+(r.note?' · '+r.note:'')+'</span>'+
+      ' · '+priceHistLabel(r)+(r.note?' · '+r.note:'')+'</span>'+
       '<div style="display:flex;gap:4px;flex-shrink:0;">'+
         '<button class="btn sm" onclick="editHistRow('+i+')"><i class="ti ti-edit"></i></button>'+
         '<button class="btn sm danger" onclick="delHistRow('+i+')"><i class="ti ti-trash"></i></button>'+
       '</div></div>';
   }).join('');
 }
-window.addHistRow = function() { showHistForm(-1, {startDate:'',endDate:'',price:'',note:''}); };
-window.editHistRow = function(idx) {
+window.addHistRow=function(){ showHistForm(-1,{startDate:'',endDate:'',price:'',priceType:'per-meal',note:''}); };
+window.editHistRow=function(idx){
   var h=editingId?historyData.find(function(x){ return x.contractId===editingId; }):null;
   if(!h||!h.records||!h.records[idx]) return;
-  showHistForm(idx, h.records[idx]);
+  showHistForm(idx,h.records[idx]);
 };
-window.delHistRow = async function(idx) {
+window.delHistRow=async function(idx){
   if(!confirm('이 이력을 삭제할까요?')) return;
   var h=historyData.find(function(x){ return x.contractId===editingId; });
   if(!h||!h.records) return;
   var records=h.records.slice(); records.splice(idx,1);
-  await saveHistRecords(records, h.name);
+  await saveHistRecords(records,h.name);
   showToast('삭제되었습니다.'); renderHistTab();
 };
-function showHistForm(idx, r) {
+function showHistForm(idx,r) {
   var existing=document.getElementById('hist-form-popup'); if(existing) existing.remove();
   var isNew=idx===-1;
   var popup=document.createElement('div');
@@ -370,12 +301,15 @@ function showHistForm(idx, r) {
       '<h4 style="font-size:14px;font-weight:600;">'+(isNew?'이력 추가':(idx===0?'최초':idx+'차')+' 수정')+'</h4>'+
       '<button class="btn sm" onclick="closeHistForm()"><i class="ti ti-x"></i></button></div>'+
     '<div style="display:flex;flex-direction:column;gap:10px;">'+
-      (isNew?'<div class="form-group"><label>구분</label><select id="hf-label"><option value="최초">최초</option>'+
-        [1,2,3,4,5,6,7,8,9,10].map(function(n){ return '<option value="'+n+'차">'+n+'차</option>'; }).join('')+
-        '<option value="현재">현재(최신)</option></select></div>':'')+
+      (isNew?'<div class="form-group"><label>구분</label><select id="hf-label"><option value="최초">최초</option>'+[1,2,3,4,5,6,7,8,9,10].map(function(n){ return '<option value="'+n+'차">'+n+'차</option>'; }).join('')+'<option value="현재">현재(최신)</option></select></div>':'')+
       '<div class="form-group"><label>시작일</label><input type="date" id="hf-start" value="'+(r.startDate||'')+'"></div>'+
       '<div class="form-group"><label>종료일</label><input type="date" id="hf-end" value="'+(r.endDate||'')+'"></div>'+
-      '<div class="form-group"><label>단가</label><input type="number" id="hf-price" value="'+(r.price||0)+'"></div>'+
+      '<div class="form-group"><label>단가 구분</label><select id="hf-priceType">'+
+        '<option value="per-meal"'+((!r.priceType||r.priceType==='per-meal')?' selected':'')+'>식단가 (원/식)</option>'+
+        '<option value="management"'+(r.priceType==='management'?' selected':'')+'>관리비제</option>'+
+        '<option value="fixed"'+(r.priceType==='fixed'?' selected':'')+'>고정금액</option>'+
+      '</select></div>'+
+      '<div class="form-group"><label>단가 (원)</label><input type="number" id="hf-price" value="'+(r.price||0)+'"></div>'+
       '<div class="form-group"><label>비고</label><input type="text" id="hf-note" value="'+(r.note||'')+'" placeholder="특이사항"></div>'+
       '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;">'+
         '<button class="btn" onclick="closeHistForm()">취소</button>'+
@@ -384,28 +318,33 @@ function showHistForm(idx, r) {
   popup.addEventListener('click',function(e){ if(e.target===popup) closeHistForm(); });
   document.body.appendChild(popup);
 }
-window.closeHistForm = function() { var p=document.getElementById('hist-form-popup'); if(p) p.remove(); };
-window.saveHistForm = async function(idx) {
+window.closeHistForm=function(){ var p=document.getElementById('hist-form-popup'); if(p) p.remove(); };
+window.saveHistForm=async function(idx){
   var h=editingId?historyData.find(function(x){ return x.contractId===editingId; }):null;
   var records=h&&h.records?h.records.slice():[];
   var c=contracts.find(function(x){ return x.id===editingId; });
-  var newRecord={startDate:document.getElementById('hf-start').value,endDate:document.getElementById('hf-end').value,price:parseInt(document.getElementById('hf-price').value)||0,note:document.getElementById('hf-note').value.trim(),updatedAt:new Date().toISOString()};
-  if(idx===-1) {
-    var labelSel=document.getElementById('hf-label');
-    var label=labelSel?labelSel.value:'최초';
+  var newRecord={
+    startDate:document.getElementById('hf-start').value,
+    endDate:document.getElementById('hf-end').value,
+    price:parseInt(document.getElementById('hf-price').value)||0,
+    priceType:document.getElementById('hf-priceType').value,
+    note:document.getElementById('hf-note').value.trim(),
+    updatedAt:new Date().toISOString()
+  };
+  if(idx===-1){
+    var labelSel=document.getElementById('hf-label'),label=labelSel?labelSel.value:'최초';
     if(label==='현재') records.push(newRecord);
     else if(label==='최초') records.unshift(newRecord);
     else records.push(newRecord);
-  } else { records[idx]=newRecord; }
-  await saveHistRecords(records, c?c.name:'');
-  closeHistForm();
-  showToast(idx===-1?'이력이 추가되었습니다.':'이력이 수정되었습니다.');
+  } else records[idx]=newRecord;
+  await saveHistRecords(records,c?c.name:'');
+  closeHistForm(); showToast(idx===-1?'이력이 추가되었습니다.':'이력이 수정되었습니다.');
   renderHistTab();
   if(c&&document.getElementById('detail-screen').style.display==='flex') renderDetail(c);
 };
-async function saveHistRecords(records, name) {
-  var { db } = await import('./db.js');
-  var { doc, setDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+async function saveHistRecords(records,name) {
+  var {db}=await import('./db.js');
+  var {doc,setDoc,serverTimestamp}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
   await setDoc(doc(db,'history',editingId),{contractId:editingId,name:name||'',records:records,updatedAt:serverTimestamp()});
 }
 
@@ -428,9 +367,9 @@ async function init() {
 init();
 
 function updateHomeBadge() {
-  var urgent = contracts.filter(function(c){ return calcStatus(c)==='urgent'; }).length;
-  var badge = document.getElementById('home-urgent-badge');
-  if(badge) { badge.style.display = urgent>0?'block':'none'; badge.textContent=urgent; }
+  var urgent=contracts.filter(function(c){ return calcStatus(c)==='urgent'; }).length;
+  var badge=document.getElementById('home-urgent-badge');
+  if(badge){ badge.style.display=urgent>0?'block':'none'; badge.textContent=urgent; }
 }
 
 // ── 네비게이션 ──────────────────────────
@@ -439,10 +378,10 @@ function applyState(state) {
   document.getElementById('home-screen').style.display='none';
   document.getElementById('app').style.display='none';
   document.getElementById('detail-screen').style.display='none';
-  if(mapInstance&&state.screen!=='page') { mapInstance.remove(); mapInstance=null; }
-  if(state.screen==='home') {
+  if(mapInstance&&state.screen!=='page'){ mapInstance.remove(); mapInstance=null; }
+  if(state.screen==='home'){
     document.getElementById('home-screen').style.display='flex'; currentPage='';
-  } else if(state.screen==='page') {
+  } else if(state.screen==='page'){
     document.getElementById('app').style.display='flex'; currentPage=state.page;
     var titles={dashboard:'대시보드',support:'운영지원',businesses:'FS 사업장 현황',admin:'관리자 수정'};
     document.getElementById('page-title').textContent=titles[state.page]||'';
@@ -452,7 +391,7 @@ function applyState(state) {
       var el=document.getElementById('page-'+p); if(el) el.style.display=p===state.page?'block':'none';
     });
     renderPage(state.page);
-  } else if(state.screen==='detail') {
+  } else if(state.screen==='detail'){
     document.getElementById('detail-screen').style.display='flex';
     window.detailId=state.id;
     var c=contracts.find(function(x){ return x.id===state.id; });
@@ -478,7 +417,6 @@ function renderDashboard() {
   var days=['일','월','화','수','목','금','토'];
   var todayEl=document.getElementById('dash-today');
   if(todayEl) todayEl.textContent=now.getFullYear()+'년 '+(now.getMonth()+1)+'월 '+now.getDate()+'일 ('+days[now.getDay()]+')';
-
   var counts={total:contracts.length,urgent:0,near:0,ok:0,auto:0};
   contracts.forEach(function(c){ var s=calcStatus(c); if(s==='urgent') counts.urgent++; else if(s==='near') counts.near++; else if(s==='auto') counts.auto++; else counts.ok++; });
   function mk(id,cls,icon,label,count) {
@@ -491,26 +429,22 @@ function renderDashboard() {
   mk('card-auto','blue2','ti-refresh','자동연장',counts.auto);
   mk('card-ok','green','ti-check','여유',counts.ok);
 
-  // 오늘 팀 일정
   var todayStr=now.toISOString().slice(0,10);
   var todayItems=supports.filter(function(s){ return s.date&&s.date.slice(0,10)===todayStr; }).sort(function(a,b){ return (a.timeStart||'').localeCompare(b.timeStart||''); });
   var schedEl=document.getElementById('dash-today-schedule');
-  if(schedEl) {
+  if(schedEl){
     schedEl.innerHTML=todayItems.length?todayItems.map(function(s){
       var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
-      var colorIdx=getStaffColor(staffStr);
-      var tStr=s.timeStart?(s.timeStart+(s.timeEnd?' ~ '+s.timeEnd:'')):'' ;
       return '<div class="today-item">'+
         '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span>'+
         '<span style="font-weight:500;">'+s.bizName+'</span>'+
-        '<span style="font-size:12px;color:#888;">'+tStr+'</span>'+
+        '<span style="font-size:12px;color:#888;"></span>'+
         '</div>';
     }).join(''):'<div class="today-schedule-empty">오늘 등록된 일정이 없어요</div>';
   }
 
-  // 만료 예정
-  var thisY=now.getFullYear(), thisM=now.getMonth();
-  var nextY=thisM===11?thisY+1:thisY, nextM=thisM===11?0:thisM+1;
+  var thisY=now.getFullYear(),thisM=now.getMonth();
+  var nextY=thisM===11?thisY+1:thisY,nextM=thisM===11?0:thisM+1;
   function expireList(year,month){ return contracts.filter(function(c){ if(!c.endDate) return false; var d=new Date(c.endDate); return d.getFullYear()===year&&d.getMonth()===month; }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); }); }
   function expireHtml(list) {
     if(!list.length) return '<div style="color:#aaa;font-size:12px;padding:12px 0;">없음</div>';
@@ -519,23 +453,21 @@ function renderDashboard() {
       return '<div class="dash-mini-item" onclick="goDetail(\''+c.id+'\')"><span class="dash-mini-name">'+c.name+'</span><span class="dash-mini-right" style="color:'+col+';">'+dDayLabel(d)+'</span></div>';
     }).join('');
   }
-  var thisList=expireList(thisY,thisM), nextList=expireList(nextY,nextM);
+  var thisList=expireList(thisY,thisM),nextList=expireList(nextY,nextM);
   var tmEl=document.getElementById('dash-thismonth'); if(tmEl) tmEl.innerHTML=expireHtml(thisList);
   var nmEl=document.getElementById('dash-nextmonth'); if(nmEl) nmEl.innerHTML=expireHtml(nextList);
   var tmC=document.getElementById('dash-thismonth-count'); if(tmC) tmC.textContent=thisList.length+'건';
   var nmC=document.getElementById('dash-nextmonth-count'); if(nmC) nmC.textContent=nextList.length+'건';
 
-  // 최근 7일 운영지원
   var week=new Date(now); week.setDate(week.getDate()-7);
   var weekStr=week.toISOString().slice(0,10);
-  var recentSups=supports.filter(function(s){ return s.date&&s.date>=weekStr; }).sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+  var recentSups=supports.filter(function(s){ return s.date&&s.date>=weekStr&&s.date<=todayStr; }).sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
   var supC=document.getElementById('dash-sup-count'); if(supC) supC.textContent=recentSups.length+'건';
   var supEl=document.getElementById('dash-recent-sup');
-  if(supEl) {
+  if(supEl){
     supEl.innerHTML=recentSups.length?recentSups.slice(0,8).map(function(s){
-      var c=contracts.find(function(x){ return x.name===s.bizName; }), cid=c?c.id:'';
+      var c=contracts.find(function(x){ return x.name===s.bizName; }),cid=c?c.id:'';
       var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
-      var colorIdx=getStaffColor(staffStr);
       return '<div class="dash-mini-item"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+'>'+
         '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'" style="flex-shrink:0;">'+staffStr+'</span>'+
         '<span class="dash-mini-name" style="margin-left:8px;">'+s.bizName+'</span>'+
@@ -543,17 +475,16 @@ function renderDashboard() {
     }).join(''):'<div style="color:#aaa;font-size:12px;padding:12px 0;">최근 7일 지원 내역이 없어요</div>';
   }
 
-  // 이번달 지원 현황
   var monthStr=thisY+'-'+String(thisM+1).padStart(2,'0');
-  var monthSups=supports.filter(function(s){ return s.date&&s.date.startsWith(monthStr); });
+  var monthSups=supports.filter(function(s){ return s.date&&s.date.startsWith(monthStr)&&s.date<=todayStr; });
   var bizSupCount={};
   monthSups.forEach(function(s){ bizSupCount[s.bizName]=(bizSupCount[s.bizName]||0)+1; });
   var bizSupList=Object.keys(bizSupCount).map(function(n){ return {name:n,count:bizSupCount[n]}; }).sort(function(a,b){ return b.count-a.count; });
   var maxCount=bizSupList.length?bizSupList[0].count:1;
   var statEl=document.getElementById('dash-sup-stat');
-  if(statEl) {
+  if(statEl){
     statEl.innerHTML=bizSupList.length?bizSupList.slice(0,8).map(function(b){
-      var c=contracts.find(function(x){ return x.name===b.name; }), cid=c?c.id:'';
+      var c=contracts.find(function(x){ return x.name===b.name; }),cid=c?c.id:'';
       var barW=Math.round((b.count/maxCount)*120);
       return '<div class="dash-bar-wrap"'+(cid?' onclick="goDetail(\''+cid+'\')" style="cursor:pointer;"':'')+'>'+
         '<span class="dash-bar-name">'+b.name+'</span>'+
@@ -565,7 +496,7 @@ function renderDashboard() {
 
 window.toggleDashCard=function(el,filter) {
   document.querySelectorAll('.stat-card').forEach(function(c){ c.classList.remove('active-card'); });
-  var wrap=document.getElementById('dash-list-wrap'), listEl=document.getElementById('dash-list');
+  var wrap=document.getElementById('dash-list-wrap'),listEl=document.getElementById('dash-list');
   if(el.dataset.lastFilter===filter){ el.dataset.lastFilter=''; wrap.style.display='none'; return; }
   el.classList.add('active-card'); el.dataset.lastFilter=filter; wrap.style.display='block';
   var list=contracts.filter(function(c){ var s=calcStatus(c); return filter==='all'?true:s===filter; }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
@@ -589,17 +520,18 @@ function renderDetail(c) {
   else contactHtml=(c.contactName||'-')+(c.contactPhone?' · '+c.contactPhone:'')+(c.tel?' · '+c.tel:'');
   var h=historyData.find(function(x){ return x.contractId===c.id; });
   var histHtml=h&&h.records&&h.records.length?h.records.map(function(r,i){
-    var isCurrent=i===h.records.length-1; var label=i===0?'최초':i+'차'; if(isCurrent) label='현재';
+    var isCurrent=i===h.records.length-1,label=i===0?'최초':i+'차'; if(isCurrent) label='현재';
     return '<div class="hist-record"><span class="hist-round">'+label+'</span>'+
       '<span class="hist-dates">'+(r.startDate?fmtDate(r.startDate):'-')+' ~ '+(r.endDate?fmtDate(r.endDate):'-')+'</span>'+
-      '<span class="hist-price">'+(r.price?Number(r.price).toLocaleString()+'원':'관리비제')+'</span></div>';
+      '<span class="hist-price">'+priceHistLabel(r)+'</span></div>';
   }).join(''):'<div style="color:#aaa;font-size:13px;padding:12px 0;">히스토리 없음</div>';
   var bizSups=supports.filter(function(sp){ return sp.bizName===c.name; }).sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
   var supHtml=bizSups.length?bizSups.map(function(sp){
-    var tStr=sp.timeStart?(sp.timeStart+(sp.timeEnd?' ~ '+sp.timeEnd:'')):(sp.time||'');
     var staffStr=sp.staffNames&&sp.staffNames.length?sp.staffNames.join(', '):(sp.staffName||'');
+    var dateStr=sp.date||'';
+    if(sp.dateEnd&&sp.dateEnd!==sp.date) dateStr+=(' ~ '+sp.dateEnd);
     return '<div class="sup-hist-row"><span class="badge-cat">'+(sp.category||'')+'</span>'+
-      '<span style="font-size:12px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(sp.date||'')+(tStr?' '+tStr:'')+(staffStr?' · '+staffStr:'')+'</span>'+
+      '<span style="font-size:12px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+dateStr+(staffStr?' · '+staffStr:'')+'</span>'+
       '<span style="font-size:12px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">'+(sp.content||'')+'</span></div>';
   }).join(''):'<div style="color:#aaa;font-size:13px;padding:12px 0;">지원 이력 없음</div>';
   document.getElementById('detail-body').innerHTML=
@@ -621,60 +553,49 @@ function renderDetail(c) {
     '<div class="detail-section"><div class="detail-section-title">운영지원 이력</div>'+supHtml+'</div>';
 }
 
-// ── 운영지원 달력/뷰 ──────────────────────────
-window.setCalView = function(view) {
-  calView = view;
-  document.getElementById('view-month-btn').classList.toggle('active-filter', view==='month');
-  document.getElementById('view-week-btn').classList.toggle('active-filter', view==='week');
+// ── 달력 ──────────────────────────
+window.setCalView=function(view){
+  calView=view;
+  document.getElementById('view-month-btn').classList.toggle('active-filter',view==='month');
+  document.getElementById('view-week-btn').classList.toggle('active-filter',view==='week');
   renderCalendar();
 };
-
-window.setStaffFilter = function(name) {
-  staffFilter = name;
-  var labelEl = document.getElementById('active-filter-label');
-  if(labelEl) {
-    if(name) { labelEl.textContent = name+' 필터 중'; labelEl.style.display='inline'; }
-    else { labelEl.style.display='none'; }
-  }
-  var allBtn = document.getElementById('filter-all');
-  if(allBtn) allBtn.classList.toggle('active-filter', !name);
+window.setStaffFilter=function(name){
+  staffFilter=name;
+  var labelEl=document.getElementById('active-filter-label');
+  if(labelEl){ if(name){labelEl.textContent=name+' 필터 중';labelEl.style.display='inline';}else{labelEl.style.display='none';} }
+  var allBtn=document.getElementById('filter-all'); if(allBtn) allBtn.classList.toggle('active-filter',!name);
   renderCalendar();
 };
-
-window.changeMonth = function(dir) {
-  if(dir===0){ calYear=new Date().getFullYear(); calMonth=new Date().getMonth(); }
-  else { calMonth+=dir; if(calMonth>11){calMonth=0;calYear++;} if(calMonth<0){calMonth=11;calYear--;} }
+window.changeMonth=function(dir){
+  if(dir===0){calYear=new Date().getFullYear();calMonth=new Date().getMonth();}
+  else{calMonth+=dir;if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;}}
   renderCalendar();
 };
-
-function filterSupports() {
+function filterSupports(){
   if(!staffFilter) return supports;
   return supports.filter(function(s){
-    var names = s.staffNames&&s.staffNames.length ? s.staffNames : (s.staffName?[s.staffName]:[]);
+    var names=s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]);
     return names.some(function(n){ return n&&n.includes(staffFilter.split(' ')[0]); });
   });
 }
-
-function renderCalendar() {
-  var el=document.getElementById('cal-title');
-  if(el) el.textContent=calYear+'년 '+(calMonth+1)+'월';
-  if(calView==='week') { renderWeekView(); return; }
+function renderCalendar(){
+  var el=document.getElementById('cal-title'); if(el) el.textContent=calYear+'년 '+(calMonth+1)+'월';
+  if(calView==='week'){renderWeekView();return;}
   renderMonthView();
 }
-
-function renderMonthView() {
-  var filtered = filterSupports();
-  var dayMap={};
+function renderMonthView(){
+  var filtered=filterSupports(),dayMap={};
   filtered.forEach(function(s){ if(!s.date) return; var k=s.date.slice(0,10); if(!dayMap[k]) dayMap[k]=[]; dayMap[k].push(s); });
   Object.keys(dayMap).forEach(function(k){ dayMap[k].sort(function(a,b){ return (a.timeStart||'').localeCompare(b.timeStart||''); }); });
-  var firstDay=new Date(calYear,calMonth,1).getDay(), lastDate=new Date(calYear,calMonth+1,0).getDate();
+  var firstDay=new Date(calYear,calMonth,1).getDay(),lastDate=new Date(calYear,calMonth+1,0).getDate();
   var today=new Date().toISOString().slice(0,10);
   var html='<div class="cal-grid">';
   ['일','월','화','수','목','금','토'].forEach(function(d){ html+='<div class="cal-header">'+d+'</div>'; });
   for(var i=0;i<firstDay;i++) html+='<div class="cal-day empty"></div>';
-  for(var d=1;d<=lastDate;d++) {
+  for(var d=1;d<=lastDate;d++){
     var key=calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-    var items=dayMap[key]||[], isToday=key===today;
+    var items=dayMap[key]||[],isToday=key===today;
     html+='<div class="cal-day'+(isToday?' today':'')+'" onclick="openCalPopup(\''+key+'\')">'+
       '<div class="cal-num">'+d+'</div>'+
       items.slice(0,3).map(function(s){
@@ -696,38 +617,25 @@ function renderMonthView() {
   html+='</div>';
   var calEl=document.getElementById('calendar'); if(calEl) calEl.innerHTML=html;
 }
-
-function renderWeekView() {
-  // 이번주 월요일 구하기
-  var now=new Date(calYear,calMonth,1);
-  var today=new Date();
-  var startOfWeek=new Date(today);
-  startOfWeek.setDate(today.getDate()-today.getDay()+1); // 월요일
+function renderWeekView(){
+  var today=new Date(),startOfWeek=new Date(today);
+  startOfWeek.setDate(today.getDate()-today.getDay()+1);
   var days=[];
-  for(var i=0;i<7;i++) {
-    var d=new Date(startOfWeek); d.setDate(startOfWeek.getDate()+i);
-    days.push(d);
-  }
+  for(var i=0;i<7;i++){ var d=new Date(startOfWeek); d.setDate(startOfWeek.getDate()+i); days.push(d); }
   var todayStr=today.toISOString().slice(0,10);
   var filtered=filterSupports();
   var staffOrder=['박주형 본부장','김재희 차장','손도란 대리','이소영 주임','김상준 주임','안은재 주임','견병록 매니저','임성창 차장','김동현 대리'];
   var dayLabels=['월','화','수','목','금','토','일'];
-
-  var html='<div class="week-grid">';
-  // 헤더
-  html+='<div class="week-header"></div>';
+  var html='<div class="week-grid"><div class="week-header"></div>';
   days.forEach(function(d,i){
-    var dStr=d.toISOString().slice(0,10);
-    var isToday=dStr===todayStr;
+    var dStr=d.toISOString().slice(0,10),isToday=dStr===todayStr;
     html+='<div class="week-header'+(isToday?' today-col':'')+'">'+dayLabels[i]+'<br><span style="font-weight:600;">'+d.getDate()+'</span></div>';
   });
-  // 각 담당자 행
-  staffOrder.forEach(function(staff,si){
-    var colorIdx=STAFF_COLORS[staff]||si;
-    html+='<div class="week-staff-label"><span style="font-size:10px;font-weight:600;color:var(--col'+colorIdx+',#555);">'+staff.split(' ')[0]+'</span></div>';
+  staffOrder.forEach(function(staff){
+    var cls=getStaffColor(staff);
+    html+='<div class="week-staff-label"><span class="badge-cat '+(cls||'')+'" style="font-size:10px;">'+staff.split(' ')[0]+'</span></div>';
     days.forEach(function(d){
-      var dStr=d.toISOString().slice(0,10);
-      var isToday=dStr===todayStr;
+      var dStr=d.toISOString().slice(0,10),isToday=dStr===todayStr;
       var items=filtered.filter(function(s){
         if(!s.date||s.date.slice(0,10)!==dStr) return false;
         var names=s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]);
@@ -736,30 +644,32 @@ function renderWeekView() {
       html+='<div class="week-cell'+(isToday?' today-col':'')+'">'+
         items.map(function(s){
           var cls2=getStaffColor(staff);
-          return '<div class="week-event '+(cls2||'staff-color-4')+'">'+s.bizName+'</div>';
+          return '<div class="week-event '+(cls2||'')+'">'+s.bizName+'</div>';
         }).join('')+'</div>';
     });
   });
   html+='</div>';
-  var calEl=document.getElementById('calendar');
-  if(calEl) calEl.innerHTML=html;
+  var calEl=document.getElementById('calendar'); if(calEl) calEl.innerHTML=html;
 }
 
-function renderSupportList() {
+// ── 지원이력 목록 ──────────────────────────
+function renderSupportList(){
   var listEl=document.getElementById('support-list'); if(!listEl) return;
-  var sorted=supports.slice().sort(function(a,b){
-    var da=(a.date||'')+(a.timeStart||''), db=(b.date||'')+(b.timeStart||'');
-    return db.localeCompare(da);
-  });
+  var today=new Date().toISOString().slice(0,10);
+  var sorted=supports.slice().sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+  var upcoming=sorted.filter(function(s){ return (s.date||'')>today; }).reverse();
+  var past=sorted.filter(function(s){ return (s.date||'')<=today; });
   var el=document.getElementById('sup-list-count'); if(el) el.textContent=sorted.length+'건';
-  if(!sorted.length) { listEl.innerHTML='<div class="empty-state" style="padding:20px;"><i class="ti ti-calendar"></i>지원 이력이 없어요</div>'; return; }
- var header='<div class="sup-row-header"><span>날짜</span><span>끼니</span><span>업장</span><span>지원자</span><span>카테고리 · 내용</span><span></span></div>';
-  var rows=sorted.map(function(s){
-    var c=contracts.find(function(x){ return x.name===s.bizName; }), cid=c?c.id:'';
+  if(!sorted.length){ listEl.innerHTML='<div class="empty-state" style="padding:20px;"><i class="ti ti-calendar"></i>지원 이력이 없어요</div>'; return; }
+
+  function rowHtml(s){
+    var c=contracts.find(function(x){ return x.name===s.bizName; }),cid=c?c.id:'';
     var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
     var mealStr=s.meals&&s.meals.length?s.meals.join('/'):'';
+    var dateStr=s.date||'';
+    if(s.dateEnd&&s.dateEnd!==s.date) dateStr+=(' ~ '+s.dateEnd);
     return '<div class="sup-row">'+
-      '<span style="color:#888;font-size:12px;">'+(s.date||'')+'</span>'+
+      '<span style="color:#888;font-size:12px;">'+dateStr+'</span>'+
       '<span>'+(mealStr?'<span class="badge-cat">'+mealStr+'</span>':'-')+'</span>'+
       '<span class="sup-biz"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+'>'+s.bizName+'</span>'+
       '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+( staffStr||'-')+'</span>'+
@@ -768,22 +678,32 @@ function renderSupportList() {
         '<button class="btn sm" onclick="editSupport(\''+s.id+'\')" ><i class="ti ti-edit"></i></button>'+
         '<button class="btn sm danger" onclick="delSupport(\''+s.id+'\')" ><i class="ti ti-trash"></i></button>'+
       '</span></div>';
-  }).join('');
-  listEl.innerHTML=header+rows;
+  }
+
+  var header='<div class="sup-row-header"><span>날짜</span><span>끼니</span><span>업장</span><span>지원자</span><span>카테고리 · 내용</span><span></span></div>';
+  var html='';
+  if(upcoming.length){
+    html+='<div style="padding:8px 12px;font-size:12px;font-weight:600;color:#185FA5;background:#E6F1FB;border-bottom:.5px solid #B5D4F4;">📅 지원예정 '+upcoming.length+'건</div>';
+    html+=header+upcoming.map(rowHtml).join('');
+  }
+  if(past.length){
+    html+='<div style="padding:8px 12px;font-size:12px;font-weight:600;color:#555;background:#f5f5f3;border-bottom:.5px solid #e8e8e4;'+(upcoming.length?'border-top:.5px solid #e8e8e4;':'')+'">📋 지원이력 '+past.length+'건</div>';
+    html+=header+past.map(rowHtml).join('');
+  }
+  listEl.innerHTML=html;
 }
 
-window.openCalPopup=function(dateKey) {
+// ── 달력 팝업 ──────────────────────────
+window.openCalPopup=function(dateKey){
   var items=supports.filter(function(s){ return s.date&&s.date.slice(0,10)===dateKey; });
   if(!items.length) return;
   var html=items.map(function(s){
-    var tStr=s.timeStart?(s.timeStart+(s.timeEnd?' ~ '+s.timeEnd:'')):(s.time||'');
     var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
-    var colorIdx=getStaffColor(staffStr);
     return '<div class="cal-sup-item">'+
       '<div style="min-width:0;flex:1;">'+
         '<div style="font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+s.bizName+'</div>'+
         '<div style="font-size:12px;color:#888;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+
-          '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span>'+(tStr?' '+tStr:'')+'</div>'+
+          '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span></div>'+
         (s.content?'<div style="font-size:12px;color:#555;margin-top:3px;">'+s.content+'</div>':'')+
       '</div>'+
       '<div style="display:flex;gap:4px;flex-shrink:0;">'+
@@ -809,6 +729,7 @@ window.delSupportFromPopup=async function(id,dateKey){
   try{ await deleteSupport(id); showToast('삭제되었습니다.'); closeCalPopup(); } catch(e){ showToast('오류 발생'); }
 };
 
+// ── 검색 드롭다운 ──────────────────────────
 function initSS(){ renderSSOptions(''); }
 function renderSSOptions(q){
   var dd=document.getElementById('ss-dropdown'); if(!dd) return;
@@ -822,69 +743,63 @@ window.selectSS=function(name){
   document.getElementById('ss-input').value=name;
   document.getElementById('sup-biz').value=name;
   document.getElementById('ss-dropdown').classList.remove('open');
-  // 담당 영양사 자동 표시
   var c=contracts.find(function(x){ return x.name===name; });
   var nutriEl=document.getElementById('sup-nutri-info');
-  if(nutriEl) {
-    if(c&&c.nutritionists&&c.nutritionists.length) {
-      nutriEl.textContent='담당영양사: '+c.nutritionists.map(function(n){ return n.name; }).join(', ');
-      nutriEl.style.display='block';
-    } else {
-      nutriEl.style.display='none';
-    }
+  if(nutriEl){
+    if(c&&c.nutritionists&&c.nutritionists.length){ nutriEl.textContent='담당영양사: '+c.nutritionists.map(function(n){ return n.name; }).join(', '); nutriEl.style.display='block'; }
+    else nutriEl.style.display='none';
   }
 };
+
+// ── 운영지원 모달 ──────────────────────────
+window.openSupportModal=function(){
+  editingSupportId=null;
+  document.getElementById('sup-modal-title').textContent='운영지원 등록';
+  document.getElementById('ss-input').value='';
+  document.getElementById('sup-biz').value='';
+  document.getElementById('sup-date').value='';
+  if(document.getElementById('sup-date-end')) document.getElementById('sup-date-end').value='';
+  document.getElementById('sup-cat').value='';
+  document.getElementById('sup-content').value='';
+  var nutriEl=document.getElementById('sup-nutri-info'); if(nutriEl) nutriEl.style.display='none';
+  resetMealChips(); resetStaffChips();
+  document.getElementById('sup-submit-btn').innerHTML='<i class="ti ti-check"></i> 등록';
+  document.getElementById('sup-modal').classList.add('open');
+};
+window.closeSupportModal=function(){
+  document.getElementById('sup-modal').classList.remove('open');
+  editingSupportId=null;
+};
 window.submitSupport=async function(){
-  var biz=document.getElementById('sup-biz').value, date=document.getElementById('sup-date').value;
-  var timeStart=''; var timeEnd='';
-  var meals=getSelectedMeals();
-  var staffNames = getSelectedStaff();
-  var cat=document.getElementById('sup-cat').value, content=document.getElementById('sup-content').value.trim();
+  var biz=document.getElementById('sup-biz').value,date=document.getElementById('sup-date').value;
+  var dateEnd=document.getElementById('sup-date-end')?document.getElementById('sup-date-end').value:'';
+  var meals=getSelectedMeals(),staffNames=getSelectedStaff();
+  var cat=document.getElementById('sup-cat').value,content=document.getElementById('sup-content').value.trim();
   if(!biz||!date||!cat){ showToast('업장, 일자, 카테고리는 필수예요.'); return; }
-  var data={bizName:biz,date:date,timeStart:timeStart,timeEnd:timeEnd,meals:meals,staffName:staffNames.join(', '),staffNames:staffNames,category:cat,content:content};
+  var data={bizName:biz,date:date,dateEnd:dateEnd,timeStart:'',timeEnd:'',meals:meals,staffName:staffNames.join(', '),staffNames:staffNames,category:cat,content:content};
   try{
     if(editingSupportId){ await updateSupport(editingSupportId,data); editingSupportId=null; showToast('수정되었습니다.'); }
     else{ await addSupport(data); showToast('등록되었습니다.'); }
-    document.getElementById('ss-input').value=''; document.getElementById('sup-biz').value='';
-    document.getElementById('sup-date').value='';
-    if(document.getElementById('sup-time-start')) document.getElementById('sup-time-start').value='';
-    if(document.getElementById('sup-time-end')) document.getElementById('sup-time-end').value='';
-    document.getElementById('sup-cat').value=''; document.getElementById('sup-content').value='';
-    resetStaffChips();
-    resetMealChips();
+    resetMealChips(); resetStaffChips();
     document.getElementById('sup-submit-btn').innerHTML='<i class="ti ti-check"></i> 등록';
     closeSupportModal();
   } catch(e){ showToast('오류가 발생했습니다.'); }
 };
-
 window.editSupport=function(id){
   var s=supports.find(function(x){ return x.id===id; }); if(!s) return;
   editingSupportId=id;
   window.selectSS(s.bizName||'');
   document.getElementById('sup-date').value=s.date||'';
-  setSelectedMeals(s.meals||[]);
+  if(document.getElementById('sup-date-end')) document.getElementById('sup-date-end').value=s.dateEnd||'';
   document.getElementById('sup-cat').value=s.category||'';
   document.getElementById('sup-content').value=s.content||'';
-  var names=s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]);
-  setSelectedStaff(names);
-  document.getElementById('sup-submit-btn').innerHTML='<i class="ti ti-check"></i> 수정 저장';
+  setSelectedMeals(s.meals||[]);
+  setSelectedStaff(s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]));
   document.getElementById('sup-modal-title').textContent='운영지원 수정';
+  document.getElementById('sup-submit-btn').innerHTML='<i class="ti ti-check"></i> 수정 저장';
   document.getElementById('sup-modal').classList.add('open');
   showToast('내용 수정 후 저장하세요.');
 };
-
-window.cancelEditSupport=function(){
-  editingSupportId=null;
-  ['ss-input','sup-date','sup-content'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
-  document.getElementById('sup-biz').value='';
-  if(document.getElementById('sup-time-start')) document.getElementById('sup-time-start').value='';
-  if(document.getElementById('sup-time-end')) document.getElementById('sup-time-end').value='';
-  document.getElementById('sup-cat').value='';
-  resetStaffChips();
-  document.getElementById('sup-submit-btn').innerHTML='<i class="ti ti-check"></i> 등록';
-  document.getElementById('sup-cancel-btn').style.display='none';
-};
-
 window.delSupport=async function(id){
   if(!confirm('삭제할까요?')) return;
   try{ await deleteSupport(id); showToast('삭제되었습니다.'); } catch(e){ showToast('오류 발생'); }
@@ -894,7 +809,7 @@ window.delSupport=async function(id){
 window.setBizTab=function(tab){
   currentBizTab=tab;
   document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
-  var idx={team:0,resp:1,region:2}, btns=document.querySelectorAll('.tab-btn');
+  var idx={team:0,resp:1,region:2},btns=document.querySelectorAll('.tab-btn');
   if(btns[idx[tab]!==undefined?idx[tab]:0]) btns[idx[tab]!==undefined?idx[tab]:0].classList.add('active');
   if(mapInstance&&tab!=='region'){mapInstance.remove();mapInstance=null;}
   renderBizTab();
@@ -910,7 +825,7 @@ window.renderBizTab=function(){
   var el=document.getElementById('biz-content'); if(!el) return;
   function bizCard(c){
     var s=calcStatus(c),d=dDiff(c.endDate),col=s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':s==='near'?'#854F0B':'#3B6D11';
-    var nutriStr=c.nutritionists&&c.nutritionists.length?c.nutritionists.map(function(nt){ return (nt.name||''); }).join(' / '):'';
+    var nutriStr=c.nutritionists&&c.nutritionists.length?c.nutritionists.map(function(nt){ return nt.name; }).join(' / '):'';
     var isUrgent=s==='urgent';
     return '<div class="biz-card'+(isUrgent?' urgent-card':'')+'" onclick="goDetail(\''+c.id+'\')">' +
       '<div class="biz-card-top"><span class="biz-name">'+c.name+'</span><span class="badge '+s+'">'+STATUS_META[s].label+'</span></div>'+
@@ -931,10 +846,10 @@ window.renderBizTab=function(){
       '<div><div class="team-header green" onclick="toggleTeam(\'t2\')"><i class="ti ti-users"></i> 2팀 — 김재희 차장 <span>'+t2.length+'개소</span><i class="ti ti-chevron-down toggle-icon"></i></div><div class="team-body" id="t2">'+t2.map(bizCard).join('')+'</div></div>'+
       '</div>';
   } else if(currentBizTab==='resp'){
-    var ro=['손도란 대리','이소영 주임','김상준 주임','견병록 매니저'], rc=['blue','green','amber','red'];
+    var ro=['손도란 대리','이소영 주임','김상준 주임','견병록 매니저'],rc=['blue','green','amber','red'];
     var html='<div class="resp-layout">';
     ro.forEach(function(r,i){
-      var rid='rb'+i, list=filtered.filter(function(c){ return c.resp===r; }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
+      var rid='rb'+i,list=filtered.filter(function(c){ return c.resp===r; }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
       html+='<div><div class="team-header '+rc[i]+'" onclick="toggleTeam(\''+rid+'\')"><i class="ti ti-user"></i> '+r+' <span>'+list.length+'개소</span><i class="ti ti-chevron-down toggle-icon"></i></div><div class="team-body" id="'+rid+'">'+list.map(bizCard).join('')+'</div></div>';
     });
     el.innerHTML=html+'</div>';
@@ -946,7 +861,7 @@ window.renderBizTab=function(){
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapInstance);
       filtered.forEach(function(c){
         var coord=(c.lat&&c.lng)?{lat:c.lat,lng:c.lng}:COORDS[c.name]; if(!coord) return;
-        var s=calcStatus(c), color=s==='urgent'?'#E24B4A':s==='near'?'#EF9F27':'#4A90D9';
+        var s=calcStatus(c),color=s==='urgent'?'#E24B4A':s==='near'?'#EF9F27':'#4A90D9';
         var marker=L.circleMarker([coord.lat,coord.lng],{radius:s==='urgent'?10:8,fillColor:color,color:'#fff',weight:2,fillOpacity:0.9}).addTo(mapInstance);
         marker.bindTooltip(c.name,{permanent:true,direction:'top',offset:[0,-8],opacity:0.97,className:'map-label'});
         marker.on('click',function(){ window.goDetail(c.id); });
@@ -957,8 +872,7 @@ window.renderBizTab=function(){
 
 // ── 관리자 수정 ──────────────────────────
 window.renderAdmin=function(){
-  var searchEl=document.getElementById('admin-search');
-  var q=searchEl?searchEl.value.toLowerCase():'';
+  var searchEl=document.getElementById('admin-search'),q=searchEl?searchEl.value.toLowerCase():'';
   var rows=contracts.filter(function(c){ return !q||c.name.toLowerCase().includes(q); }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
   var el=document.getElementById('admin-count'); if(el) el.textContent=rows.length+'건';
   var tbody=document.getElementById('admin-tbody'); if(!tbody) return;
@@ -974,7 +888,7 @@ window.renderAdmin=function(){
   }).join('')||'<tr><td colspan="6"><div class="empty-state">없음</div></td></tr>';
 };
 
-// ── 모달 ──────────────────────────
+// ── 계약 모달 ──────────────────────────
 window.openAddModal=function(){
   editingId=null;
   document.getElementById('modal-title').textContent='계약 추가';
@@ -1001,58 +915,41 @@ window.openEditModal=function(id){
   document.getElementById('f-note').value=c.note||'';
   if(c.contacts&&c.contacts.length) setContacts(c.contacts);
   else setContacts([{name:c.contactName||'',phone:c.contactPhone||'',tel:c.tel||''}]);
-  setMeals(c.meals);
-  setNutritionists(c.nutritionists||[]);
+  setMeals(c.meals); setNutritionists(c.nutritionists||[]);
   switchModalTab('basic');
   document.getElementById('tab-hist-btn').style.display='inline-block';
   document.getElementById('modal-overlay').classList.add('open');
 };
 window.closeModal=function(){ document.getElementById('modal-overlay').classList.remove('open'); };
 window.saveContract=async function(){
-  
-  var name=document.getElementById('f-name').value.trim(), endDate=document.getElementById('f-endDate').value;
+  var name=document.getElementById('f-name').value.trim(),endDate=document.getElementById('f-endDate').value;
   if(!name||!endDate){ showToast('사업장명과 종료일은 필수입니다.'); return; }
-  var contacts=getContacts(), meals=getMeals();
-  var addr=document.getElementById('f-addr').value.trim();
-  var lat=null, lng=null;
-  if(addr) {
-    try {
-      await new Promise(function(resolve) {
-        if(!window.kakaoReady){ resolve(); return; }
+  var contacts=getContacts(),meals=getMeals(),addr=document.getElementById('f-addr').value.trim();
+  var lat=null,lng=null;
+  if(addr){
+    try{
+      await new Promise(function(resolve){
+        if(!window.kakaoReady){resolve();return;}
         var geocoder=new kakao.maps.services.Geocoder();
-        geocoder.addressSearch(addr, function(result, status) {
-          if(status===kakao.maps.services.Status.OK){ lat=parseFloat(result[0].y); lng=parseFloat(result[0].x); }
+        geocoder.addressSearch(addr,function(result,status){
+          if(status===kakao.maps.services.Status.OK){lat=parseFloat(result[0].y);lng=parseFloat(result[0].x);}
           resolve();
         });
       });
-    } catch(e){ console.log('좌표 변환 실패:', e); }
+    } catch(e){}
   }
-  var data={
-    name:name, addr:addr,
-    contacts:contacts, contactName:contacts.length?contacts[0].name:'', contactPhone:contacts.length?contacts[0].phone:'', tel:contacts.length?contacts[0].tel:'',
-    team:parseInt(document.getElementById('f-team').value)||1, resp:document.getElementById('f-resp').value,
-    startDate:document.getElementById('f-startDate').value, endDate:endDate,
-    price:parseInt(document.getElementById('f-price').value)||0, priceType:document.getElementById('f-priceType').value,
-    meals:meals, avgMeals:parseInt(document.getElementById('f-avgMeals').value)||0,
-    autoRenew:true, note:document.getElementById('f-note').value.trim(),
-    lat:lat, lng:lng, nutritionists:getNutritionists(),
-  };
+  var data={name:name,addr:addr,contacts:contacts,contactName:contacts.length?contacts[0].name:'',contactPhone:contacts.length?contacts[0].phone:'',tel:contacts.length?contacts[0].tel:'',team:parseInt(document.getElementById('f-team').value)||1,resp:document.getElementById('f-resp').value,startDate:document.getElementById('f-startDate').value,endDate:endDate,price:parseInt(document.getElementById('f-price').value)||0,priceType:document.getElementById('f-priceType').value,meals:meals,avgMeals:parseInt(document.getElementById('f-avgMeals').value)||0,autoRenew:true,note:document.getElementById('f-note').value.trim(),lat:lat,lng:lng,nutritionists:getNutritionists()};
   try{
     if(editingId){
-     var oldContract=contracts.find(function(x){ return x.id===editingId; });
+      var oldContract=contracts.find(function(x){ return x.id===editingId; });
       var oldName=oldContract?oldContract.name:'';
-
       await updateContract(editingId,data);
-      if(oldName && oldName !== name) {
+      if(oldName&&oldName!==name){
         var supsToUpdate=supports.filter(function(s){ return s.bizName===oldName; });
-
-        for(var i=0;i<supsToUpdate.length;i++) {
-
-          await updateSupportBizName(supsToUpdate[i].id, name);
-        }
-        var { db } = await import('./db.js');
-        var { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-        await updateDoc(doc(db,'history',editingId), {name:name});
+        for(var i=0;i<supsToUpdate.length;i++) await updateSupportBizName(supsToUpdate[i].id,name);
+        var {db}=await import('./db.js');
+        var {doc,updateDoc}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+        await updateDoc(doc(db,'history',editingId),{name:name});
       }
       showToast('수정되었습니다.');
     } else {
@@ -1079,7 +976,7 @@ window.exportExcel=function(){
     var cs=c.contacts&&c.contacts.length?c.contacts.map(function(ct){ return ct.name+(ct.phone?' '+ct.phone:''); }).join(' / '):(c.contactName||'');
     rows.push([c.no||'',c.name,c.addr||'',c.team||'',c.resp||'',ns,cs,c.contactPhone||'',fmtDate(c.startDate),fmtDate(c.endDate),dDiff(c.endDate),priceLabel(c),c.avgMeals||'',mealsDisplay(c.meals),STATUS_META[s].label,c.note||'']);
   });
-  var wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet(rows);
+  var wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb,ws,'계약현황');
   XLSX.writeFile(wb,'FS사업장현황_'+new Date().toISOString().slice(0,10)+'.xlsx');
   showToast('엑셀 저장되었습니다.');
