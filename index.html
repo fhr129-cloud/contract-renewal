@@ -90,8 +90,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f0ee;color:#1a1a18;min-
 .today-schedule{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;padding:16px;margin-bottom:16px;}
 .today-schedule-title{font-size:13px;font-weight:600;color:#185FA5;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
 .today-schedule-empty{font-size:12px;color:#aaa;padding:8px 0;}
-.today-item{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:7px 0;border-bottom:.5px solid #f0f0ec;font-size:13px;}
+.today-item{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:7px 0;border-bottom:.5px solid #f0f0ec;font-size:13px;cursor:pointer;}
 .today-item:last-child{border-bottom:none;}
+.today-item:hover{color:#185FA5;}
 
 .dash-list-wrap{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;overflow:hidden;margin-bottom:14px;}
 .dash-mini-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:.5px solid #f0f0ec;font-size:13px;cursor:pointer;gap:8px;}
@@ -99,11 +100,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f0ee;color:#1a1a18;min-
 .dash-mini-item:hover{color:#185FA5;}
 .dash-mini-name{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;}
 .dash-mini-right{font-size:12px;color:#888;white-space:nowrap;flex-shrink:0;margin-left:8px;}
-.dash-bar-wrap{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:.5px solid #f0f0ec;}
-.dash-bar-wrap:last-child{border-bottom:none;}
-.dash-bar-name{font-size:13px;font-weight:500;min-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.dash-bar{height:8px;border-radius:4px;background:#185FA5;transition:width .3s;}
-.dash-bar-val{font-size:12px;color:#888;white-space:nowrap;margin-left:4px;}
 
 .cal-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
 .cal-toolbar-title{font-size:15px;font-weight:600;white-space:nowrap;}
@@ -152,7 +148,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f0ee;color:#1a1a18;min-
 .ss-option{padding:8px 12px;font-size:13px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .ss-option:hover{background:#f0f0ee;}
 
-.sup-row{display:flex;flex-direction:column;padding:12px 16px;border-bottom:.5px solid #f0f0ec;cursor:default;}
+.sup-row{display:flex;flex-direction:column;padding:12px 16px;border-bottom:.5px solid #f0f0ec;}
 .sup-row:last-child{border-bottom:none;}
 .sup-row:hover{background:#fafaf8;}
 .sup-row-header{display:none;}
@@ -268,15 +264,22 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 .toast{position:fixed;bottom:24px;right:24px;background:#1a1a18;color:#fff;padding:11px 16px;border-radius:8px;font-size:13px;z-index:999;animation:fadeUp .2s ease;white-space:nowrap;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
+/* 지원현황 카드 그리드 */
+.sup-stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.sup-stat-card{background:#f5f5f3;border-radius:8px;padding:10px 12px;cursor:pointer;transition:box-shadow .1s;border:.5px solid #e8e8e4;}
+.sup-stat-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.sup-stat-card-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;}
+.sup-stat-card-count{font-size:18px;font-weight:700;}
+
 @media(max-width:900px){
   .resp-layout{grid-template-columns:1fr 1fr;}
   .stat-grid{grid-template-columns:repeat(3,1fr);}
   .contact-row{grid-template-columns:1fr 1fr auto;}
+  .sup-stat-grid{grid-template-columns:repeat(3,1fr);}
 }
 @media(max-width:700px){
-  .sup-row{grid-template-columns:70px 90px 1fr 60px 50px;font-size:12px;}
-  .sup-row-header{grid-template-columns:70px 90px 1fr 60px 50px;font-size:11px;}
   .week-grid{grid-template-columns:36px repeat(7,1fr);}
+  .sup-stat-grid{grid-template-columns:repeat(2,1fr);}
 }
 @media(max-width:600px){
   .team-layout,.resp-layout{grid-template-columns:1fr;}
@@ -288,8 +291,6 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
   .cal-more{display:none;}
   .cal-dots{display:flex;}
   .contact-row{grid-template-columns:1fr auto;}
-  .sup-row{grid-template-columns:1fr auto;}
-  .sup-row-header{display:none;}
 }
 </style>
 </head>
@@ -330,6 +331,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
     <div class="top-actions" id="top-actions"></div>
   </div>
 
+  <!-- 대시보드 -->
   <div id="page-dashboard" class="page-body" style="display:none;">
     <div id="dash-today" style="font-size:13px;color:#888;margin-bottom:14px;"></div>
     <div class="stat-grid" style="margin-bottom:16px;">
@@ -354,20 +356,9 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
         <div class="card-body" style="padding:0 16px;" id="dash-nextmonth"></div>
       </div>
     </div>
-    
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title"><i class="ti ti-chart-bar" style="color:#185FA5;"></i> 지원 현황</span>
-        <div style="display:flex;gap:4px;">
-          <button class="btn sm active-filter" id="sup-tab-month" onclick="setSupStatTab('month')">이번달</button>
-          <button class="btn sm" id="sup-tab-quarter" onclick="setSupStatTab('quarter')">분기</button>
-          <button class="btn sm" id="sup-tab-year" onclick="setSupStatTab('year')">연간</button>
-        </div>
-      </div>
-      <div class="card-body" style="padding:8px 16px;" id="dash-sup-stat"></div>
-    </div>
   </div>
 
+  <!-- 운영지원 -->
   <div id="page-support" class="page-body" style="display:none;">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
       <div class="cal-toolbar-title" id="cal-title"></div>
@@ -408,15 +399,21 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
     <div class="card" style="margin-bottom:16px;">
       <div class="card-body" style="padding:8px;"><div id="calendar"></div></div>
     </div>
+    <!-- 지원 현황 -->
     <div class="card">
       <div class="card-header">
-        <span class="card-title"><i class="ti ti-history" style="color:#185FA5;"></i> 지원 이력</span>
-        <span id="sup-list-count" class="count-badge"></span>
+        <span class="card-title"><i class="ti ti-chart-bar" style="color:#185FA5;"></i> 지원 현황</span>
+        <div style="display:flex;gap:4px;">
+          <button class="btn sm active-filter" id="sup-tab-month" onclick="setSupStatTab('month')">이번달</button>
+          <button class="btn sm" id="sup-tab-quarter" onclick="setSupStatTab('quarter')">분기</button>
+          <button class="btn sm" id="sup-tab-year" onclick="setSupStatTab('year')">연간</button>
+        </div>
       </div>
-      <div class="card-body" style="padding:0 16px;"><div id="support-list"></div></div>
+      <div class="card-body" style="padding:12px 16px;" id="dash-sup-stat"></div>
     </div>
   </div>
 
+  <!-- FS 사업장 현황 -->
   <div id="page-businesses" class="page-body" style="display:none;">
     <div style="margin-bottom:12px;">
       <input type="text" id="biz-search" placeholder="사업장명 · 영양사명 검색..."
@@ -431,6 +428,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
     <div id="biz-content"></div>
   </div>
 
+  <!-- 관리자 수정 -->
   <div id="page-admin" class="page-body" style="display:none;">
     <div class="toolbar">
       <input type="text" id="admin-search" placeholder="사업장명 검색..." oninput="window.renderAdmin()">
@@ -447,6 +445,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
   </div>
 </div>
 
+<!-- 사업장 상세 -->
 <div id="detail-screen">
   <div class="top-bar">
     <button class="back-btn" onclick="goBackFromDetail()"><i class="ti ti-arrow-left"></i> 뒤로</button>
@@ -458,6 +457,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
   <div class="detail-body" id="detail-body"></div>
 </div>
 
+<!-- 운영지원 등록 모달 -->
 <div class="sup-modal" id="sup-modal">
   <div class="sup-modal-inner">
     <div class="sup-modal-header">
@@ -533,6 +533,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
   </div>
 </div>
 
+<!-- 계약 모달 -->
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal">
     <div class="modal-header">
