@@ -355,12 +355,22 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
       </div>
     </div>
     <div class="card" style="margin-bottom:16px;">
-      <div class="card-header"><span class="card-title"><i class="ti ti-history" style="color:#185FA5;"></i> 최근 7일 운영지원</span><span id="dash-sup-count" class="count-badge"></span></div>
-      <div class="card-body" style="padding:0 16px;" id="dash-recent-sup"></div>
+      <div class="card-header">
+        <span class="card-title"><i class="ti ti-alert-circle" style="color:#A32D2D;"></i> 긴급/임박 미방문</span>
+        <span id="dash-uncared-count" class="count-badge"></span>
+      </div>
+      <div class="card-body" style="padding:0 16px;" id="dash-uncared"></div>
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-title"><i class="ti ti-chart-bar" style="color:#185FA5;"></i> 이번달 지원 현황</span></div>
-      <div class="card-body" style="padding:0 16px;" id="dash-sup-stat"></div>
+      <div class="card-header">
+        <span class="card-title"><i class="ti ti-chart-bar" style="color:#185FA5;"></i> 지원 현황</span>
+        <div style="display:flex;gap:4px;">
+          <button class="btn sm active-filter" id="sup-tab-month" onclick="setSupStatTab('month')">이번달</button>
+          <button class="btn sm" id="sup-tab-quarter" onclick="setSupStatTab('quarter')">분기</button>
+          <button class="btn sm" id="sup-tab-year" onclick="setSupStatTab('year')">연간</button>
+        </div>
+      </div>
+      <div class="card-body" style="padding:8px 16px;" id="dash-sup-stat"></div>
     </div>
   </div>
 
