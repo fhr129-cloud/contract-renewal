@@ -469,7 +469,59 @@ function renderDashboard() {
   var nmEl=document.getElementById('dash-nextmonth'); if(nmEl) nmEl.innerHTML=expireHtml(nextList);
   var tmC=document.getElementById('dash-thismonth-count'); if(tmC) tmC.textContent=thisList.length+'건';
   var nmC=document.getElementById('dash-nextmonth-count'); if(nmC) nmC.textContent=nextList.length+'건';
-
+// 최근 계약 업데이트
+  var recentUpdates=[];
+  historyData.forEach(function(h){
+    if(!h.records||!h.records.length) return;
+    var c=contracts.find(function(x){ return x.id===h.contractId; }); if(!c) return;
+    var latest=h.records[h.records.length-1];
+    if(!latest.updatedAt) return;
+    var updDate=new Date(latest.updatedAt);
+    var diffDays=Math.floor((now-updDate)/(1000*60*60*24));
+    if(diffDays>30) return;
+    var prev=h.records.length>1?h.records[h.records.length-2]:null;
+    recentUpdates.push({c:c,latest:latest,prev:prev,diffDays:diffDays,updDate:updDate});
+  });
+  recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
+  var recentEl=document.getElementById('dash-recent-updates');
+  if(recentEl){
+    if(!recentUpdates.length){
+      recentEl.innerHTML='<div style="color:#aaa;font-size:12px;padding:12px 0;">최근 30일 계약 변경 내역이 없어요</div>';
+    } else {
+      recentEl.innerHTML=recentUpdates.slice(0,10).map(function(item){
+        var s=calcStatus(item.c),d=dDiff(item.c.endDate),col=s==='urgent'?'#A32D2D':s==='near'?'#854F0B':'#185FA5';
+        var isNew=item.prev===null;
+        var priceChanged=item.prev&&(item.prev.price!==item.latest.price||item.prev.priceType!==item.latest.priceType);
+        var priceHtml='';
+        if(isNew){
+          priceHtml='<span style="font-size:11px;color:#3B6D11;background:#EAF3DE;padding:1px 6px;border-radius:99px;margin-left:4px;">신규</span>';
+        } else if(priceChanged){
+          priceHtml='<span style="font-size:11px;color:#888;margin-left:4px;">'+priceHistLabel(item.prev)+'</span>'+
+            '<span style="font-size:11px;color:#888;margin:0 3px;">→</span>'+
+            '<span style="font-size:11px;color:#185FA5;font-weight:600;">'+priceHistLabel(item.latest)+'</span>';
+        } else {
+          priceHtml='<span style="font-size:11px;color:#888;margin-left:4px;">'+priceHistLabel(item.latest)+'</span>'+
+            '<span style="font-size:11px;color:#aaa;margin-left:4px;">(변동없음)</span>';
+        }
+        var diffStr=item.diffDays===0?'오늘':item.diffDays===1?'1일 전':item.diffDays+'일 전';
+        return '<div class="dash-mini-item" onclick="goDetail(\''+item.c.id+'\')">'+
+          '<div style="min-width:0;flex:1;">'+
+            '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'+
+              '<span class="dash-mini-name" style="flex:none;">'+item.c.name+'</span>'+
+              '<span class="badge '+s+'" style="font-size:10px;">'+STATUS_META[s].label+'</span>'+
+            '</div>'+
+            '<div style="display:flex;align-items:center;flex-wrap:wrap;margin-top:2px;">'+
+              (isNew?priceHtml:'<span style="font-size:11px;color:#555;background:#f0f0ec;padding:1px 6px;border-radius:99px;">갱신</span>'+priceHtml)+
+            '</div>'+
+          '</div>'+
+          '<div style="flex-shrink:0;text-align:right;">'+
+            '<div style="font-size:11px;color:#aaa;">'+diffStr+'</div>'+
+            '<div style="font-size:11px;font-weight:600;color:'+col+';">'+dDayLabel(d)+'</div>'+
+          '</div>'+
+        '</div>';
+      }).join('');
+    }
+  }
   // 긴급/임박 미방문
   var urgentNoCare=contracts.filter(function(c){
     var s=calcStatus(c);
