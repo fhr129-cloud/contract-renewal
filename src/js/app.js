@@ -754,41 +754,77 @@ function renderSupportList(){
   var past=sorted.filter(function(s){ return (s.date||'')<=today; });
   var el=document.getElementById('sup-list-count'); if(el) el.textContent=sorted.length+'건';
   if(!sorted.length){ listEl.innerHTML='<div class="empty-state" style="padding:20px;"><i class="ti ti-calendar"></i>지원 이력이 없어요</div>'; return; }
-  function rowHtml(s){
-    var c=contracts.find(function(x){ return x.name===s.bizName; }),cid=c?c.id:'';
-    var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
-    var mealStr=s.meals&&s.meals.length?s.meals.join('/'):'';
-    var dateStr=s.date||'';
-    if(s.dateEnd&&s.dateEnd!==s.date) dateStr+=(' ~ '+s.dateEnd);
-    return '<div class="sup-row">'+
-      '<div class="sup-row-top">'+
-        '<span class="sup-biz"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+'>'+s.bizName+'</span>'+
-        '<div class="sup-row-actions">'+
-          '<button class="btn sm" onclick="editSupport(\''+s.id+'\')" ><i class="ti ti-edit"></i></button>'+
-          '<button class="btn sm danger" onclick="delSupport(\''+s.id+'\')" ><i class="ti ti-trash"></i></button>'+
+
+  function renderGroup(list,title,color,bg,border){
+    if(!list.length) return '';
+    // 날짜별 그룹핑
+    var groups={};
+    list.forEach(function(s){
+      var k=s.date||'';
+      if(!groups[k]) groups[k]=[];
+      groups[k].push(s);
+    });
+    var dates=Object.keys(groups).sort(function(a,b){ return a>b?-1:1; });
+    if(title==='upcoming') dates=dates.slice().reverse();
+
+    var html='<div style="padding:8px 12px;font-size:12px;font-weight:600;color:'+color+';background:'+bg+';border-bottom:.5px solid '+border+';">'+
+      (title==='upcoming'?'📅 지원예정':'📋 지원이력')+' '+list.length+'건</div>';
+
+    dates.forEach(function(dateKey){
+      var items=groups[dateKey];
+      var id='grp-'+dateKey.replace(/-/g,'');
+      var dayName=['일','월','화','수','목','금','토'][new Date(dateKey).getDay()];
+      html+='<div style="border-bottom:.5px solid #f0f0ec;">'+
+        '<div onclick="toggleSupGroup(\''+id+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;cursor:pointer;background:#fafaf8;">'+
+          '<div style="display:flex;align-items:center;gap:8px;">'+
+            '<span style="font-size:13px;font-weight:600;color:#1a1a18;">'+dateKey+'</span>'+
+            '<span style="font-size:11px;color:#888;">('+dayName+') '+items.length+'건</span>'+
+          '</div>'+
+          '<i class="ti ti-chevron-down" id="ico-'+id+'" style="font-size:14px;color:#aaa;transition:transform .2s;"></i>'+
         '</div>'+
-      '</div>'+
-      '<div class="sup-row-meta">'+
-        '<span class="sup-date-label">📅 '+dateStr+'</span>'+
-        '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span>'+
-        (mealStr?'<span class="badge-cat">'+mealStr+'</span>':'')+
-        '<span class="badge-cat">'+(s.category||'')+'</span>'+
-      '</div>'+
-      (s.content?'<div style="font-size:12px;color:#555;background:#f9f9f7;padding:5px 8px;border-radius:6px;">'+s.content+'</div>':'')+
+        '<div id="'+id+'" style="display:none;">'+
+          items.map(function(s){
+            var c=contracts.find(function(x){ return x.name===s.bizName; }),cid=c?c.id:'';
+            var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
+            var mealStr=s.meals&&s.meals.length?s.meals.join('/'):'';
+            var dateStr=s.date||'';
+            if(s.dateEnd&&s.dateEnd!==s.date) dateStr+=(' ~ '+s.dateEnd);
+            return '<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:10px 16px;border-top:.5px solid #f0f0ec;gap:8px;">'+
+              '<div style="flex:1;min-width:0;">'+
+                '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">'+
+                  '<span style="font-size:13px;font-weight:600;'+(cid?'color:#185FA5;cursor:pointer;':'')+'"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+'>'+s.bizName+'</span>'+
+                  '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span>'+
+                '</div>'+
+                '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'+
+                  '<span class="badge-cat" style="background:#f0f0ec;color:#555;">'+(s.category||'')+'</span>'+
+                  (mealStr?'<span class="badge-cat">'+mealStr+'</span>':'')+
+                  (s.dateEnd&&s.dateEnd!==s.date?'<span style="font-size:11px;color:#aaa;">~'+s.dateEnd+'</span>':'')+
+                '</div>'+
+                (s.content?'<div style="font-size:12px;color:#666;margin-top:4px;">'+s.content+'</div>':'')+
+              '</div>'+
+              '<div style="display:flex;gap:4px;flex-shrink:0;">'+
+                '<button class="btn sm" onclick="editSupport(\''+s.id+'\')" ><i class="ti ti-edit"></i></button>'+
+                '<button class="btn sm danger" onclick="delSupport(\''+s.id+'\')" ><i class="ti ti-trash"></i></button>'+
+              '</div></div>';
+          }).join('')+
+        '</div>'+
       '</div>';
+    });
+    return html;
   }
-  var header='';
-  var html='';
-  if(upcoming.length){
-    html+='<div style="padding:8px 12px;font-size:12px;font-weight:600;color:#185FA5;background:#E6F1FB;border-bottom:.5px solid #B5D4F4;">📅 지원예정 '+upcoming.length+'건</div>';
-    html+=header+upcoming.map(rowHtml).join('');
-  }
-  if(past.length){
-    html+='<div style="padding:8px 12px;font-size:12px;font-weight:600;color:#555;background:#f5f5f3;border-bottom:.5px solid #e8e8e4;'+(upcoming.length?'border-top:.5px solid #e8e8e4;':'')+'">📋 지원이력 '+past.length+'건</div>';
-    html+=header+past.map(rowHtml).join('');
-  }
-  listEl.innerHTML=html;
+
+  listEl.innerHTML=
+    renderGroup(upcoming,'upcoming','#185FA5','#E6F1FB','#B5D4F4')+
+    renderGroup(past,'past','#555','#f5f5f3','#e8e8e4');
 }
+
+window.toggleSupGroup=function(id){
+  var el=document.getElementById(id),ico=document.getElementById('ico-'+id);
+  if(!el) return;
+  var open=el.style.display==='none';
+  el.style.display=open?'block':'none';
+  if(ico) ico.style.transform=open?'rotate(180deg)':'';
+};
 
 // ── 검색 드롭다운 ──────────────────────────
 function initSS(){ renderSSOptions(''); }
