@@ -358,7 +358,7 @@ async function init() {
   listenHistory(function(data){ historyData=data; });
   listenSupports(function(data){
     supports=data;
-    if(currentPage==='support'){ renderCalendar(); renderSupportList(); }
+    if(currentPage==='support'){ renderCalendar(); renderSupStat(supStatTab||'month'); }
     if(currentPage==='dashboard') renderDashboard();
   });
 }
@@ -552,6 +552,60 @@ window.setSupStatTab=function(tab){
   });
   renderSupStat(tab);
 };
+function renderCatStat(list){
+  if(!list.length) return '';
+  var CATS=['운영점검','위생점검','환경개선','특식지원','배식지원','고객미팅','기타지원'];
+  var catMap={};
+  list.forEach(function(s){
+    var cat=s.category||'기타지원';
+    if(!catMap[cat]) catMap[cat]={count:0,items:[]};
+    catMap[cat].count++;
+    catMap[cat].items.push(s);
+  });
+  var cats=CATS.filter(function(c){ return catMap[c]; });
+  // 기타 카테고리도 포함
+  Object.keys(catMap).forEach(function(c){ if(CATS.indexOf(c)===-1) cats.push(c); });
+  var maxCat=Math.max.apply(null,cats.map(function(c){ return catMap[c].count; }));
+  return '<div style="display:flex;flex-direction:column;gap:4px;">'+
+    cats.map(function(cat){
+      var data=catMap[cat],barW=Math.round((data.count/maxCat)*100);
+      var id='cat-'+cat.replace(/\s/g,'');
+      return '<div style="border:.5px solid #e8e8e4;border-radius:8px;overflow:hidden;">'+
+        '<div onclick="toggleCatGroup(\''+id+'\')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;background:#fafaf8;">'+
+          '<span style="font-size:13px;font-weight:600;min-width:60px;">'+cat+'</span>'+
+          '<div style="flex:1;background:#e8e8e4;border-radius:4px;height:8px;">'+
+            '<div style="width:'+barW+'%;background:#185FA5;height:8px;border-radius:4px;transition:width .3s;"></div>'+
+          '</div>'+
+          '<span style="font-size:13px;font-weight:600;color:#185FA5;min-width:32px;text-align:right;">'+data.count+'건</span>'+
+          '<i class="ti ti-chevron-down" id="ico-'+id+'" style="font-size:13px;color:#aaa;transition:transform .2s;"></i>'+
+        '</div>'+
+        '<div id="'+id+'" style="display:none;border-top:.5px solid #f0f0ec;">'+
+          data.items.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); }).map(function(s){
+            var c=contracts.find(function(x){ return x.name===s.bizName; }),cid=c?c.id:'';
+            var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
+            var dateStr=s.date||'';
+            if(s.dateEnd&&s.dateEnd!==s.date) dateStr+='~'+s.dateEnd.slice(5);
+            return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:.5px solid #f0f0ec;gap:8px;" '+(cid?'onclick="goDetail(\''+cid+'\')" style="cursor:pointer;"':'')+'>'+
+              '<span style="font-size:13px;font-weight:500;'+(cid?'color:#185FA5;cursor:pointer;':'')+'">'+s.bizName+'</span>'+
+              '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'+
+                '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr.split(' ')[0]+'</span>'+
+                '<span style="font-size:11px;color:#aaa;">'+dateStr+'</span>'+
+              '</div>'+
+            '</div>';
+          }).join('')+
+        '</div>'+
+      '</div>';
+    }).join('')+
+  '</div>';
+}
+
+window.toggleCatGroup=function(id){
+  var el=document.getElementById(id),ico=document.getElementById('ico-'+id);
+  if(!el) return;
+  var open=el.style.display==='none';
+  el.style.display=open?'block':'none';
+  if(ico) ico.style.transform=open?'rotate(180deg)':'';
+};
 function renderNoVisit(startM, endM, year, label) {
   var todayStr=new Date().toISOString().slice(0,10);
   var noVisit=contracts.filter(function(c){
@@ -583,20 +637,8 @@ function renderSupStat(tab){
   if(tab==='month'){
     var monthStr=thisY+'-'+String(thisM+1).padStart(2,'0');
     var monthSups=supports.filter(function(s){ return s.date&&s.date.startsWith(monthStr)&&s.date<=todayStr; });
-    var bizSupCount={};
-    monthSups.forEach(function(s){ bizSupCount[s.bizName]=(bizSupCount[s.bizName]||0)+1; });
-    var bizSupList=Object.keys(bizSupCount).map(function(n){ return {name:n,count:bizSupCount[n]}; }).sort(function(a,b){ return b.count-a.count; });
-    var maxCount=bizSupList.length?bizSupList[0].count:1;
-    statEl.innerHTML=bizSupList.length?'<div class="sup-stat-grid">'+bizSupList.map(function(b){
-      var c=contracts.find(function(x){ return x.name===b.name; }),cid=c?c.id:'';
-      var intensity=Math.round((b.count/maxCount)*100);
-      var bg=intensity>66?'#185FA5':intensity>33?'#5B9BD5':'#B8D4EF';
-      var textColor=intensity>33?'#fff':'#185FA5';
-      return '<div class="sup-stat-card"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+' style="background:'+bg+';">'+
-        '<div class="sup-stat-card-name" style="color:'+textColor+';">'+b.name+'</div>'+
-        '<div class="sup-stat-card-count" style="color:'+textColor+';">'+b.count+'<span style="font-size:11px;font-weight:400;margin-left:2px;">회</span></div>'+
-        '</div>';
-    }).join('')+'</div>':'<div style="color:#aaa;font-size:12px;padding:12px 0;">이번달 지원 내역이 없어요</div>';
+    if(!monthSups.length){ statEl.innerHTML='<div style="color:#aaa;font-size:12px;padding:12px 0;">이번달 지원 내역이 없어요</div>'; return; }
+    statEl.innerHTML=renderCatStat(monthSups);
 
   } else if(tab==='quarter'){
     var curQ=Math.floor(thisM/3);
@@ -624,7 +666,12 @@ function renderSupStat(tab){
           (q.current?'<div style="font-size:10px;color:#185FA5;margin-top:4px;font-weight:500;">● 현재 분기</div>':'')+
         '</div>';
       }).join('')+
-    '</div>'+
+   '</div>'+
+    '<div style="margin-top:12px;">'+renderCatStat(supports.filter(function(s){
+      if(!s.date) return false;
+      var d=new Date(s.date),m=d.getMonth();
+      return d.getFullYear()===thisY&&m>=curQ*3&&m<=curQ*3+2&&s.date<=todayStr;
+    }))+'</div>'+
     renderNoVisit(curQ*3, curQ*3+2, thisY, '이번 분기');
 
   } else if(tab==='year'){
@@ -668,6 +715,7 @@ function renderSupStat(tab){
     yearSups.forEach(function(s){ yearCount[s.bizName]=(yearCount[s.bizName]||0)+1; });
     var yearList=Object.keys(yearCount).map(function(n){ return {name:n,count:yearCount[n]}; }).sort(function(a,b){ return b.count-a.count; });
     var maxY=yearList.length?yearList[0].count:1;
+    statEl.innerHTML+='<div style="margin:12px 0;">'+renderCatStat(supports.filter(function(s){ return s.date&&s.date.startsWith(thisY+'')&&s.date<=todayStr; }))+'</div>';
     statEl.innerHTML+='<div style="font-size:12px;font-weight:600;color:#555;margin:12px 0 8px;">업장별 지원 횟수</div>'+
       (yearList.length?'<div class="sup-stat-grid">'+yearList.map(function(b){
         var c=contracts.find(function(x){ return x.name===b.name; }),cid=c?c.id:'';
