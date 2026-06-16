@@ -332,11 +332,8 @@ window.saveHistForm=async function(idx){
     note:document.getElementById('hf-note').value.trim(),
     updatedAt:new Date().toISOString()
   };
-  if(idx===-1){
-    var labelSel=document.getElementById('hf-label'),label=labelSel?labelSel.value:'최초';
-    if(label==='현재') records.push(newRecord);
-    else if(label==='최초') records.unshift(newRecord);
-    else records.push(newRecord);
+ if(idx===-1){
+    records.push(newRecord);
   } else records[idx]=newRecord;
   await saveHistRecords(records,c?c.name:'');
   closeHistForm(); showToast(idx===-1?'이력이 추가되었습니다.':'이력이 수정되었습니다.');
