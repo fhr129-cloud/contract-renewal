@@ -761,15 +761,21 @@ function renderSupportList(){
     var dateStr=s.date||'';
     if(s.dateEnd&&s.dateEnd!==s.date) dateStr+=(' ~ '+s.dateEnd);
     return '<div class="sup-row">'+
-      '<span style="color:#888;font-size:12px;">'+dateStr+'</span>'+
-      '<span>'+(mealStr?'<span class="badge-cat">'+mealStr+'</span>':'-')+'</span>'+
-      '<span class="sup-biz"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+'>'+s.bizName+'</span>'+
-      '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+( staffStr||'-')+'</span>'+
-      '<span style="font-size:12px;color:#555;">'+(s.category||'')+(s.content?' · '+s.content:'')+'</span>'+
-      '<span style="display:flex;gap:4px;">'+
-        '<button class="btn sm" onclick="editSupport(\''+s.id+'\')" ><i class="ti ti-edit"></i></button>'+
-        '<button class="btn sm danger" onclick="delSupport(\''+s.id+'\')" ><i class="ti ti-trash"></i></button>'+
-      '</span></div>';
+      '<div class="sup-row-top">'+
+        '<span class="sup-biz"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+'>'+s.bizName+'</span>'+
+        '<div class="sup-row-actions">'+
+          '<button class="btn sm" onclick="editSupport(\''+s.id+'\')" ><i class="ti ti-edit"></i></button>'+
+          '<button class="btn sm danger" onclick="delSupport(\''+s.id+'\')" ><i class="ti ti-trash"></i></button>'+
+        '</div>'+
+      '</div>'+
+      '<div class="sup-row-meta">'+
+        '<span class="sup-date-label">📅 '+dateStr+'</span>'+
+        '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span>'+
+        (mealStr?'<span class="badge-cat">'+mealStr+'</span>':'')+
+        '<span class="badge-cat">'+(s.category||'')+'</span>'+
+      '</div>'+
+      (s.content?'<div style="font-size:12px;color:#555;background:#f9f9f7;padding:5px 8px;border-radius:6px;">'+s.content+'</div>':'')+
+      '</div>';
   }
   var header='<div class="sup-row-header"><span>날짜</span><span>끼니</span><span>업장</span><span>지원자</span><span>카테고리 · 내용</span><span></span></div>';
   var html='';
