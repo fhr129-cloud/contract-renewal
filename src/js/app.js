@@ -404,6 +404,7 @@ window._goHome=window.goHome;
 window.goPage=function(page){ var s={screen:'page',page:page}; history.pushState(s,'',''); applyState(s); };
 window._goPage=window.goPage;
 window.goDetail=function(id){ if(!id||id==='undefined') return; var s={screen:'detail',id:id}; history.pushState(s,'',''); applyState(s); };
+window.goDetailByName=function(name){ var c=contracts.find(function(x){ return x.name===name; }); if(c) goDetail(c.id); };
 window.goBackFromDetail=function(){ history.back(); };
 function renderPage(page) {
   if(page==='dashboard') renderDashboard();
@@ -837,7 +838,7 @@ function supItemHtml(s,dateKey){
   var cid=c?c.id:'';
   return '<div class="cal-sup-item">'+
     '<div style="min-width:0;flex:1;">'+
-      '<div style="font-weight:600;font-size:14px;margin-bottom:6px;'+(cid?'color:#185FA5;cursor:pointer;':'')+'" '+(cid?'onclick="goDetail(\''+cid+'\');closeCalPopup();"':'')+'>'+s.bizName+'</div>'+
+      '<div style="font-weight:600;font-size:14px;margin-bottom:6px;'+(cid?'color:#185FA5;cursor:pointer;':'')+'" '+(cid?'onclick="goDetailByName(\''+s.bizName.replace(/'/g,"\\'")+'\')"':'')+'>'+s.bizName+'</div>'+
       '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">'+
         '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span>'+
         '<span class="badge-cat">'+(s.category||'')+'</span>'+
