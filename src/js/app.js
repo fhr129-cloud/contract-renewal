@@ -436,10 +436,10 @@ function renderDashboard() {
   if(schedEl){
     schedEl.innerHTML=todayItems.length?todayItems.map(function(s){
       var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
-      return '<div class="today-item">'+
+      return '<div class="today-item" onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;">'+
         '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span>'+
         '<span style="font-weight:500;">'+s.bizName+'</span>'+
-        '<span style="font-size:12px;color:#888;"></span>'+
+        '<span style="font-size:12px;color:#888;">'+(s.category||'')+'</span>'+
         '</div>';
     }).join(''):'<div class="today-schedule-empty">오늘 등록된 일정이 없어요</div>';
   }
@@ -449,9 +449,18 @@ function renderDashboard() {
   function expireList(year,month){ return contracts.filter(function(c){ if(!c.endDate) return false; var d=new Date(c.endDate); return d.getFullYear()===year&&d.getMonth()===month; }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); }); }
   function expireHtml(list) {
     if(!list.length) return '<div style="color:#aaa;font-size:12px;padding:12px 0;">없음</div>';
+    var threeMonthsAgo=new Date(now); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth()-3);
+    var threeStr=threeMonthsAgo.toISOString().slice(0,10);
     return list.map(function(c){
       var s=calcStatus(c),d=dDiff(c.endDate),col=s==='urgent'?'#A32D2D':s==='near'?'#854F0B':'#185FA5';
-      return '<div class="dash-mini-item" onclick="goDetail(\''+c.id+'\')"><span class="dash-mini-name">'+c.name+'</span><span class="dash-mini-right" style="color:'+col+';">'+dDayLabel(d)+'</span></div>';
+      var recentCount=supports.filter(function(sp){ return sp.bizName===c.name&&sp.date&&sp.date>=threeStr&&sp.date<=todayStr; }).length;
+      return '<div class="dash-mini-item" onclick="goDetail(\''+c.id+'\')">'+
+        '<span class="dash-mini-name">'+c.name+'</span>'+
+        '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'+
+          '<span style="font-size:11px;color:#aaa;">최근3달 '+recentCount+'회</span>'+
+          '<span class="dash-mini-right" style="color:'+col+';font-weight:600;">'+dDayLabel(d)+'</span>'+
+        '</div>'+
+        '</div>';
     }).join('');
   }
   var thisList=expireList(thisY,thisM),nextList=expireList(nextY,nextM);
