@@ -407,7 +407,7 @@ window.goDetail=function(id){ if(!id||id==='undefined') return; var s={screen:'d
 window.goBackFromDetail=function(){ history.back(); };
 function renderPage(page) {
   if(page==='dashboard') renderDashboard();
-  if(page==='support'){ renderCalendar(); renderSupportList(); initSS(); }
+  if(page==='support'){ renderCalendar(); initSS(); renderSupStat('month'); }
   if(page==='businesses') renderBizTab();
   if(page==='admin') renderAdmin();
 }
@@ -502,6 +502,29 @@ window.setSupStatTab=function(tab){
   });
   renderSupStat(tab);
 };
+function renderNoVisit(startM, endM, year, label) {
+  var todayStr=new Date().toISOString().slice(0,10);
+  var noVisit=contracts.filter(function(c){
+    var s=calcStatus(c);
+    if(s!=='urgent'&&s!=='near') return false;
+    return !supports.some(function(sp){
+      if(sp.bizName!==c.name||!sp.date) return false;
+      var d=new Date(sp.date); var m=d.getMonth();
+      return d.getFullYear()===year&&m>=startM&&m<=endM&&sp.date<=todayStr;
+    });
+  }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
+  if(!noVisit.length) return '<div style="margin-top:12px;padding:8px 12px;background:#EAF3DE;border-radius:8px;font-size:12px;color:#3B6D11;">✅ '+label+' 긴급/임박 사업장 모두 방문 완료!</div>';
+  return '<div style="margin-top:12px;">'+
+    '<div style="font-size:12px;font-weight:600;color:#A32D2D;margin-bottom:6px;">🔴 긴급/임박 미방문 ('+label+') '+noVisit.length+'곳</div>'+
+    noVisit.map(function(c){
+      var s=calcStatus(c),d=dDiff(c.endDate),col=s==='urgent'?'#A32D2D':'#854F0B';
+      return '<div class="dash-mini-item" onclick="goDetail(\''+c.id+'\')">'+
+        '<span class="dash-mini-name">'+c.name+'</span>'+
+        '<span style="font-size:12px;font-weight:600;color:'+col+';">'+dDayLabel(d)+'</span>'+
+        '</div>';
+    }).join('')+
+  '</div>';
+}
 function renderSupStat(tab){
   var now=new Date(),thisY=now.getFullYear(),thisM=now.getMonth();
   var statEl=document.getElementById('dash-sup-stat'); if(!statEl) return;
@@ -514,16 +537,16 @@ function renderSupStat(tab){
     monthSups.forEach(function(s){ bizSupCount[s.bizName]=(bizSupCount[s.bizName]||0)+1; });
     var bizSupList=Object.keys(bizSupCount).map(function(n){ return {name:n,count:bizSupCount[n]}; }).sort(function(a,b){ return b.count-a.count; });
     var maxCount=bizSupList.length?bizSupList[0].count:1;
-    statEl.innerHTML=bizSupList.length?bizSupList.slice(0,10).map(function(b){
+    statEl.innerHTML=bizSupList.length?'<div class="sup-stat-grid">'+bizSupList.map(function(b){
       var c=contracts.find(function(x){ return x.name===b.name; }),cid=c?c.id:'';
-      var barW=Math.round((b.count/maxCount)*100);
-      return '<div class="dash-bar-wrap"'+(cid?' onclick="goDetail(\''+cid+'\')" style="cursor:pointer;"':'')+'>'+
-        '<span class="dash-bar-name">'+b.name+'</span>'+
-        '<div style="flex:1;background:#f0f0ec;border-radius:4px;height:8px;margin:0 8px;">'+
-          '<div style="width:'+barW+'%;background:#185FA5;height:8px;border-radius:4px;transition:width .3s;"></div>'+
-        '</div>'+
-        '<span class="dash-bar-val">'+b.count+'회</span></div>';
-    }).join(''):'<div style="color:#aaa;font-size:12px;padding:12px 0;">이번달 지원 내역이 없어요</div>';
+      var intensity=Math.round((b.count/maxCount)*100);
+      var bg=intensity>66?'#185FA5':intensity>33?'#5B9BD5':'#B8D4EF';
+      var textColor=intensity>33?'#fff':'#185FA5';
+      return '<div class="sup-stat-card"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+' style="background:'+bg+';">'+
+        '<div class="sup-stat-card-name" style="color:'+textColor+';">'+b.name+'</div>'+
+        '<div class="sup-stat-card-count" style="color:'+textColor+';">'+b.count+'<span style="font-size:11px;font-weight:400;margin-left:2px;">회</span></div>'+
+        '</div>';
+    }).join('')+'</div>':'<div style="color:#aaa;font-size:12px;padding:12px 0;">이번달 지원 내역이 없어요</div>';
 
   } else if(tab==='quarter'){
     var curQ=Math.floor(thisM/3);
@@ -544,7 +567,6 @@ function renderSupStat(tab){
     var maxQ=Math.max.apply(null,qData.map(function(q){ return q.total; }))||1;
     statEl.innerHTML='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:8px 0;">'+
       qData.map(function(q,i){
-        var barH=Math.round((q.total/maxQ)*60);
         return '<div style="background:'+(q.current?'#E6F1FB':'#fafaf8')+';border-radius:8px;padding:12px;border:.5px solid '+(q.current?'#B5D4F4':'#e8e8e4')+';">'+
           '<div style="font-size:11px;font-weight:600;color:'+(q.current?'#185FA5':'#888')+';margin-bottom:8px;">'+q.label+'</div>'+
           '<div style="font-size:22px;font-weight:700;color:'+(q.current?'#185FA5':'#1a1a18')+';">'+q.total+'<span style="font-size:12px;font-weight:400;color:#888;margin-left:2px;">회</span></div>'+
@@ -552,7 +574,8 @@ function renderSupStat(tab){
           (q.current?'<div style="font-size:10px;color:#185FA5;margin-top:4px;font-weight:500;">● 현재 분기</div>':'')+
         '</div>';
       }).join('')+
-    '</div>';
+    '</div>'+
+    renderNoVisit(curQ*3, curQ*3+2, thisY, '이번 분기');
 
   } else if(tab==='year'){
     var monthLabels=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
@@ -586,7 +609,26 @@ function renderSupStat(tab){
             '<div style="font-size:9px;color:'+(isCur?'#185FA5':'#aaa')+';font-weight:'+(isCur?'600':'400')+';">'+monthLabels[mi].replace('월','')+'</div>'+
           '</div>';
         }).join('')+
-      '</div>';
+      '</div>'+
+      renderNoVisit(0, 11, thisY, '올해');
+
+    // 올해 업장별 카드
+    var yearSups=supports.filter(function(s){ return s.date&&s.date.startsWith(thisY+'')&&s.date<=todayStr; });
+    var yearCount={};
+    yearSups.forEach(function(s){ yearCount[s.bizName]=(yearCount[s.bizName]||0)+1; });
+    var yearList=Object.keys(yearCount).map(function(n){ return {name:n,count:yearCount[n]}; }).sort(function(a,b){ return b.count-a.count; });
+    var maxY=yearList.length?yearList[0].count:1;
+    statEl.innerHTML+='<div style="font-size:12px;font-weight:600;color:#555;margin:12px 0 8px;">업장별 지원 횟수</div>'+
+      (yearList.length?'<div class="sup-stat-grid">'+yearList.map(function(b){
+        var c=contracts.find(function(x){ return x.name===b.name; }),cid=c?c.id:'';
+        var intensity=Math.round((b.count/maxY)*100);
+        var bg=intensity>66?'#185FA5':intensity>33?'#5B9BD5':'#B8D4EF';
+        var textColor=intensity>33?'#fff':'#185FA5';
+        return '<div class="sup-stat-card"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+' style="background:'+bg+';">'+
+          '<div class="sup-stat-card-name" style="color:'+textColor+';">'+b.name+'</div>'+
+          '<div class="sup-stat-card-count" style="color:'+textColor+';">'+b.count+'<span style="font-size:11px;font-weight:400;margin-left:2px;">회</span></div>'+
+          '</div>';
+      }).join('')+'</div>':'<div style="color:#aaa;font-size:12px;">올해 지원 내역이 없어요</div>');
   }
 }
 
@@ -793,7 +835,7 @@ function supItemHtml(s,dateKey){
   if(s.dateEnd&&s.dateEnd!==s.date) dateStr+=(' ~ '+s.dateEnd);
   return '<div class="cal-sup-item">'+
     '<div style="min-width:0;flex:1;">'+
-      '<div style="font-weight:600;font-size:14px;margin-bottom:6px;">'+s.bizName+'</div>'+
+      '<div style="font-weight:600;font-size:14px;margin-bottom:6px;'+(contracts.find(function(x){return x.name===s.bizName;})?'color:#185FA5;cursor:pointer;':'')+'"'+(contracts.find(function(x){return x.name===s.bizName;})?(' onclick="var c=contracts.find(function(x){return x.name===\''+s.bizName.replace(/'/g,"\\'")+'\'});if(c){closeCalPopup();goDetail(c.id);}"'):'')+'>'+(s.bizName)+'</div>'+
       '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">'+
         '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span>'+
         '<span class="badge-cat">'+(s.category||'')+'</span>'+
