@@ -721,11 +721,17 @@ function renderSupportList(){
 
 // ── 달력 팝업 ──────────────────────────
 window.openCalPopup=function(dateKey){
+  var seen={};
   var items=supports.filter(function(s){
     if(!s.date) return false;
     var start=s.date.slice(0,10);
     var end=s.dateEnd?s.dateEnd.slice(0,10):start;
-    return dateKey>=start&&dateKey<=end;
+    if(dateKey>=start&&dateKey<=end){
+      if(seen[s.id]) return false;
+      seen[s.id]=true;
+      return true;
+    }
+    return false;
   });
   if(!items.length) return;
   var html=items.map(function(s){
