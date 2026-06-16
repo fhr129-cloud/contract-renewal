@@ -837,7 +837,7 @@ function supItemHtml(s,dateKey){
   var cid=c?c.id:'';
   return '<div class="cal-sup-item">'+
     '<div style="min-width:0;flex:1;">'+
-      '<div style="font-weight:600;font-size:14px;margin-bottom:6px;'+(cid?'color:#185FA5;cursor:pointer;':'')+'" '+(cid?'onclick="closeCalPopup();setTimeout(function(){goDetail(\''+cid+'\');},50);"':'')+'>'+s.bizName+'</div>'+
+      '<div style="font-weight:600;font-size:14px;margin-bottom:6px;'+(cid?'color:#185FA5;cursor:pointer;':'')+'" '+(cid?'onclick="goDetail(\''+cid+'\');closeCalPopup();"':'')+'>'+s.bizName+'</div>'+
       '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">'+
         '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span>'+
         '<span class="badge-cat">'+(s.category||'')+'</span>'+
