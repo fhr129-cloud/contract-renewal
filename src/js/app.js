@@ -670,7 +670,7 @@ function renderWeekView(){
       html+='<div class="week-cell'+(isToday?' today-col':'')+'">'+
         items.map(function(s){
           var cls2=getStaffColor(staff);
-          return '<div class="week-event '+(cls2||'')+'" onclick="openCalPopup(\''+s.date.slice(0,10)+'\')" style="cursor:pointer;">'+s.bizName+'</div>';
+          return '<div class="week-event '+(cls2||'')+'" onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;">'+s.bizName+'</div>';
         }).join('')+'</div>';
     });
   });
@@ -727,12 +727,46 @@ window.openCalPopup=function(dateKey){
     if(!s.date||ids[s.id]) return;
     var start=s.date.slice(0,10);
     var end=(s.dateEnd&&s.dateEnd.trim())?s.dateEnd.slice(0,10):start;
-    console.log(s.bizName, 'start:',start,'end:',end,'dateKey:',dateKey,'match:',dateKey>=start&&dateKey<=end);
+    
     if(dateKey>=start&&dateKey<=end){
       ids[s.id]=true;
       items.push(s);
     }
   });
+  window.openCalPopupSingle=function(supportId){
+  var s=supports.find(function(x){ return x.id===supportId; });
+  if(!s) return;
+  var items=[s];
+  var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
+  var mealStr=s.meals&&s.meals.length?s.meals.join('/'):'';
+  var dateStr=s.date||'';
+  if(s.dateEnd&&s.dateEnd!==s.date) dateStr+=(' ~ '+s.dateEnd);
+  var html='<div class="cal-sup-item">'+
+    '<div style="min-width:0;flex:1;">'+
+      '<div style="font-weight:600;font-size:14px;margin-bottom:6px;">'+s.bizName+'</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">'+
+        '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span>'+
+        '<span class="badge-cat">'+(s.category||'')+'</span>'+
+        (mealStr?'<span class="badge-cat">'+mealStr+'</span>':'')+
+      '</div>'+
+      '<div style="font-size:12px;color:#888;margin-bottom:4px;">📅 '+dateStr+'</div>'+
+      (s.content?'<div style="font-size:12px;color:#555;background:#f5f5f3;padding:6px 8px;border-radius:6px;">'+s.content+'</div>':'')+
+    '</div>'+
+    '<div style="display:flex;gap:4px;flex-shrink:0;">'+
+      '<button class="btn sm" onclick="editSupportFromPopup(\''+s.id+'\')"><i class="ti ti-edit"></i></button>'+
+      '<button class="btn sm danger" onclick="delSupportFromPopup(\''+s.id+'\',\''+s.date+'\')"><i class="ti ti-trash"></i></button>'+
+    '</div></div>';
+  var popup=document.getElementById('cal-popup');
+  if(!popup){
+    popup=document.createElement('div'); popup.className='cal-popup'; popup.id='cal-popup';
+    popup.innerHTML='<div class="cal-popup-inner"><div class="cal-popup-header"><h4 id="cal-popup-title"></h4><button class="btn sm" onclick="closeCalPopup()"><i class="ti ti-x"></i></button></div><div class="cal-popup-body" id="cal-popup-body"></div></div>';
+    popup.addEventListener('click',function(e){ if(e.target===popup) closeCalPopup(); });
+    document.body.appendChild(popup);
+  }
+  document.getElementById('cal-popup-title').textContent=s.bizName+' 일정';
+  document.getElementById('cal-popup-body').innerHTML=html;
+  popup.classList.add('open');
+};
   if(!items.length) return;
   var html=items.map(function(s){
     var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
