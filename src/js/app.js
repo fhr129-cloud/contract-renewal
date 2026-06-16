@@ -816,10 +816,21 @@ window.openCalPopup=function(dateKey){
     var start=s.date.slice(0,10),end=(s.dateEnd&&s.dateEnd.trim())?s.dateEnd.slice(0,10):start;
     if(dateKey>=start&&dateKey<=end){ ids[s.id]=true; items.push(s); }
   });
-  if(!items.length) return;
+  if(!items.length){
+    // 일정 없으면 해당 날짜로 등록 모달 오픈
+    openSupportModal();
+    document.getElementById('sup-date').value=dateKey;
+    return;
+  }
   var popup=getOrCreatePopup();
   document.getElementById('cal-popup-title').textContent=dateKey+' 일정 ('+items.length+'건)';
-  document.getElementById('cal-popup-body').innerHTML=items.map(function(s){ return supItemHtml(s,dateKey); }).join('');
+  document.getElementById('cal-popup-body').innerHTML=
+    '<div style="padding:8px 0 12px;">'+
+      '<button class="btn primary sm" onclick="closeCalPopup();openSupportModal();document.getElementById(\'sup-date\').value=\''+dateKey+'\'">'+
+        '<i class="ti ti-plus"></i> 이 날짜에 등록'+
+      '</button>'+
+    '</div>'+
+    items.map(function(s){ return supItemHtml(s,dateKey); }).join('');
   popup.classList.add('open');
 };
 
