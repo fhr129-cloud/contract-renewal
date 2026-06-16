@@ -642,91 +642,89 @@ function renderSupStat(tab){
 
   } else if(tab==='quarter'){
     var curQ=Math.floor(thisM/3);
-    var quarters=['1분기 (1~3월)','2분기 (4~6월)','3분기 (7~9월)','4분기 (10~12월)'];
-    var qColors=['#185FA5','#3B6D11','#854F0B','#A32D2D'];
+    var quarters=['1분기','2분기','3분기','4분기'];
+    var qSubs=['1~3월','4~6월','7~9월','10~12월'];
     var qData=quarters.map(function(_,qi){
-      var startM=qi*3,endM=qi*3+2;
-      var total=0,bizSet={};
-      supports.forEach(function(s){
-        if(!s.date) return;
-        var d=new Date(s.date);
-        if(d.getFullYear()!==thisY) return;
-        var m=d.getMonth();
-        if(m>=startM&&m<=endM&&s.date<=todayStr){ total++; bizSet[s.bizName]=true; }
+      var qStartM=qi*3,qEndM=qi*3+2;
+      var items=supports.filter(function(s){
+        if(!s.date) return false;
+        var d=new Date(s.date),m=d.getMonth();
+        return d.getFullYear()===thisY&&m>=qStartM&&m<=qEndM&&s.date<=todayStr;
       });
-      return {label:quarters[qi],total:total,biz:Object.keys(bizSet).length,current:qi===curQ};
+      return {label:quarters[qi],sub:qSubs[qi],items:items,current:qi===curQ};
     });
-    var maxQ=Math.max.apply(null,qData.map(function(q){ return q.total; }))||1;
-    statEl.innerHTML='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:8px 0;">'+
-      qData.map(function(q,i){
-        return '<div style="background:'+(q.current?'#E6F1FB':'#fafaf8')+';border-radius:8px;padding:12px;border:.5px solid '+(q.current?'#B5D4F4':'#e8e8e4')+';">'+
-          '<div style="font-size:11px;font-weight:600;color:'+(q.current?'#185FA5':'#888')+';margin-bottom:8px;">'+q.label+'</div>'+
-          '<div style="font-size:22px;font-weight:700;color:'+(q.current?'#185FA5':'#1a1a18')+';">'+q.total+'<span style="font-size:12px;font-weight:400;color:#888;margin-left:2px;">회</span></div>'+
-          '<div style="font-size:11px;color:#aaa;margin-top:2px;">'+q.biz+'개 업장</div>'+
-          (q.current?'<div style="font-size:10px;color:#185FA5;margin-top:4px;font-weight:500;">● 현재 분기</div>':'')+
-        '</div>';
-      }).join('')+
-   '</div>'+
-    '<div style="margin-top:12px;">'+renderCatStat(supports.filter(function(s){
-      if(!s.date) return false;
-      var d=new Date(s.date),m=d.getMonth();
-      return d.getFullYear()===thisY&&m>=curQ*3&&m<=curQ*3+2&&s.date<=todayStr;
-    }))+'</div>'+
-    renderNoVisit(curQ*3, curQ*3+2, thisY, '이번 분기');
+    var html='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;">';
+    qData.forEach(function(q,qi){
+      var id='q-detail-'+qi;
+      html+='<div style="border:.5px solid '+(q.current?'#B5D4F4':'#e8e8e4')+';border-radius:8px;overflow:hidden;">'+
+        '<div onclick="toggleCatGroup(\''+id+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;cursor:pointer;background:'+(q.current?'#E6F1FB':'#fafaf8')+';">'+
+          '<div>'+
+            '<div style="font-size:12px;font-weight:600;color:'+(q.current?'#185FA5':'#555')+';">'+q.label+'</div>'+
+            '<div style="font-size:10px;color:#aaa;">'+q.sub+'</div>'+
+          '</div>'+
+          '<div style="display:flex;align-items:center;gap:6px;">'+
+            '<span style="font-size:16px;font-weight:700;color:'+(q.current?'#185FA5':'#1a1a18')+';">'+q.items.length+'건</span>'+
+            '<i class="ti ti-chevron-down" id="ico-q-detail-'+qi+'" style="font-size:13px;color:#aaa;transition:transform .2s;"></i>'+
+          '</div>'+
+        '</div>'+
+        '<div id="'+id+'" style="display:'+(q.current?'block':'none')+';">'+
+          (q.current?'<div style="padding:8px;">'+renderCatStat(q.items)+'</div>':'<div style="padding:8px;">'+renderCatStat(q.items)+'</div>')+
+        '</div>'+
+      '</div>';
+      if(q.current){
+        setTimeout(function(){
+          var ico=document.getElementById('ico-q-detail-'+qi);
+          if(ico) ico.style.transform='rotate(180deg)';
+        },50);
+      }
+    });
+    html+='</div>';
+    html+=renderNoVisit(curQ*3, curQ*3+2, thisY, '이번 분기');
+    statEl.innerHTML=html;
 
   } else if(tab==='year'){
     var monthLabels=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
-    var monthData=monthLabels.map(function(_,mi){
-      var mStr=thisY+'-'+String(mi+1).padStart(2,'0');
-      var count=supports.filter(function(s){ return s.date&&s.date.startsWith(mStr)&&s.date<=todayStr; }).length;
-      return count;
-    });
-    var maxM=Math.max.apply(null,monthData)||1;
-    var totalYear=monthData.reduce(function(a,b){ return a+b; },0);
+    var totalYear=supports.filter(function(s){ return s.date&&s.date.startsWith(thisY+'')&&s.date<=todayStr; }).length;
     var bizYear={};
     supports.forEach(function(s){ if(s.date&&s.date.startsWith(thisY+'')&&s.date<=todayStr) bizYear[s.bizName]=true; });
-    statEl.innerHTML=
-      '<div style="display:flex;gap:8px;margin-bottom:12px;">'+
-        '<div style="background:#E6F1FB;border-radius:8px;padding:10px 16px;flex:1;text-align:center;">'+
-          '<div style="font-size:11px;color:#185FA5;font-weight:600;">올해 총 지원</div>'+
-          '<div style="font-size:22px;font-weight:700;color:#185FA5;">'+totalYear+'<span style="font-size:12px;font-weight:400;">회</span></div>'+
-        '</div>'+
-        '<div style="background:#f5f5f3;border-radius:8px;padding:10px 16px;flex:1;text-align:center;">'+
-          '<div style="font-size:11px;color:#555;font-weight:600;">방문 업장수</div>'+
-          '<div style="font-size:22px;font-weight:700;color:#1a1a18;">'+Object.keys(bizYear).length+'<span style="font-size:12px;font-weight:400;">개소</span></div>'+
-        '</div>'+
+    var html='<div style="display:flex;gap:8px;margin-bottom:12px;">'+
+      '<div style="background:#E6F1FB;border-radius:8px;padding:10px 16px;flex:1;text-align:center;">'+
+        '<div style="font-size:11px;color:#185FA5;font-weight:600;">올해 총 지원</div>'+
+        '<div style="font-size:22px;font-weight:700;color:#185FA5;">'+totalYear+'<span style="font-size:12px;font-weight:400;">회</span></div>'+
       '</div>'+
-      '<div style="display:flex;align-items:flex-end;gap:4px;height:80px;padding:0 4px;">'+
-        monthData.map(function(count,mi){
-          var barH=Math.round((count/maxM)*64);
-          var isCur=mi===thisM;
-          return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">'+
-            '<div style="font-size:9px;color:#888;">'+count+'</div>'+
-            '<div style="width:100%;background:'+(isCur?'#185FA5':'#CBD5E1')+';border-radius:3px 3px 0 0;height:'+barH+'px;min-height:'+(count?4:0)+'px;"></div>'+
-            '<div style="font-size:9px;color:'+(isCur?'#185FA5':'#aaa')+';font-weight:'+(isCur?'600':'400')+';">'+monthLabels[mi].replace('월','')+'</div>'+
-          '</div>';
-        }).join('')+
+      '<div style="background:#f5f5f3;border-radius:8px;padding:10px 16px;flex:1;text-align:center;">'+
+        '<div style="font-size:11px;color:#555;font-weight:600;">방문 업장수</div>'+
+        '<div style="font-size:22px;font-weight:700;color:#1a1a18;">'+Object.keys(bizYear).length+'<span style="font-size:12px;font-weight:400;">개소</span></div>'+
       '</div>'+
-      renderNoVisit(0, 11, thisY, '올해');
-
-    // 올해 업장별 카드
-    var yearSups=supports.filter(function(s){ return s.date&&s.date.startsWith(thisY+'')&&s.date<=todayStr; });
-    var yearCount={};
-    yearSups.forEach(function(s){ yearCount[s.bizName]=(yearCount[s.bizName]||0)+1; });
-    var yearList=Object.keys(yearCount).map(function(n){ return {name:n,count:yearCount[n]}; }).sort(function(a,b){ return b.count-a.count; });
-    var maxY=yearList.length?yearList[0].count:1;
-    statEl.innerHTML+='<div style="margin:12px 0;">'+renderCatStat(supports.filter(function(s){ return s.date&&s.date.startsWith(thisY+'')&&s.date<=todayStr; }))+'</div>';
-    statEl.innerHTML+='<div style="font-size:12px;font-weight:600;color:#555;margin:12px 0 8px;">업장별 지원 횟수</div>'+
-      (yearList.length?'<div class="sup-stat-grid">'+yearList.map(function(b){
-        var c=contracts.find(function(x){ return x.name===b.name; }),cid=c?c.id:'';
-        var intensity=Math.round((b.count/maxY)*100);
-        var bg=intensity>66?'#185FA5':intensity>33?'#5B9BD5':'#B8D4EF';
-        var textColor=intensity>33?'#fff':'#185FA5';
-        return '<div class="sup-stat-card"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+' style="background:'+bg+';">'+
-          '<div class="sup-stat-card-name" style="color:'+textColor+';">'+b.name+'</div>'+
-          '<div class="sup-stat-card-count" style="color:'+textColor+';">'+b.count+'<span style="font-size:11px;font-weight:400;margin-left:2px;">회</span></div>'+
-          '</div>';
-      }).join('')+'</div>':'<div style="color:#aaa;font-size:12px;">올해 지원 내역이 없어요</div>');
+    '</div>';
+    // 월별 아코디언
+    html+='<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px;">';
+    monthLabels.forEach(function(mLabel,mi){
+      var mStr=thisY+'-'+String(mi+1).padStart(2,'0');
+      var mItems=supports.filter(function(s){ return s.date&&s.date.startsWith(mStr)&&s.date<=todayStr; });
+      var isCur=mi===thisM;
+      var id='m-detail-'+mi;
+      html+='<div style="border:.5px solid '+(isCur?'#B5D4F4':'#e8e8e4')+';border-radius:8px;overflow:hidden;">'+
+        '<div onclick="toggleCatGroup(\''+id+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;cursor:pointer;background:'+(isCur?'#E6F1FB':'#fafaf8')+';">'+
+          '<span style="font-size:13px;font-weight:600;color:'+(isCur?'#185FA5':'#555')+';">'+mLabel+(isCur?' ● 이번달':mItems.length===0?' <span style=\'font-size:10px;color:#ccc;\'>없음</span>':'')+'</span>'+
+          '<div style="display:flex;align-items:center;gap:6px;">'+
+            (mItems.length?'<span style="font-size:14px;font-weight:700;color:'+(isCur?'#185FA5':'#1a1a18')+';">'+mItems.length+'건</span>':'')+
+            (mItems.length?'<i class="ti ti-chevron-down" id="ico-'+id+'" style="font-size:13px;color:#aaa;transition:transform .2s;"></i>':'')+
+          '</div>'+
+        '</div>'+
+        (mItems.length?'<div id="'+id+'" style="display:'+(isCur?'block':'none')+';">'+
+          '<div style="padding:8px;">'+renderCatStat(mItems)+'</div>'+
+        '</div>':'')+
+      '</div>';
+    });
+    html+='</div>';
+    html+=renderNoVisit(0, 11, thisY, '올해');
+    statEl.innerHTML=html;
+    // 이번달 아이콘 초기화
+    setTimeout(function(){
+      var ico=document.getElementById('ico-m-detail-'+thisM);
+      if(ico) ico.style.transform='rotate(180deg)';
+    },50);
   }
 }
 
