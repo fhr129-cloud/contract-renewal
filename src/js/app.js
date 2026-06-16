@@ -833,9 +833,11 @@ function supItemHtml(s,dateKey){
   var mealStr=s.meals&&s.meals.length?s.meals.join('/'):'';
   var dateStr=s.date||'';
   if(s.dateEnd&&s.dateEnd!==s.date) dateStr+=(' ~ '+s.dateEnd);
+  var c=contracts.find(function(x){ return x.name===s.bizName; });
+  var cid=c?c.id:'';
   return '<div class="cal-sup-item">'+
     '<div style="min-width:0;flex:1;">'+
-      '<div style="font-weight:600;font-size:14px;margin-bottom:6px;'+(contracts.find(function(x){return x.name===s.bizName;})?'color:#185FA5;cursor:pointer;':'')+'"'+(contracts.find(function(x){return x.name===s.bizName;})?(' onclick="var c=contracts.find(function(x){return x.name===\''+s.bizName.replace(/'/g,"\\'")+'\'});if(c){closeCalPopup();goDetail(c.id);}"'):'')+'>'+(s.bizName)+'</div>'+
+      '<div style="font-weight:600;font-size:14px;margin-bottom:6px;'+(cid?'color:#185FA5;cursor:pointer;':'')+'" '+(cid?'onclick="closeCalPopup();setTimeout(function(){goDetail(\''+cid+'\');},50);"':'')+'>'+s.bizName+'</div>'+
       '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">'+
         '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span>'+
         '<span class="badge-cat">'+(s.category||'')+'</span>'+
@@ -846,7 +848,7 @@ function supItemHtml(s,dateKey){
     '</div>'+
     '<div style="display:flex;gap:4px;flex-shrink:0;">'+
       '<button class="btn sm" onclick="editSupportFromPopup(\''+s.id+'\')"><i class="ti ti-edit"></i></button>'+
-      '<button class="btn sm danger" onclick="delSupportFromPopup(\''+s.id+'\',\''+(dateKey||s.date)+'\')"><i class="ti ti-trash"></i></button>'+
+      '<button class="btn sm danger" onclick="delSupportFromPopup(\''+s.id+'\')"><i class="ti ti-trash"></i></button>'+
     '</div></div>';
 }
 
