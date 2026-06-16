@@ -302,7 +302,7 @@ function showHistForm(idx,r) {
       '<h4 style="font-size:14px;font-weight:600;">'+(isNew?'이력 추가':(idx===0?'최초':idx+'차')+' 수정')+'</h4>'+
       '<button class="btn sm" onclick="closeHistForm()"><i class="ti ti-x"></i></button></div>'+
     '<div style="display:flex;flex-direction:column;gap:10px;">'+
-      (isNew?'<div class="form-group"><label>구분</label><select id="hf-label"><option value="최초">최초</option>'+[1,2,3,4,5,6,7,8,9,10].map(function(n){ return '<option value="'+n+'차">'+n+'차</option>'; }).join('')+'<option value="현재">현재(최신)</option></select></div>':'')+
+      
       '<div class="form-group"><label>시작일</label><input type="date" id="hf-start" value="'+(r.startDate||'')+'"></div>'+
       '<div class="form-group"><label>종료일</label><input type="date" id="hf-end" value="'+(r.endDate||'')+'"></div>'+
       '<div class="form-group"><label>단가 구분</label><select id="hf-priceType">'+
