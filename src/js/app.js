@@ -726,7 +726,8 @@ window.openCalPopup=function(dateKey){
   supports.forEach(function(s){
     if(!s.date||ids[s.id]) return;
     var start=s.date.slice(0,10);
-    var end=s.dateEnd?s.dateEnd.slice(0,10):start;
+    var end=(s.dateEnd&&s.dateEnd.trim())?s.dateEnd.slice(0,10):start;
+    console.log(s.bizName, 'start:',start,'end:',end,'dateKey:',dateKey,'match:',dateKey>=start&&dateKey<=end);
     if(dateKey>=start&&dateKey<=end){
       ids[s.id]=true;
       items.push(s);
