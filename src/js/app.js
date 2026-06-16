@@ -591,7 +591,8 @@ function renderCalendar(){
   if(calView==='week'){
     var base=new Date(); base.setDate(base.getDate()-base.getDay()+1+(weekOffset*7));
     var end=new Date(base); end.setDate(base.getDate()+6);
-    if(el) el.textContent=base.getMonth()+1+'월 '+base.getDate()+'일 ~ '+end.getMonth()+1+'월 '+end.getDate()+'일';
+    var baseM=base.getMonth()+1, endM=end.getMonth()+1;
+    if(el) el.textContent=(baseM===endM ? baseM+'월 '+base.getDate()+'~'+end.getDate()+'일' : baseM+'월 '+base.getDate()+'일 ~ '+endM+'월 '+end.getDate()+'일');
     renderWeekView(); return;
   }
   if(el) el.textContent=calYear+'년 '+(calMonth+1)+'월';
@@ -720,7 +721,12 @@ function renderSupportList(){
 
 // ── 달력 팝업 ──────────────────────────
 window.openCalPopup=function(dateKey){
-  var items=supports.filter(function(s){ return s.date&&s.date.slice(0,10)===dateKey; });
+  var items=supports.filter(function(s){
+    if(!s.date) return false;
+    var start=s.date.slice(0,10);
+    var end=s.dateEnd?s.dateEnd.slice(0,10):start;
+    return dateKey>=start&&dateKey<=end;
+  });
   if(!items.length) return;
   var html=items.map(function(s){
     var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
