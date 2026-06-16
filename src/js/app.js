@@ -777,7 +777,7 @@ function renderSupportList(){
       (s.content?'<div style="font-size:12px;color:#555;background:#f9f9f7;padding:5px 8px;border-radius:6px;">'+s.content+'</div>':'')+
       '</div>';
   }
-  var header='<div class="sup-row-header"><span>날짜</span><span>끼니</span><span>업장</span><span>지원자</span><span>카테고리 · 내용</span><span></span></div>';
+  var header='';
   var html='';
   if(upcoming.length){
     html+='<div style="padding:8px 12px;font-size:12px;font-weight:600;color:#185FA5;background:#E6F1FB;border-bottom:.5px solid #B5D4F4;">📅 지원예정 '+upcoming.length+'건</div>';
