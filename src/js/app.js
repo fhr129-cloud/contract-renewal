@@ -721,17 +721,16 @@ function renderSupportList(){
 
 // ── 달력 팝업 ──────────────────────────
 window.openCalPopup=function(dateKey){
-  var seen={};
-  var items=supports.filter(function(s){
-    if(!s.date) return false;
+  var items=[];
+  var ids={};
+  supports.forEach(function(s){
+    if(!s.date||ids[s.id]) return;
     var start=s.date.slice(0,10);
     var end=s.dateEnd?s.dateEnd.slice(0,10):start;
     if(dateKey>=start&&dateKey<=end){
-      if(seen[s.id]) return false;
-      seen[s.id]=true;
-      return true;
+      ids[s.id]=true;
+      items.push(s);
     }
-    return false;
   });
   if(!items.length) return;
   var html=items.map(function(s){
@@ -762,7 +761,7 @@ window.openCalPopup=function(dateKey){
     popup.addEventListener('click',function(e){ if(e.target===popup) closeCalPopup(); });
     document.body.appendChild(popup);
   }
-  document.getElementById('cal-popup-title').textContent=dateKey+' 지원 내역';
+  document.getElementById('cal-popup-title').textContent=dateKey+' 일정 ('+items.length+'건)';
   document.getElementById('cal-popup-body').innerHTML=html;
   popup.classList.add('open');
 };
