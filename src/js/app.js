@@ -15,6 +15,7 @@ var calView = 'week';
 var staffFilter = null;
 var ssOptions = [];
 var currentModalTab = 'basic';
+var weekOffset = 0;
 window.detailId = null;
 
 var STAFF_COLORS = {
@@ -430,7 +431,7 @@ function renderDashboard() {
   mk('card-ok','green','ti-check','여유',counts.ok);
 
   var todayStr=now.toISOString().slice(0,10);
-  var todayItems=supports.filter(function(s){ return s.date&&s.date.slice(0,10)===todayStr; }).sort(function(a,b){ return (a.timeStart||'').localeCompare(b.timeStart||''); });
+  var todayItems=supports.filter(function(s){ return s.date&&s.date.slice(0,10)===todayStr; });
   var schedEl=document.getElementById('dash-today-schedule');
   if(schedEl){
     schedEl.innerHTML=todayItems.length?todayItems.map(function(s){
@@ -567,7 +568,6 @@ window.setStaffFilter=function(name){
   var allBtn=document.getElementById('filter-all'); if(allBtn) allBtn.classList.toggle('active-filter',!name);
   renderCalendar();
 };
-var weekOffset=0;
 window.changeMonth=function(dir){
   if(calView==='week'){
     if(dir===0){ weekOffset=0; }
@@ -591,8 +591,8 @@ function renderCalendar(){
   if(calView==='week'){
     var base=new Date(); base.setDate(base.getDate()-base.getDay()+1+(weekOffset*7));
     var end=new Date(base); end.setDate(base.getDate()+6);
-    var baseM=base.getMonth()+1, endM=end.getMonth()+1;
-    if(el) el.textContent=(baseM===endM ? baseM+'월 '+base.getDate()+'~'+end.getDate()+'일' : baseM+'월 '+base.getDate()+'일 ~ '+endM+'월 '+end.getDate()+'일');
+    var baseM=base.getMonth()+1,endM=end.getMonth()+1;
+    if(el) el.textContent=(baseM===endM?baseM+'월 '+base.getDate()+'~'+end.getDate()+'일':baseM+'월 '+base.getDate()+'일 ~ '+endM+'월 '+end.getDate()+'일');
     renderWeekView(); return;
   }
   if(el) el.textContent=calYear+'년 '+(calMonth+1)+'월';
@@ -602,8 +602,8 @@ function renderMonthView(){
   var filtered=filterSupports(),dayMap={};
   filtered.forEach(function(s){
     if(!s.date) return;
-    var start=s.date.slice(0,10), end=s.dateEnd?s.dateEnd.slice(0,10):start;
-    var cur=new Date(start), endD=new Date(end);
+    var start=s.date.slice(0,10),end=s.dateEnd?s.dateEnd.slice(0,10):start;
+    var cur=new Date(start),endD=new Date(end);
     while(cur<=endD){
       var k=cur.toISOString().slice(0,10);
       if(!dayMap[k]) dayMap[k]=[];
@@ -611,7 +611,6 @@ function renderMonthView(){
       cur.setDate(cur.getDate()+1);
     }
   });
-  Object.keys(dayMap).forEach(function(k){ dayMap[k].sort(function(a,b){ return (a.timeStart||'').localeCompare(b.timeStart||''); }); });
   var firstDay=new Date(calYear,calMonth,1).getDay(),lastDate=new Date(calYear,calMonth+1,0).getDate();
   var today=new Date().toISOString().slice(0,10);
   var html='<div class="cal-grid">';
@@ -620,21 +619,24 @@ function renderMonthView(){
   for(var d=1;d<=lastDate;d++){
     var key=calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
     var items=dayMap[key]||[],isToday=key===today;
+    // 중복 제거
+    var seen={},uniqueItems=[];
+    items.forEach(function(s){ if(!seen[s.id]){seen[s.id]=true;uniqueItems.push(s);} });
     html+='<div class="cal-day'+(isToday?' today':'')+'" onclick="openCalPopup(\''+key+'\')">'+
       '<div class="cal-num">'+d+'</div>'+
-      items.slice(0,3).map(function(s){
+      uniqueItems.slice(0,3).map(function(s){
         var staffStr=s.staffNames&&s.staffNames.length?s.staffNames[0]:(s.staffName||'');
         var cls=getStaffColor(staffStr);
         return '<div class="cal-event '+(cls||'')+'">'+s.bizName+(staffStr?'/'+staffStr.split(' ')[0]:'')+'</div>';
       }).join('')+
-      (items.length>3?'<div class="cal-more">+'+(items.length-3)+'건</div>':'')+
+      (uniqueItems.length>3?'<div class="cal-more">+'+(uniqueItems.length-3)+'건</div>':'')+
       '<div class="cal-dots">'+
-        items.slice(0,5).map(function(s){
+        uniqueItems.slice(0,5).map(function(s){
           var staffStr=s.staffNames&&s.staffNames.length?s.staffNames[0]:(s.staffName||'');
           var cls=getStaffColor(staffStr);
           return '<div class="cal-dot '+(cls||'')+'" style="'+(cls?'':'background:#aaa;')+'"></div>';
         }).join('')+
-        (items.length>5?'<div style="font-size:8px;color:#aaa;line-height:6px;">+</div>':'')+
+        (uniqueItems.length>5?'<div style="font-size:8px;color:#aaa;line-height:6px;">+</div>':'')+
       '</div>'+
       '</div>';
   }
@@ -662,7 +664,7 @@ function renderWeekView(){
       var dStr=d.toISOString().slice(0,10),isToday=dStr===todayStr;
       var items=filtered.filter(function(s){
         if(!s.date) return false;
-        var start=s.date.slice(0,10), end=s.dateEnd?s.dateEnd.slice(0,10):start;
+        var start=s.date.slice(0,10),end=s.dateEnd?s.dateEnd.slice(0,10):start;
         if(dStr<start||dStr>end) return false;
         var names=s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]);
         return names.some(function(n){ return n&&n.includes(staff.split(' ')[0]); });
@@ -678,6 +680,71 @@ function renderWeekView(){
   var calEl=document.getElementById('calendar'); if(calEl) calEl.innerHTML=html;
 }
 
+// ── 팝업 공통 헬퍼 ──────────────────────────
+function getOrCreatePopup(){
+  var popup=document.getElementById('cal-popup');
+  if(!popup){
+    popup=document.createElement('div'); popup.className='cal-popup'; popup.id='cal-popup';
+    popup.innerHTML='<div class="cal-popup-inner"><div class="cal-popup-header"><h4 id="cal-popup-title"></h4><button class="btn sm" onclick="closeCalPopup()"><i class="ti ti-x"></i></button></div><div class="cal-popup-body" id="cal-popup-body"></div></div>';
+    popup.addEventListener('click',function(e){ if(e.target===popup) closeCalPopup(); });
+    document.body.appendChild(popup);
+  }
+  return popup;
+}
+function supItemHtml(s,dateKey){
+  var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
+  var mealStr=s.meals&&s.meals.length?s.meals.join('/'):'';
+  var dateStr=s.date||'';
+  if(s.dateEnd&&s.dateEnd!==s.date) dateStr+=(' ~ '+s.dateEnd);
+  return '<div class="cal-sup-item">'+
+    '<div style="min-width:0;flex:1;">'+
+      '<div style="font-weight:600;font-size:14px;margin-bottom:6px;">'+s.bizName+'</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">'+
+        '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span>'+
+        '<span class="badge-cat">'+(s.category||'')+'</span>'+
+        (mealStr?'<span class="badge-cat">'+mealStr+'</span>':'')+
+      '</div>'+
+      '<div style="font-size:12px;color:#888;margin-bottom:4px;">📅 '+dateStr+'</div>'+
+      (s.content?'<div style="font-size:12px;color:#555;background:#f5f5f3;padding:6px 8px;border-radius:6px;">'+s.content+'</div>':'')+
+    '</div>'+
+    '<div style="display:flex;gap:4px;flex-shrink:0;">'+
+      '<button class="btn sm" onclick="editSupportFromPopup(\''+s.id+'\')"><i class="ti ti-edit"></i></button>'+
+      '<button class="btn sm danger" onclick="delSupportFromPopup(\''+s.id+'\',\''+(dateKey||s.date)+'\')"><i class="ti ti-trash"></i></button>'+
+    '</div></div>';
+}
+
+// ── 달력 날짜 클릭 팝업 (해당 날짜에 걸친 모든 일정) ──────────────────────────
+window.openCalPopup=function(dateKey){
+  var items=[],ids={};
+  supports.forEach(function(s){
+    if(!s.date||ids[s.id]) return;
+    var start=s.date.slice(0,10),end=(s.dateEnd&&s.dateEnd.trim())?s.dateEnd.slice(0,10):start;
+    if(dateKey>=start&&dateKey<=end){ ids[s.id]=true; items.push(s); }
+  });
+  if(!items.length) return;
+  var popup=getOrCreatePopup();
+  document.getElementById('cal-popup-title').textContent=dateKey+' 일정 ('+items.length+'건)';
+  document.getElementById('cal-popup-body').innerHTML=items.map(function(s){ return supItemHtml(s,dateKey); }).join('');
+  popup.classList.add('open');
+};
+
+// ── 주간 뷰 이벤트 클릭 팝업 (해당 일정만) ──────────────────────────
+window.openCalPopupSingle=function(supportId){
+  var s=supports.find(function(x){ return x.id===supportId; });
+  if(!s) return;
+  var popup=getOrCreatePopup();
+  document.getElementById('cal-popup-title').textContent=s.bizName+' 일정';
+  document.getElementById('cal-popup-body').innerHTML=supItemHtml(s,s.date);
+  popup.classList.add('open');
+};
+
+window.closeCalPopup=function(){ var p=document.getElementById('cal-popup'); if(p) p.classList.remove('open'); };
+window.editSupportFromPopup=function(id){ closeCalPopup(); window.editSupport(id); };
+window.delSupportFromPopup=async function(id){
+  if(!confirm('삭제할까요?')) return;
+  try{ await deleteSupport(id); showToast('삭제되었습니다.'); closeCalPopup(); } catch(e){ showToast('오류 발생'); }
+};
+
 // ── 지원이력 목록 ──────────────────────────
 function renderSupportList(){
   var listEl=document.getElementById('support-list'); if(!listEl) return;
@@ -687,7 +754,6 @@ function renderSupportList(){
   var past=sorted.filter(function(s){ return (s.date||'')<=today; });
   var el=document.getElementById('sup-list-count'); if(el) el.textContent=sorted.length+'건';
   if(!sorted.length){ listEl.innerHTML='<div class="empty-state" style="padding:20px;"><i class="ti ti-calendar"></i>지원 이력이 없어요</div>'; return; }
-
   function rowHtml(s){
     var c=contracts.find(function(x){ return x.name===s.bizName; }),cid=c?c.id:'';
     var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
@@ -705,7 +771,6 @@ function renderSupportList(){
         '<button class="btn sm danger" onclick="delSupport(\''+s.id+'\')" ><i class="ti ti-trash"></i></button>'+
       '</span></div>';
   }
-
   var header='<div class="sup-row-header"><span>날짜</span><span>끼니</span><span>업장</span><span>지원자</span><span>카테고리 · 내용</span><span></span></div>';
   var html='';
   if(upcoming.length){
@@ -718,94 +783,6 @@ function renderSupportList(){
   }
   listEl.innerHTML=html;
 }
-
-// ── 달력 팝업 ──────────────────────────
-window.openCalPopup=function(dateKey){
-  var items=[];
-  var ids={};
-  supports.forEach(function(s){
-    if(!s.date||ids[s.id]) return;
-    var start=s.date.slice(0,10);
-    var end=(s.dateEnd&&s.dateEnd.trim())?s.dateEnd.slice(0,10):start;
-    
-    if(dateKey>=start&&dateKey<=end){
-      ids[s.id]=true;
-      items.push(s);
-    }
-  });
-  window.openCalPopupSingle=function(supportId){
-  var s=supports.find(function(x){ return x.id===supportId; });
-  if(!s) return;
-  var items=[s];
-  var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
-  var mealStr=s.meals&&s.meals.length?s.meals.join('/'):'';
-  var dateStr=s.date||'';
-  if(s.dateEnd&&s.dateEnd!==s.date) dateStr+=(' ~ '+s.dateEnd);
-  var html='<div class="cal-sup-item">'+
-    '<div style="min-width:0;flex:1;">'+
-      '<div style="font-weight:600;font-size:14px;margin-bottom:6px;">'+s.bizName+'</div>'+
-      '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">'+
-        '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span>'+
-        '<span class="badge-cat">'+(s.category||'')+'</span>'+
-        (mealStr?'<span class="badge-cat">'+mealStr+'</span>':'')+
-      '</div>'+
-      '<div style="font-size:12px;color:#888;margin-bottom:4px;">📅 '+dateStr+'</div>'+
-      (s.content?'<div style="font-size:12px;color:#555;background:#f5f5f3;padding:6px 8px;border-radius:6px;">'+s.content+'</div>':'')+
-    '</div>'+
-    '<div style="display:flex;gap:4px;flex-shrink:0;">'+
-      '<button class="btn sm" onclick="editSupportFromPopup(\''+s.id+'\')"><i class="ti ti-edit"></i></button>'+
-      '<button class="btn sm danger" onclick="delSupportFromPopup(\''+s.id+'\',\''+s.date+'\')"><i class="ti ti-trash"></i></button>'+
-    '</div></div>';
-  var popup=document.getElementById('cal-popup');
-  if(!popup){
-    popup=document.createElement('div'); popup.className='cal-popup'; popup.id='cal-popup';
-    popup.innerHTML='<div class="cal-popup-inner"><div class="cal-popup-header"><h4 id="cal-popup-title"></h4><button class="btn sm" onclick="closeCalPopup()"><i class="ti ti-x"></i></button></div><div class="cal-popup-body" id="cal-popup-body"></div></div>';
-    popup.addEventListener('click',function(e){ if(e.target===popup) closeCalPopup(); });
-    document.body.appendChild(popup);
-  }
-  document.getElementById('cal-popup-title').textContent=s.bizName+' 일정';
-  document.getElementById('cal-popup-body').innerHTML=html;
-  popup.classList.add('open');
-};
-  if(!items.length) return;
-  var html=items.map(function(s){
-    var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
-   var mealStr=s.meals&&s.meals.length?s.meals.join('/'):'';
-    var dateStr=s.date||'';
-    if(s.dateEnd&&s.dateEnd!==s.date) dateStr+=(' ~ '+s.dateEnd);
-    return '<div class="cal-sup-item">'+
-      '<div style="min-width:0;flex:1;">'+
-        '<div style="font-weight:600;font-size:14px;margin-bottom:6px;">'+s.bizName+'</div>'+
-        '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">'+
-          '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span>'+
-          '<span class="badge-cat">'+(s.category||'')+'</span>'+
-          (mealStr?'<span class="badge-cat">'+mealStr+'</span>':'')+
-        '</div>'+
-        '<div style="font-size:12px;color:#888;margin-bottom:4px;">📅 '+dateStr+'</div>'+
-        (s.content?'<div style="font-size:12px;color:#555;background:#f5f5f3;padding:6px 8px;border-radius:6px;">'+s.content+'</div>':'')+
-      '</div>'+
-      '<div style="display:flex;gap:4px;flex-shrink:0;">'+
-        '<button class="btn sm" onclick="editSupportFromPopup(\''+s.id+'\')"><i class="ti ti-edit"></i></button>'+
-        '<button class="btn sm danger" onclick="delSupportFromPopup(\''+s.id+'\',\''+dateKey+'\')"><i class="ti ti-trash"></i></button>'+
-      '</div></div>';
-  }).join('');
-  var popup=document.getElementById('cal-popup');
-  if(!popup){
-    popup=document.createElement('div'); popup.className='cal-popup'; popup.id='cal-popup';
-    popup.innerHTML='<div class="cal-popup-inner"><div class="cal-popup-header"><h4 id="cal-popup-title"></h4><button class="btn sm" onclick="closeCalPopup()"><i class="ti ti-x"></i></button></div><div class="cal-popup-body" id="cal-popup-body"></div></div>';
-    popup.addEventListener('click',function(e){ if(e.target===popup) closeCalPopup(); });
-    document.body.appendChild(popup);
-  }
-  document.getElementById('cal-popup-title').textContent=dateKey+' 일정 ('+items.length+'건)';
-  document.getElementById('cal-popup-body').innerHTML=html;
-  popup.classList.add('open');
-};
-window.closeCalPopup=function(){ var p=document.getElementById('cal-popup'); if(p) p.classList.remove('open'); };
-window.editSupportFromPopup=function(id){ closeCalPopup(); window.editSupport(id); };
-window.delSupportFromPopup=async function(id,dateKey){
-  if(!confirm('삭제할까요?')) return;
-  try{ await deleteSupport(id); showToast('삭제되었습니다.'); closeCalPopup(); } catch(e){ showToast('오류 발생'); }
-};
 
 // ── 검색 드롭다운 ──────────────────────────
 function initSS(){ renderSSOptions(''); }
