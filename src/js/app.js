@@ -822,8 +822,11 @@ function filterSupports(){
 function renderCalendar(){
   var el=document.getElementById('cal-title');
   if(calView==='week'){
-    var base=new Date(); base.setDate(base.getDate()-base.getDay()+1+(weekOffset*7));
-    var end=new Date(base); end.setDate(base.getDate()+6);
+    var today2=new Date();
+    var dow2=today2.getDay();
+    var diff2=dow2===0?-6:1-dow2;
+    var base=new Date(today2.getFullYear(),today2.getMonth(),today2.getDate()+diff2+(weekOffset*7));
+    var end=new Date(base.getFullYear(),base.getMonth(),base.getDate()+6);
     var baseM=base.getMonth()+1,endM=end.getMonth()+1;
     if(el) el.textContent=(baseM===endM?baseM+'월 '+base.getDate()+'~'+end.getDate()+'일':baseM+'월 '+base.getDate()+'일 ~ '+endM+'월 '+end.getDate()+'일');
     renderWeekView(); return;
@@ -877,10 +880,15 @@ function renderMonthView(){
   var calEl=document.getElementById('calendar'); if(calEl) calEl.innerHTML=html;
 }
 function renderWeekView(){
-  var today=new Date(),startOfWeek=new Date(today);
-  startOfWeek.setDate(today.getDate()-today.getDay()+1+(weekOffset*7));
+ var today=new Date(),startOfWeek=new Date(today);
+  var dow=today.getDay();
+  var diff=dow===0?-6:1-dow;
+  startOfWeek.setDate(today.getDate()+diff+(weekOffset*7));
   var days=[];
-  for(var i=0;i<7;i++){ var d=new Date(startOfWeek); d.setDate(startOfWeek.getDate()+i); days.push(d); }
+  for(var i=0;i<7;i++){
+    var d=new Date(startOfWeek.getFullYear(),startOfWeek.getMonth(),startOfWeek.getDate()+i);
+    days.push(d);
+  }
   var todayStr=today.toISOString().slice(0,10);
   var filtered=filterSupports();
   var staffOrder=['박주형 본부장','김재희 차장','손도란 대리','이소영 주임','김상준 주임','안은재 주임','견병록 매니저','임성창 차장','김동현 대리'];
