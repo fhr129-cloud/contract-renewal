@@ -490,7 +490,6 @@ function renderDashboard() {
   var uncaredC=document.getElementById('dash-uncared-count');
   if(uncaredC){ uncaredC.textContent=urgentNoCare.length+'건'; uncaredC.style.background=urgentNoCare.length?'#FCEBEB':''; uncaredC.style.color=urgentNoCare.length?'#A32D2D':''; }
 
-  // 지원 통계
   renderSupStat('month');
 }
 
