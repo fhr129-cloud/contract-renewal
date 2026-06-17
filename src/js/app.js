@@ -454,10 +454,14 @@ function renderDashboard() {
   });
   var schedEl=document.getElementById('dash-today-schedule');
   if(schedEl){
+    var staffOrderDash=['박주형','김재희','손도란','이소영','김상준','안은재','견병록','임성창','김동현'];
     var sortedItems=todayItems.slice().sort(function(a,b){
-      var an=(a.staffNames&&a.staffNames.length?a.staffNames[0]:(a.staffName||''));
-      var bn=(b.staffNames&&b.staffNames.length?b.staffNames[0]:(b.staffName||''));
-      return an.localeCompare(bn,'ko');
+      var an=a.staffNames&&a.staffNames.length?a.staffNames[0]:(a.staffName||'');
+      var bn=b.staffNames&&b.staffNames.length?b.staffNames[0]:(b.staffName||'');
+      var ai=staffOrderDash.findIndex(function(n){ return an.includes(n); });
+      var bi=staffOrderDash.findIndex(function(n){ return bn.includes(n); });
+      if(ai===-1) ai=99; if(bi===-1) bi=99;
+      return ai-bi;
     });
     schedEl.innerHTML=sortedItems.length?sortedItems.map(function(s){
       var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
