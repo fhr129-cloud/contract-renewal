@@ -347,6 +347,13 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
       <div class="today-schedule-title"><i class="ti ti-clock"></i> 오늘 팀 일정</div>
       <div id="dash-today-schedule"></div>
     </div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header">
+        <span class="card-title"><i class="ti ti-bell" style="color:#185FA5;"></i> 최근 계약 업데이트</span>
+        <span style="font-size:11px;color:#aaa;">최근 30일</span>
+      </div>
+      <div class="card-body" style="padding:0 16px;" id="dash-recent-updates"></div>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
       <div class="card">
         <div class="card-header"><span class="card-title"><i class="ti ti-calendar-event" style="color:#854F0B;"></i> 이번달 만료 예정</span><span id="dash-thismonth-count" class="count-badge"></span></div>
@@ -356,13 +363,6 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
         <div class="card-header"><span class="card-title"><i class="ti ti-calendar-event" style="color:#185FA5;"></i> 다음달 만료 예정</span><span id="dash-nextmonth-count" class="count-badge"></span></div>
         <div class="card-body" style="padding:0 16px;" id="dash-nextmonth"></div>
       </div>
-    </div>
-    <div class="card" style="margin-bottom:16px;">
-      <div class="card-header">
-        <span class="card-title"><i class="ti ti-bell" style="color:#185FA5;"></i> 최근 계약 업데이트</span>
-        <span style="font-size:11px;color:#aaa;">최근 30일</span>
-      </div>
-      <div class="card-body" style="padding:0 16px;" id="dash-recent-updates"></div>
     </div>
   </div>
 
