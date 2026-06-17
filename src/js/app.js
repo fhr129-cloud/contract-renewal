@@ -1093,6 +1093,7 @@ window.setBizTab=function(tab){
   var idx={team:0,resp:1,region:2},btns=document.querySelectorAll('.tab-btn');
   if(btns[idx[tab]!==undefined?idx[tab]:0]) btns[idx[tab]!==undefined?idx[tab]:0].classList.add('active');
   if(mapInstance&&tab!=='region'){mapInstance.remove();mapInstance=null;}
+  document.querySelectorAll('.team-body').forEach(function(b){ b.classList.remove('open'); });
   renderBizTab();
 };
 window.toggleTeam=function(id){
@@ -1104,6 +1105,7 @@ window.toggleTeam=function(id){
 window.renderBizTab=function(){
   var q=(document.getElementById('biz-search')?document.getElementById('biz-search').value:'').toLowerCase();
   var el=document.getElementById('biz-content'); if(!el) return;
+  el.innerHTML='';
   function bizCard(c){
     var s=calcStatus(c),d=dDiff(c.endDate),col=s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':s==='near'?'#854F0B':'#3B6D11';
     var nutriStr=c.nutritionists&&c.nutritionists.length?c.nutritionists.map(function(nt){ return nt.name; }).join(' / '):'';
