@@ -252,7 +252,12 @@ function setSelectedStaff(names) {
   if(!names||!names.length) return;
   document.querySelectorAll('#staff-chip-wrap .staff-chip').forEach(function(c){ if(names.some(function(n){ return n===c.textContent.trim(); })) c.classList.add('selected'); });
 }
-
+window.toggleSpecialMenu=function(cat){
+  var wrap=document.getElementById('special-menu-wrap');
+  if(!wrap) return;
+  wrap.style.display=cat==='특식지원'?'block':'none';
+  if(cat!=='특식지원'){ var inp=document.getElementById('sup-special-menu'); if(inp) inp.value=''; }
+};
 // ── 모달 탭 ──────────────────────────
 window.switchModalTab = function(tab) {
   currentModalTab=tab;
@@ -1034,6 +1039,8 @@ window.openSupportModal=function(){
   if(document.getElementById('sup-date-end')) document.getElementById('sup-date-end').value='';
   document.getElementById('sup-cat').value='';
   document.getElementById('sup-content').value='';
+  var smWrap=document.getElementById('special-menu-wrap'); if(smWrap) smWrap.style.display='none';
+  var smInput=document.getElementById('sup-special-menu'); if(smInput) smInput.value='';
   var nutriEl=document.getElementById('sup-nutri-info'); if(nutriEl) nutriEl.style.display='none';
   resetMealChips(); resetStaffChips();
   document.getElementById('sup-submit-btn').innerHTML='<i class="ti ti-check"></i> 등록';
@@ -1048,6 +1055,8 @@ window.submitSupport=async function(){
   var dateEnd=document.getElementById('sup-date-end')?document.getElementById('sup-date-end').value:'';
   var meals=getSelectedMeals(),staffNames=getSelectedStaff();
   var cat=document.getElementById('sup-cat').value,content=document.getElementById('sup-content').value.trim();
+  var specialMenu=document.getElementById('sup-special-menu')?document.getElementById('sup-special-menu').value.trim():'';
+  if(cat==='특식지원'&&specialMenu) content=(specialMenu+(content?' / '+content:''));
   if(!biz||!date||!cat){ showToast('업장, 일자, 카테고리는 필수예요.'); return; }
   var data={bizName:biz,date:date,dateEnd:dateEnd,timeStart:'',timeEnd:'',meals:meals,staffName:staffNames.join(', '),staffNames:staffNames,category:cat,content:content};
   try{
@@ -1065,6 +1074,7 @@ window.editSupport=function(id){
   document.getElementById('sup-date').value=s.date||'';
   if(document.getElementById('sup-date-end')) document.getElementById('sup-date-end').value=s.dateEnd||'';
   document.getElementById('sup-cat').value=s.category||'';
+  toggleSpecialMenu(s.category||'');
   document.getElementById('sup-content').value=s.content||'';
   setSelectedMeals(s.meals||[]);
   setSelectedStaff(s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]));
