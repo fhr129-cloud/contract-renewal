@@ -449,7 +449,12 @@ function renderDashboard() {
   var todayItems=supports.filter(function(s){ return s.date&&s.date.slice(0,10)===todayStr; });
   var schedEl=document.getElementById('dash-today-schedule');
   if(schedEl){
-    schedEl.innerHTML=todayItems.length?todayItems.map(function(s){
+    var sortedItems=todayItems.slice().sort(function(a,b){
+      var an=(a.staffNames&&a.staffNames.length?a.staffNames[0]:(a.staffName||''));
+      var bn=(b.staffNames&&b.staffNames.length?b.staffNames[0]:(b.staffName||''));
+      return an.localeCompare(bn,'ko');
+    });
+    schedEl.innerHTML=sortedItems.length?sortedItems.map(function(s){
       var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
       return '<div class="today-item" onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;">'+
         '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span>'+
@@ -584,11 +589,11 @@ function renderCatStat(list){
             var dateStr=s.date||'';
             if(s.dateEnd&&s.dateEnd!==s.date) dateStr+='~'+s.dateEnd.slice(5);
             return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:.5px solid #f0f0ec;gap:8px;'+(cid?'cursor:pointer;':'')+'"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+'>'+
-              '<span style="font-size:13px;font-weight:500;'+(cid?'color:#185FA5;':'')+'">'+s.bizName+'</span>'+
-              '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'+
+              '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">'+
+                '<span style="font-size:13px;font-weight:500;'+(cid?'color:#185FA5;':'')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+s.bizName+'</span>'+
                 '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr.split(' ')[0]+'</span>'+
-                '<span style="font-size:11px;color:#aaa;">'+dateStr+'</span>'+
               '</div>'+
+              '<span style="font-size:11px;color:#aaa;flex-shrink:0;">'+dateStr+'</span>'+
             '</div>';
           }).join('')+
         '</div>'+
