@@ -446,7 +446,12 @@ function renderDashboard() {
   mk('card-ok','green','ti-check','여유',counts.ok);
 
   var todayStr=localDateStr(now);
-  var todayItems=supports.filter(function(s){ return s.date&&s.date.slice(0,10)===todayStr; });
+  var todayItems=supports.filter(function(s){
+    if(!s.date) return false;
+    var start=s.date.slice(0,10);
+    var end=s.dateEnd?s.dateEnd.slice(0,10):start;
+    return todayStr>=start&&todayStr<=end;
+  });
   var schedEl=document.getElementById('dash-today-schedule');
   if(schedEl){
     var sortedItems=todayItems.slice().sort(function(a,b){
