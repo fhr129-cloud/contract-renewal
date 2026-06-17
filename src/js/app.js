@@ -343,6 +343,16 @@ window.saveHistForm=async function(idx){
   };
   if(idx===-1){ records.push(newRecord); } else records[idx]=newRecord;
   await saveHistRecords(records,c?c.name:'');
+  // 현재 이력(마지막)으로 계약 endDate, price, priceType 업데이트
+  var lastRecord=records[records.length-1];
+  if(lastRecord&&lastRecord.endDate){
+    await updateContract(editingId,{
+      startDate:lastRecord.startDate||c.startDate,
+      endDate:lastRecord.endDate,
+      price:lastRecord.price||0,
+      priceType:lastRecord.priceType||'per-meal'
+    });
+  }
   closeHistForm(); showToast(idx===-1?'이력이 추가되었습니다.':'이력이 수정되었습니다.');
   renderHistTab();
   if(c&&document.getElementById('detail-screen').style.display==='flex') renderDetail(c);
