@@ -747,9 +747,15 @@ function renderDetail(c) {
     var staffStr=sp.staffNames&&sp.staffNames.length?sp.staffNames.join(', '):(sp.staffName||'');
     var dateStr=sp.date||'';
     if(sp.dateEnd&&sp.dateEnd!==sp.date) dateStr+=(' ~ '+sp.dateEnd);
-    return '<div class="sup-hist-row"><span class="badge-cat">'+(sp.category||'')+'</span>'+
+    return '<div class="sup-hist-row">'+
+      '<span class="badge-cat">'+(sp.category||'')+'</span>'+
       '<span style="font-size:12px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+dateStr+(staffStr?' · '+staffStr:'')+'</span>'+
-      '<span style="font-size:12px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">'+(sp.content||'')+'</span></div>';
+      '<span style="font-size:12px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;">'+(sp.content||'')+'</span>'+
+      '<div style="display:flex;gap:4px;flex-shrink:0;">'+
+        '<button class="btn sm" onclick="editSupport(\''+sp.id+'\')"><i class="ti ti-edit"></i></button>'+
+        '<button class="btn sm danger" onclick="delSupportFromDetail(\''+sp.id+'\',\''+c.id+'\')"><i class="ti ti-trash"></i></button>'+
+      '</div>'+
+    '</div>';
   }).join(''):'<div style="color:#aaa;font-size:13px;padding:12px 0;">지원 이력 없음</div>';
   document.getElementById('detail-body').innerHTML=
     '<div class="detail-section">'+
@@ -1071,7 +1077,15 @@ window.delSupport=async function(id){
   if(!confirm('삭제할까요?')) return;
   try{ await deleteSupport(id); showToast('삭제되었습니다.'); } catch(e){ showToast('오류 발생'); }
 };
-
+window.delSupportFromDetail=async function(id,contractId){
+  if(!confirm('삭제할까요?')) return;
+  try{
+    await deleteSupport(id);
+    showToast('삭제되었습니다.');
+    var c=contracts.find(function(x){ return x.id===contractId; });
+    if(c) renderDetail(c);
+  } catch(e){ showToast('오류 발생'); }
+};
 // ── FS 사업장 현황 ──────────────────────────
 window.setBizTab=function(tab){
   currentBizTab=tab;
