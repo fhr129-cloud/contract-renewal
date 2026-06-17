@@ -99,7 +99,9 @@ export async function seedIfEmpty() {
 }
 
 async function seedHistory() {
-  // SEED_HISTORY already imported at top
+  // 이미 히스토리가 있으면 스킵
+  const histSnap = await getDocs(collection(db,'history'));
+  if(histSnap.size > 0) return;
   const contractSnap = await getDocs(collection(db,'contracts'));
   const contractMap = {};
   contractSnap.docs.forEach(function(d) {
