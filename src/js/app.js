@@ -1035,8 +1035,14 @@ window.delSupportFromPopup=async function(id){
 function initSS(){ renderSSOptions(''); }
 function renderSSOptions(q){
   var dd=document.getElementById('ss-dropdown'); if(!dd) return;
+  var fixed=['온정본사'];
+  var fixedFiltered=fixed.filter(function(n){ return !q||n.toLowerCase().includes(q.toLowerCase()); });
   var f=ssOptions.filter(function(c){ return !q||c.name.toLowerCase().includes(q.toLowerCase()); });
-  dd.innerHTML=f.length?f.map(function(c){ return '<div class="ss-option" onmousedown="selectSS(\''+c.name.replace(/'/g,"\\'")+'\')">'+c.name+'</div>'; }).join(''):'<div class="ss-option" style="color:#aaa;">없음</div>';
+  var fixedHtml=fixedFiltered.map(function(n){
+    return '<div class="ss-option" style="color:#854F0B;font-weight:600;" onmousedown="selectSS(\''+n+'\')">🏢 '+n+'</div>';
+  }).join('');
+  var listHtml=f.length?f.map(function(c){ return '<div class="ss-option" onmousedown="selectSS(\''+c.name.replace(/'/g,"\\'")+'\')">'+c.name+'</div>'; }).join(''):'';
+  dd.innerHTML=(fixedHtml+listHtml)||'<div class="ss-option" style="color:#aaa;">없음</div>';
 }
 window.filterSS=function(){ renderSSOptions(document.getElementById('ss-input').value); document.getElementById('sup-biz').value=''; };
 window.openSS=function(){ document.getElementById('ss-dropdown').classList.add('open'); renderSSOptions(document.getElementById('ss-input').value); };
