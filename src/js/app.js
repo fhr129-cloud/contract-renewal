@@ -18,6 +18,11 @@ var currentModalTab = 'basic';
 var weekOffset = 0;
 window.detailId = null;
 
+function localDateStr(d) {
+  var dt=d||new Date();
+  return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+}
+
 var STAFF_COLORS = {
   '박주형':'sc-박주형','김재희':'sc-김재희','손도란':'sc-손도란',
   '이소영':'sc-이소영','김상준':'sc-김상준','안은재':'sc-안은재',
@@ -302,7 +307,6 @@ function showHistForm(idx,r) {
       '<h4 style="font-size:14px;font-weight:600;">'+(isNew?'이력 추가':(idx===0?'최초':idx+'차')+' 수정')+'</h4>'+
       '<button class="btn sm" onclick="closeHistForm()"><i class="ti ti-x"></i></button></div>'+
     '<div style="display:flex;flex-direction:column;gap:10px;">'+
-      
       '<div class="form-group"><label>시작일</label><input type="date" id="hf-start" value="'+(r.startDate||'')+'"></div>'+
       '<div class="form-group"><label>종료일</label><input type="date" id="hf-end" value="'+(r.endDate||'')+'"></div>'+
       '<div class="form-group"><label>단가 구분</label><select id="hf-priceType">'+
@@ -332,9 +336,7 @@ window.saveHistForm=async function(idx){
     note:document.getElementById('hf-note').value.trim(),
     updatedAt:new Date().toISOString()
   };
- if(idx===-1){
-    records.push(newRecord);
-  } else records[idx]=newRecord;
+  if(idx===-1){ records.push(newRecord); } else records[idx]=newRecord;
   await saveHistRecords(records,c?c.name:'');
   closeHistForm(); showToast(idx===-1?'이력이 추가되었습니다.':'이력이 수정되었습니다.');
   renderHistTab();
@@ -428,7 +430,7 @@ function renderDashboard() {
   mk('card-auto','blue2','ti-refresh','자동연장',counts.auto);
   mk('card-ok','green','ti-check','여유',counts.ok);
 
-  var todayStr=now.toISOString().slice(0,10);
+  var todayStr=localDateStr(now);
   var todayItems=supports.filter(function(s){ return s.date&&s.date.slice(0,10)===todayStr; });
   var schedEl=document.getElementById('dash-today-schedule');
   if(schedEl){
@@ -448,7 +450,7 @@ function renderDashboard() {
   function expireHtml(list) {
     if(!list.length) return '<div style="color:#aaa;font-size:12px;padding:12px 0;">없음</div>';
     var threeMonthsAgo=new Date(now); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth()-3);
-    var threeStr=threeMonthsAgo.toISOString().slice(0,10);
+    var threeStr=localDateStr(threeMonthsAgo);
     return list.map(function(c){
       var s=calcStatus(c),d=dDiff(c.endDate),col=s==='urgent'?'#A32D2D':s==='near'?'#854F0B':'#185FA5';
       var recentCount=supports.filter(function(sp){ return sp.bizName===c.name&&sp.date&&sp.date>=threeStr&&sp.date<=todayStr; }).length;
@@ -466,7 +468,8 @@ function renderDashboard() {
   var nmEl=document.getElementById('dash-nextmonth'); if(nmEl) nmEl.innerHTML=expireHtml(nextList);
   var tmC=document.getElementById('dash-thismonth-count'); if(tmC) tmC.textContent=thisList.length+'건';
   var nmC=document.getElementById('dash-nextmonth-count'); if(nmC) nmC.textContent=nextList.length+'건';
-// 최근 계약 업데이트
+
+  // 최근 계약 업데이트
   var recentUpdates=[];
   historyData.forEach(function(h){
     if(!h.records||!h.records.length) return;
@@ -519,26 +522,6 @@ function renderDashboard() {
       }).join('');
     }
   }
-  // 긴급/임박 미방문
-  var urgentNoCare=contracts.filter(function(c){
-    var s=calcStatus(c);
-    if(s!=='urgent'&&s!=='near') return false;
-    var monthStr2=thisY+'-'+String(thisM+1).padStart(2,'0');
-    var hasSup=supports.some(function(sp){ return sp.bizName===c.name&&sp.date&&sp.date.startsWith(monthStr2); });
-    return !hasSup;
-  }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
-  var uncaredEl=document.getElementById('dash-uncared');
-  if(uncaredEl){
-    uncaredEl.innerHTML=urgentNoCare.length?urgentNoCare.map(function(c){
-      var s=calcStatus(c),d=dDiff(c.endDate),col=s==='urgent'?'#A32D2D':'#854F0B';
-      return '<div class="dash-mini-item" onclick="goDetail(\''+c.id+'\')">'+
-        '<span class="dash-mini-name">'+c.name+'</span>'+
-        '<span class="dash-mini-right" style="color:'+col+';font-weight:600;">'+dDayLabel(d)+'</span>'+
-        '</div>';
-    }).join(''):'<div style="color:#aaa;font-size:12px;padding:12px 0;">모든 긴급/임박 사업장이 이번달 방문됐어요 👍</div>';
-  }
-  var uncaredC=document.getElementById('dash-uncared-count');
-  if(uncaredC){ uncaredC.textContent=urgentNoCare.length+'건'; uncaredC.style.background=urgentNoCare.length?'#FCEBEB':''; uncaredC.style.color=urgentNoCare.length?'#A32D2D':''; }
 
   renderSupStat('month');
 }
@@ -552,8 +535,9 @@ window.setSupStatTab=function(tab){
   });
   renderSupStat(tab);
 };
+
 function renderCatStat(list){
-  if(!list.length) return '';
+  if(!list.length) return '<div style="color:#aaa;font-size:12px;padding:8px 0;">내역이 없어요</div>';
   var CATS=['운영점검','위생점검','환경개선','특식지원','배식지원','고객미팅','기타지원'];
   var catMap={};
   list.forEach(function(s){
@@ -563,7 +547,6 @@ function renderCatStat(list){
     catMap[cat].items.push(s);
   });
   var cats=CATS.filter(function(c){ return catMap[c]; });
-  // 기타 카테고리도 포함
   Object.keys(catMap).forEach(function(c){ if(CATS.indexOf(c)===-1) cats.push(c); });
   var maxCat=Math.max.apply(null,cats.map(function(c){ return catMap[c].count; }));
   return '<div style="display:flex;flex-direction:column;gap:4px;">'+
@@ -585,8 +568,8 @@ function renderCatStat(list){
             var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
             var dateStr=s.date||'';
             if(s.dateEnd&&s.dateEnd!==s.date) dateStr+='~'+s.dateEnd.slice(5);
-            return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:.5px solid #f0f0ec;gap:8px;" '+(cid?'onclick="goDetail(\''+cid+'\')" style="cursor:pointer;"':'')+'>'+
-              '<span style="font-size:13px;font-weight:500;'+(cid?'color:#185FA5;cursor:pointer;':'')+'">'+s.bizName+'</span>'+
+            return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:.5px solid #f0f0ec;gap:8px;'+(cid?'cursor:pointer;':'')+'"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+'>'+
+              '<span style="font-size:13px;font-weight:500;'+(cid?'color:#185FA5;':'')+'">'+s.bizName+'</span>'+
               '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'+
                 '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr.split(' ')[0]+'</span>'+
                 '<span style="font-size:11px;color:#aaa;">'+dateStr+'</span>'+
@@ -606,14 +589,15 @@ window.toggleCatGroup=function(id){
   el.style.display=open?'block':'none';
   if(ico) ico.style.transform=open?'rotate(180deg)':'';
 };
-function renderNoVisit(startM, endM, year, label) {
-  var todayStr=new Date().toISOString().slice(0,10);
+
+function renderNoVisit(startM,endM,year,label){
+  var todayStr=localDateStr();
   var noVisit=contracts.filter(function(c){
     var s=calcStatus(c);
     if(s!=='urgent'&&s!=='near') return false;
     return !supports.some(function(sp){
       if(sp.bizName!==c.name||!sp.date) return false;
-      var d=new Date(sp.date); var m=d.getMonth();
+      var d=new Date(sp.date),m=d.getMonth();
       return d.getFullYear()===year&&m>=startM&&m<=endM&&sp.date<=todayStr;
     });
   }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
@@ -629,10 +613,11 @@ function renderNoVisit(startM, endM, year, label) {
     }).join('')+
   '</div>';
 }
+
 function renderSupStat(tab){
   var now=new Date(),thisY=now.getFullYear(),thisM=now.getMonth();
   var statEl=document.getElementById('dash-sup-stat'); if(!statEl) return;
-  var todayStr=now.toISOString().slice(0,10);
+  var todayStr=localDateStr(now);
 
   if(tab==='month'){
     var monthStr=thisY+'-'+String(thisM+1).padStart(2,'0');
@@ -668,7 +653,7 @@ function renderSupStat(tab){
           '</div>'+
         '</div>'+
         '<div id="'+id+'" style="display:'+(q.current?'block':'none')+';">'+
-          (q.current?'<div style="padding:8px;">'+renderCatStat(q.items)+'</div>':'<div style="padding:8px;">'+renderCatStat(q.items)+'</div>')+
+          '<div style="padding:8px;">'+renderCatStat(q.items)+'</div>'+
         '</div>'+
       '</div>';
       if(q.current){
@@ -679,7 +664,7 @@ function renderSupStat(tab){
       }
     });
     html+='</div>';
-    html+=renderNoVisit(curQ*3, curQ*3+2, thisY, '이번 분기');
+    html+=renderNoVisit(curQ*3,curQ*3+2,thisY,'이번 분기');
     statEl.innerHTML=html;
 
   } else if(tab==='year'){
@@ -697,7 +682,6 @@ function renderSupStat(tab){
         '<div style="font-size:22px;font-weight:700;color:#1a1a18;">'+Object.keys(bizYear).length+'<span style="font-size:12px;font-weight:400;">개소</span></div>'+
       '</div>'+
     '</div>';
-    // 월별 아코디언
     html+='<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px;">';
     monthLabels.forEach(function(mLabel,mi){
       var mStr=thisY+'-'+String(mi+1).padStart(2,'0');
@@ -706,7 +690,7 @@ function renderSupStat(tab){
       var id='m-detail-'+mi;
       html+='<div style="border:.5px solid '+(isCur?'#B5D4F4':'#e8e8e4')+';border-radius:8px;overflow:hidden;">'+
         '<div onclick="toggleCatGroup(\''+id+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;cursor:pointer;background:'+(isCur?'#E6F1FB':'#fafaf8')+';">'+
-          '<span style="font-size:13px;font-weight:600;color:'+(isCur?'#185FA5':'#555')+';">'+mLabel+(isCur?' ● 이번달':mItems.length===0?' <span style=\'font-size:10px;color:#ccc;\'>없음</span>':'')+'</span>'+
+          '<span style="font-size:13px;font-weight:600;color:'+(isCur?'#185FA5':'#555')+';">'+mLabel+(isCur?' ● 이번달':mItems.length===0?' <span style="font-size:10px;color:#ccc;">없음</span>':'')+'</span>'+
           '<div style="display:flex;align-items:center;gap:6px;">'+
             (mItems.length?'<span style="font-size:14px;font-weight:700;color:'+(isCur?'#185FA5':'#1a1a18')+';">'+mItems.length+'건</span>':'')+
             (mItems.length?'<i class="ti ti-chevron-down" id="ico-'+id+'" style="font-size:13px;color:#aaa;transition:transform .2s;"></i>':'')+
@@ -718,9 +702,8 @@ function renderSupStat(tab){
       '</div>';
     });
     html+='</div>';
-    html+=renderNoVisit(0, 11, thisY, '올해');
+    html+=renderNoVisit(0,11,thisY,'올해');
     statEl.innerHTML=html;
-    // 이번달 아이콘 초기화
     setTimeout(function(){
       var ico=document.getElementById('ico-m-detail-'+thisM);
       if(ico) ico.style.transform='rotate(180deg)';
@@ -841,21 +824,20 @@ function renderMonthView(){
     var start=s.date.slice(0,10),end=s.dateEnd?s.dateEnd.slice(0,10):start;
     var cur=new Date(start),endD=new Date(end);
     while(cur<=endD){
-      var k=cur.toISOString().slice(0,10);
+      var k=localDateStr(cur);
       if(!dayMap[k]) dayMap[k]=[];
       dayMap[k].push(s);
       cur.setDate(cur.getDate()+1);
     }
   });
   var firstDay=new Date(calYear,calMonth,1).getDay(),lastDate=new Date(calYear,calMonth+1,0).getDate();
-  var today=new Date().toISOString().slice(0,10);
+  var today=localDateStr();
   var html='<div class="cal-grid">';
   ['일','월','화','수','목','금','토'].forEach(function(d){ html+='<div class="cal-header">'+d+'</div>'; });
   for(var i=0;i<firstDay;i++) html+='<div class="cal-day empty"></div>';
   for(var d=1;d<=lastDate;d++){
     var key=calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
     var items=dayMap[key]||[],isToday=key===today;
-    // 중복 제거
     var seen={},uniqueItems=[];
     items.forEach(function(s){ if(!seen[s.id]){seen[s.id]=true;uniqueItems.push(s);} });
     html+='<div class="cal-day'+(isToday?' today':'')+'" onclick="openCalPopup(\''+key+'\')">'+
@@ -880,7 +862,7 @@ function renderMonthView(){
   var calEl=document.getElementById('calendar'); if(calEl) calEl.innerHTML=html;
 }
 function renderWeekView(){
- var today=new Date(),startOfWeek=new Date(today);
+  var today=new Date(),startOfWeek=new Date(today);
   var dow=today.getDay();
   var diff=dow===0?-6:1-dow;
   startOfWeek.setDate(today.getDate()+diff+(weekOffset*7));
@@ -889,20 +871,20 @@ function renderWeekView(){
     var d=new Date(startOfWeek.getFullYear(),startOfWeek.getMonth(),startOfWeek.getDate()+i);
     days.push(d);
   }
-  var todayStr=today.toISOString().slice(0,10);
+  var todayStr=localDateStr(today);
   var filtered=filterSupports();
   var staffOrder=['박주형 본부장','김재희 차장','손도란 대리','이소영 주임','김상준 주임','안은재 주임','견병록 매니저','임성창 차장','김동현 대리'];
   var dayLabels=['월','화','수','목','금','토','일'];
   var html='<div class="week-grid"><div class="week-header"></div>';
   days.forEach(function(d,i){
-    var dStr=d.toISOString().slice(0,10),isToday=dStr===todayStr;
+    var dStr=localDateStr(d),isToday=dStr===todayStr;
     html+='<div class="week-header'+(isToday?' today-col':'')+'">'+dayLabels[i]+'<br><span style="font-weight:600;">'+d.getDate()+'</span></div>';
   });
   staffOrder.forEach(function(staff){
     var cls=getStaffColor(staff);
     html+='<div class="week-staff-label"><span class="badge-cat '+(cls||'')+'" style="font-size:10px;">'+staff.split(' ')[0]+'</span></div>';
     days.forEach(function(d){
-      var dStr=d.toISOString().slice(0,10),isToday=dStr===todayStr;
+      var dStr=localDateStr(d),isToday=dStr===todayStr;
       var items=filtered.filter(function(s){
         if(!s.date) return false;
         var start=s.date.slice(0,10),end=s.dateEnd?s.dateEnd.slice(0,10):start;
@@ -956,7 +938,6 @@ function supItemHtml(s,dateKey){
     '</div></div>';
 }
 
-// ── 달력 날짜 클릭 팝업 (해당 날짜에 걸친 모든 일정) ──────────────────────────
 window.openCalPopup=function(dateKey){
   var items=[],ids={};
   supports.forEach(function(s){
@@ -965,7 +946,6 @@ window.openCalPopup=function(dateKey){
     if(dateKey>=start&&dateKey<=end){ ids[s.id]=true; items.push(s); }
   });
   if(!items.length){
-    // 일정 없으면 해당 날짜로 등록 모달 오픈
     openSupportModal();
     document.getElementById('sup-date').value=dateKey;
     return;
@@ -982,7 +962,6 @@ window.openCalPopup=function(dateKey){
   popup.classList.add('open');
 };
 
-// ── 주간 뷰 이벤트 클릭 팝업 (해당 일정만) ──────────────────────────
 window.openCalPopupSingle=function(supportId){
   var s=supports.find(function(x){ return x.id===supportId; });
   if(!s) return;
@@ -997,87 +976,6 @@ window.editSupportFromPopup=function(id){ closeCalPopup(); window.editSupport(id
 window.delSupportFromPopup=async function(id){
   if(!confirm('삭제할까요?')) return;
   try{ await deleteSupport(id); showToast('삭제되었습니다.'); closeCalPopup(); } catch(e){ showToast('오류 발생'); }
-};
-
-// ── 지원이력 목록 ──────────────────────────
-function renderSupportList(){
-  var listEl=document.getElementById('support-list'); if(!listEl) return;
-  var today=new Date().toISOString().slice(0,10);
-  var sorted=supports.slice().sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
-  var upcoming=sorted.filter(function(s){ return (s.date||'')>today; }).reverse();
-  var past=sorted.filter(function(s){ return (s.date||'')<=today; });
-  var el=document.getElementById('sup-list-count'); if(el) el.textContent=sorted.length+'건';
-  if(!sorted.length){ listEl.innerHTML='<div class="empty-state" style="padding:20px;"><i class="ti ti-calendar"></i>지원 이력이 없어요</div>'; return; }
-
-  function renderGroup(list,title,color,bg,border){
-    if(!list.length) return '';
-    // 날짜별 그룹핑
-    var groups={};
-    list.forEach(function(s){
-      var k=s.date||'';
-      if(!groups[k]) groups[k]=[];
-      groups[k].push(s);
-    });
-    var dates=Object.keys(groups).sort(function(a,b){ return a>b?-1:1; });
-    if(title==='upcoming') dates=dates.slice().reverse();
-
-    var html='<div style="padding:8px 12px;font-size:12px;font-weight:600;color:'+color+';background:'+bg+';border-bottom:.5px solid '+border+';">'+
-      (title==='upcoming'?'📅 지원예정':'📋 지원이력')+' '+list.length+'건</div>';
-
-    dates.forEach(function(dateKey){
-      var items=groups[dateKey];
-      var id='grp-'+dateKey.replace(/-/g,'');
-      var dayName=['일','월','화','수','목','금','토'][new Date(dateKey).getDay()];
-      html+='<div style="border-bottom:.5px solid #f0f0ec;">'+
-        '<div onclick="toggleSupGroup(\''+id+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;cursor:pointer;background:#fafaf8;">'+
-          '<div style="display:flex;align-items:center;gap:8px;">'+
-            '<span style="font-size:13px;font-weight:600;color:#1a1a18;">'+dateKey+'</span>'+
-            '<span style="font-size:11px;color:#888;">('+dayName+') '+items.length+'건</span>'+
-          '</div>'+
-          '<i class="ti ti-chevron-down" id="ico-'+id+'" style="font-size:14px;color:#aaa;transition:transform .2s;"></i>'+
-        '</div>'+
-        '<div id="'+id+'" style="display:none;">'+
-          items.map(function(s){
-            var c=contracts.find(function(x){ return x.name===s.bizName; }),cid=c?c.id:'';
-            var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
-            var mealStr=s.meals&&s.meals.length?s.meals.join('/'):'';
-            var dateStr=s.date||'';
-            if(s.dateEnd&&s.dateEnd!==s.date) dateStr+=(' ~ '+s.dateEnd);
-            return '<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:10px 16px;border-top:.5px solid #f0f0ec;gap:8px;">'+
-              '<div style="flex:1;min-width:0;">'+
-                '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">'+
-                  '<span style="font-size:13px;font-weight:600;'+(cid?'color:#185FA5;cursor:pointer;':'')+'"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+'>'+s.bizName+'</span>'+
-                  '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span>'+
-                '</div>'+
-                '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'+
-                  '<span class="badge-cat" style="background:#f0f0ec;color:#555;">'+(s.category||'')+'</span>'+
-                  (mealStr?'<span class="badge-cat">'+mealStr+'</span>':'')+
-                  (s.dateEnd&&s.dateEnd!==s.date?'<span style="font-size:11px;color:#aaa;">~'+s.dateEnd+'</span>':'')+
-                '</div>'+
-                (s.content?'<div style="font-size:12px;color:#666;margin-top:4px;">'+s.content+'</div>':'')+
-              '</div>'+
-              '<div style="display:flex;gap:4px;flex-shrink:0;">'+
-                '<button class="btn sm" onclick="editSupport(\''+s.id+'\')" ><i class="ti ti-edit"></i></button>'+
-                '<button class="btn sm danger" onclick="delSupport(\''+s.id+'\')" ><i class="ti ti-trash"></i></button>'+
-              '</div></div>';
-          }).join('')+
-        '</div>'+
-      '</div>';
-    });
-    return html;
-  }
-
-  listEl.innerHTML=
-    renderGroup(upcoming,'upcoming','#185FA5','#E6F1FB','#B5D4F4')+
-    renderGroup(past,'past','#555','#f5f5f3','#e8e8e4');
-}
-
-window.toggleSupGroup=function(id){
-  var el=document.getElementById(id),ico=document.getElementById('ico-'+id);
-  if(!el) return;
-  var open=el.style.display==='none';
-  el.style.display=open?'block':'none';
-  if(ico) ico.style.transform=open?'rotate(180deg)':'';
 };
 
 // ── 검색 드롭다운 ──────────────────────────
@@ -1196,7 +1094,7 @@ window.renderBizTab=function(){
   });
   if(currentBizTab==='team'){
     var t1=filtered.filter(function(c){ return c.team===1; }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
-    var t2=filtered.filter(function(c){ return c.team===2; }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
+    var t2=filtered.filter(function(c){ return c.team===2; }).sort(function(a,b){ return new Date(a.endDate)-new new Date(b.endDate); });
     el.innerHTML='<div class="team-layout">'+
       '<div><div class="team-header blue" onclick="toggleTeam(\'t1\')"><i class="ti ti-users"></i> 1팀 — 박주형 본부장 <span>'+t1.length+'개소</span><i class="ti ti-chevron-down toggle-icon"></i></div><div class="team-body" id="t1">'+t1.map(bizCard).join('')+'</div></div>'+
       '<div><div class="team-header green" onclick="toggleTeam(\'t2\')"><i class="ti ti-users"></i> 2팀 — 김재희 차장 <span>'+t2.length+'개소</span><i class="ti ti-chevron-down toggle-icon"></i></div><div class="team-body" id="t2">'+t2.map(bizCard).join('')+'</div></div>'+
