@@ -1075,7 +1075,16 @@ window.editSupport=function(id){
   if(document.getElementById('sup-date-end')) document.getElementById('sup-date-end').value=s.dateEnd||'';
   document.getElementById('sup-cat').value=s.category||'';
   toggleSpecialMenu(s.category||'');
-  document.getElementById('sup-content').value=s.content||'';
+  // 특식지원인 경우 content에서 메뉴와 내용 분리
+  var smInput=document.getElementById('sup-special-menu');
+  if(s.category==='특식지원'&&s.content&&smInput){
+    var parts=s.content.split(' / ');
+    smInput.value=parts[0]||'';
+    document.getElementById('sup-content').value=parts.slice(1).join(' / ')||'';
+  } else {
+    if(smInput) smInput.value='';
+    document.getElementById('sup-content').value=s.content||'';
+  }
   setSelectedMeals(s.meals||[]);
   setSelectedStaff(s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]));
   document.getElementById('sup-modal-title').textContent='운영지원 수정';
