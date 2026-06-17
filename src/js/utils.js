@@ -7,7 +7,8 @@ export function today() {
 
 export function dDiff(endDate) {
   var t = today();
-  var e = new Date(endDate);
+  var parts = String(endDate).slice(0,10).split('-');
+  var e = new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2]));
   e.setHours(0,0,0,0);
   return Math.round((e - t) / 86400000);
 }
@@ -29,14 +30,13 @@ export var STATUS_META = {
 
 export function fmtDate(dateStr) {
   if (!dateStr) return '-';
-  var d = new Date(dateStr);
-  return d.getFullYear() + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + String(d.getDate()).padStart(2,'0');
+  var parts = String(dateStr).slice(0,10).split('-');
+  return parts[0] + '.' + parts[1] + '.' + parts[2];
 }
 
 export function toInputDate(dateStr) {
   if (!dateStr) return '';
-  var d = new Date(dateStr);
-  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  return String(dateStr).slice(0,10);
 }
 
 export function monthKey(dateStr) {
