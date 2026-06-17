@@ -913,10 +913,10 @@ function renderWeekView(){
         var names=s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]);
         return names.some(function(n){ return n&&n.includes(staff.split(' ')[0]); });
       });
-      html+='<div class="week-cell'+(isToday?' today-col':'')+'">'+
+      html+='<div class="week-cell'+(isToday?' today-col':'')+'" onclick="openCalPopup(\''+dStr+'\')">'+
         items.map(function(s){
           var cls2=getStaffColor(staff);
-          return '<div class="week-event '+(cls2||'')+'" onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:2px;">'+
+          return '<div class="week-event '+(cls2||'')+'" onclick="event.stopPropagation();openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:2px;">'+
             '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">'+s.bizName+'</span>'+
             (s.category?'<span style="font-size:8px;opacity:0.75;flex-shrink:0;white-space:nowrap;">'+s.category.slice(0,2)+'</span>':'')+
           '</div>';
