@@ -812,7 +812,17 @@ function renderCalendar(){
     var end=new Date(base.getFullYear(),base.getMonth(),base.getDate()+6);
     var baseM=base.getMonth()+1,endM=end.getMonth()+1;
     if(el) el.textContent=(baseM===endM?baseM+'월 '+base.getDate()+'~'+end.getDate()+'일':baseM+'월 '+base.getDate()+'일 ~ '+endM+'월 '+end.getDate()+'일');
-    renderWeekView(); return;
+    renderWeekView();
+    // 오늘 날짜 컬럼으로 자동 스크롤
+    setTimeout(function(){
+      var calWrap=document.querySelector('#calendar').parentElement;
+      var todayCol=document.querySelector('.week-header.today-col');
+      if(calWrap&&todayCol){
+        var offset=todayCol.offsetLeft-60;
+        calWrap.scrollLeft=Math.max(0,offset);
+      }
+    },50);
+    return;
   }
   if(el) el.textContent=calYear+'년 '+(calMonth+1)+'월';
   renderMonthView();
@@ -860,6 +870,11 @@ function renderMonthView(){
   }
   html+='</div>';
   var calEl=document.getElementById('calendar'); if(calEl) calEl.innerHTML=html;
+  // 오늘 날짜로 자동 스크롤
+  setTimeout(function(){
+    var todayEl=document.querySelector('.cal-day.today');
+    if(todayEl){ todayEl.scrollIntoView({block:'center',behavior:'smooth'}); }
+  },50);
 }
 function renderWeekView(){
   var today=new Date(),startOfWeek=new Date(today);
