@@ -1179,17 +1179,34 @@ window.renderBizTab=function(){
     var t1=filtered.filter(function(c){ return c.team===1; }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
     var t2=filtered.filter(function(c){ return c.team===2; }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
     el.innerHTML='<div class="team-layout">'+
-      '<div><div class="team-header blue" onclick="toggleTeam(\'t1\')"><i class="ti ti-users"></i> 1팀 — 박주형 본부장 <span>'+t1.length+'개소</span><i class="ti ti-chevron-down toggle-icon"></i></div><div class="team-body" id="t1">'+t1.map(bizCard).join('')+'</div></div>'+
-      '<div><div class="team-header green" onclick="toggleTeam(\'t2\')"><i class="ti ti-users"></i> 2팀 — 김재희 차장 <span>'+t2.length+'개소</span><i class="ti ti-chevron-down toggle-icon"></i></div><div class="team-body" id="t2">'+t2.map(bizCard).join('')+'</div></div>'+
+      '<div><div class="team-header blue" onclick="toggleTeam(\'t1\')"><i class="ti ti-users"></i> 1팀 — 박주형 본부장 <span>'+t1.length+'개소</span><i class="ti ti-chevron-down toggle-icon"></i></div><div class="team-body'+(q&&t1.length?' open':'')+'" id="t1">'+t1.map(bizCard).join('')+'</div></div>'+
+      '<div><div class="team-header green" onclick="toggleTeam(\'t2\')"><i class="ti ti-users"></i> 2팀 — 김재희 차장 <span>'+t2.length+'개소</span><i class="ti ti-chevron-down toggle-icon"></i></div><div class="team-body'+(q&&t2.length?' open':'')+'" id="t2">'+t2.map(bizCard).join('')+'</div></div>'+
       '</div>';
+    if(q){
+      setTimeout(function(){
+        ['t1','t2'].forEach(function(id){
+          var body=document.getElementById(id),icon=body?body.previousElementSibling.querySelector('.toggle-icon'):null;
+          if(body&&body.classList.contains('open')&&icon) icon.style.transform='rotate(180deg)';
+        });
+      },50);
+    }
   } else if(currentBizTab==='resp'){
     var ro=['손도란 대리','이소영 주임','김상준 주임','견병록 매니저'],rc=['blue','green','amber','red'];
     var html='<div class="resp-layout">';
     ro.forEach(function(r,i){
       var rid='rb'+i,list=filtered.filter(function(c){ return c.resp===r; }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
-      html+='<div><div class="team-header '+rc[i]+'" onclick="toggleTeam(\''+rid+'\')"><i class="ti ti-user"></i> '+r+' <span>'+list.length+'개소</span><i class="ti ti-chevron-down toggle-icon"></i></div><div class="team-body" id="'+rid+'">'+list.map(bizCard).join('')+'</div></div>';
+      html+='<div><div class="team-header '+rc[i]+'" onclick="toggleTeam(\''+rid+'\')"><i class="ti ti-user"></i> '+r+' <span>'+list.length+'개소</span><i class="ti ti-chevron-down toggle-icon"></i></div><div class="team-body'+(q&&list.length?' open':'')+'" id="'+rid+'">'+list.map(bizCard).join('')+'</div></div>';
     });
     el.innerHTML=html+'</div>';
+    if(q){
+      setTimeout(function(){
+        ro.forEach(function(_,i){
+          var rid='rb'+i;
+          var body=document.getElementById(rid),icon=body?body.previousElementSibling.querySelector('.toggle-icon'):null;
+          if(body&&body.classList.contains('open')&&icon) icon.style.transform='rotate(180deg)';
+        });
+      },50);
+    }
   } else {
     el.innerHTML='<div class="map-legend"><span><span class="leg-dot" style="background:#E24B4A;"></span>긴급</span><span><span class="leg-dot" style="background:#EF9F27;"></span>임박</span><span><span class="leg-dot" style="background:#4A90D9;"></span>여유/자동연장</span></div><div id="map"></div>';
     setTimeout(function(){
