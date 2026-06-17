@@ -910,7 +910,10 @@ function renderWeekView(){
       html+='<div class="week-cell'+(isToday?' today-col':'')+'">'+
         items.map(function(s){
           var cls2=getStaffColor(staff);
-          return '<div class="week-event '+(cls2||'')+'" onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;">'+s.bizName+'</div>';
+          return '<div class="week-event '+(cls2||'')+'" onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:2px;">'+
+            '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">'+s.bizName+'</span>'+
+            (s.category?'<span style="font-size:8px;opacity:0.75;flex-shrink:0;white-space:nowrap;">'+s.category.slice(0,2)+'</span>':'')+
+          '</div>';
         }).join('')+'</div>';
     });
   });
