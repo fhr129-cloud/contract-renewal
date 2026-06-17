@@ -1035,11 +1035,11 @@ window.delSupportFromPopup=async function(id){
 function initSS(){ renderSSOptions(''); }
 function renderSSOptions(q){
   var dd=document.getElementById('ss-dropdown'); if(!dd) return;
-  var fixed=['온정본사'];
+  var fixed=['온정본사','온정CS'];
   var fixedFiltered=fixed.filter(function(n){ return !q||n.toLowerCase().includes(q.toLowerCase()); });
   var f=ssOptions.filter(function(c){ return !q||c.name.toLowerCase().includes(q.toLowerCase()); });
   var fixedHtml=fixedFiltered.map(function(n){
-    return '<div class="ss-option" style="color:#854F0B;font-weight:600;" onmousedown="selectSS(\''+n+'\')">🏢 '+n+'</div>';
+    return '<div class="ss-option" onmousedown="selectSS(\''+n+'\')">'+n+'</div>';
   }).join('');
   var listHtml=f.length?f.map(function(c){ return '<div class="ss-option" onmousedown="selectSS(\''+c.name.replace(/'/g,"\\'")+'\')">'+c.name+'</div>'; }).join(''):'';
   dd.innerHTML=(fixedHtml+listHtml)||'<div class="ss-option" style="color:#aaa;">없음</div>';
