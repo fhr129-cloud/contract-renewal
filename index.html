@@ -496,13 +496,17 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
         </div>
         <div class="sup-form-group">
           <label>카테고리 *</label>
-          <select id="sup-cat">
+          <select id="sup-cat" onchange="toggleSpecialMenu(this.value)">
             <option value="">선택...</option>
             <option>운영점검</option><option>위생점검</option>
             <option>환경개선</option><option>특식지원</option>
             <option>배식지원</option><option>고객미팅</option>
             <option>기타지원</option>
           </select>
+        </div>
+        <div class="sup-form-group" id="special-menu-wrap" style="display:none;">
+          <label>제공 메뉴</label>
+          <input type="text" id="sup-special-menu" placeholder="예: 삼겹살, 냉면, 케이크 등">
         </div>
         <div class="sup-form-group" style="grid-column:1/-1;">
           <label>끼니</label>
