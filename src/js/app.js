@@ -288,7 +288,7 @@ function renderHistTab() {
       '</div></div>';
   }).join('');
 }
-window.addHistRow=function(){ showHistForm(-1,{startDate:'',endDate:'',price:'',priceType:'per-meal',note:''}); };
+window.addHistRow=function(type){ showHistForm(-1,{startDate:'',endDate:'',price:'',priceType:'per-meal',note:'',addType:type||'renewal'}); };
 window.editHistRow=function(idx){
   var h=editingId?historyData.find(function(x){ return x.contractId===editingId; }):null;
   if(!h||!h.records||!h.records[idx]) return;
@@ -305,12 +305,13 @@ window.delHistRow=async function(idx){
 function showHistForm(idx,r) {
   var existing=document.getElementById('hist-form-popup'); if(existing) existing.remove();
   var isNew=idx===-1;
+  var addType=r.addType||'renewal';
   var popup=document.createElement('div');
   popup.id='hist-form-popup';
   popup.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;display:flex;align-items:center;justify-content:center;';
   popup.innerHTML='<div style="background:#fff;border-radius:14px;width:400px;max-width:95vw;padding:20px;">'+
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">'+
-      '<h4 style="font-size:14px;font-weight:600;">'+(isNew?'이력 추가':(idx===0?'최초':idx+'차')+' 수정')+'</h4>'+
+      '<h4 style="font-size:14px;font-weight:600;">'+(isNew?(addType==='terminate'?'계약 해지':'재계약'):(idx===0?'최초':idx+'차')+' 수정')+'</h4>'+
       '<button class="btn sm" onclick="closeHistForm()"><i class="ti ti-x"></i></button></div>'+
     '<div style="display:flex;flex-direction:column;gap:10px;">'+
       '<div class="form-group"><label>시작일</label><input type="date" id="hf-start" value="'+(r.startDate||'')+'"></div>'+
@@ -340,7 +341,8 @@ window.saveHistForm=async function(idx){
     price:parseInt(document.getElementById('hf-price').value)||0,
     priceType:document.getElementById('hf-priceType').value,
     note:document.getElementById('hf-note').value.trim(),
-    updatedAt:new Date().toISOString()
+    updatedAt:new Date().toISOString(),
+    addType:idx===-1?(r.addType||'renewal'):'edit'
   };
   if(idx===-1){ records.push(newRecord); } else records[idx]=newRecord;
   await saveHistRecords(records,c?c.name:'');
@@ -506,6 +508,8 @@ function renderDashboard() {
     var c=contracts.find(function(x){ return x.id===h.contractId; }); if(!c) return;
     var latest=h.records[h.records.length-1];
     if(!latest.updatedAt) return;
+    // 재계약/계약해지로 추가된 것만 표시 (수정은 제외, 최초 등록은 포함)
+    if(latest.addType==='edit') return;
     var updDate=new Date(latest.updatedAt);
     var diffDays=Math.floor((now-updDate)/(1000*60*60*24));
     if(diffDays>30) return;
