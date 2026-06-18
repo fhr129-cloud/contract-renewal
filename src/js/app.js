@@ -275,6 +275,7 @@ function renderHistTab() {
   var h=editingId?historyData.find(function(x){ return x.contractId===editingId; }):null;
   var records=h&&h.records?h.records:[];
   if(!records.length){ el.innerHTML='<div class="empty-state"><i class="ti ti-history"></i>이력이 없어요</div>'; return; }
+  // 버튼을 이력 추가 대신 재계약/계약해지로 교체 (hist 탭 상단)
   el.innerHTML=records.map(function(r,i){
     var isCurrent=i===records.length-1,label=i===0?'최초':i+'차'; if(isCurrent) label='현재';
     return '<div class="hist-tab-row">'+
