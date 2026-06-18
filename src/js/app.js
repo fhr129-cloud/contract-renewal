@@ -947,10 +947,10 @@ function renderWeekView(){
         var names=s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]);
         return names.some(function(n){ return n&&n.includes(staff.split(' ')[0]); });
       });
-      html+='<div class="week-cell'+(isToday?' today-col':'')+'">'+
+      html+='<div class="week-cell'+(isToday?' today-col':'')+'" onclick="openSupportModalWithStaff(\''+dStr+'\',\''+staff+'\')" style="cursor:pointer;">'+
         items.map(function(s){
           var cls2=getStaffColor(staff);
-          return '<div class="week-event '+(cls2||'')+'" onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:2px;">'+
+          return '<div class="week-event '+(cls2||'')+'" onclick="event.stopPropagation();openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;display:flex;;align-items:center;justify-content:space-between;gap:2px;">'+
             '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">'+s.bizName+'</span>'+
             (s.category?'<span style="font-size:8px;opacity:0.75;flex-shrink:0;white-space:nowrap;">'+s.category.slice(0,2)+'</span>':'')+
           '</div>';
@@ -1139,6 +1139,12 @@ window.delSupportFromDetail=async function(id,contractId){
     var c=contracts.find(function(x){ return x.id===contractId; });
     if(c) renderDetail(c);
   } catch(e){ showToast('오류 발생'); }
+};
+window.openSupportModalWithStaff=function(date,staffName){
+  openSupportModal();
+  document.getElementById('sup-date').value=date||'';
+  // 해당 담당자 자동 체크
+  setSelectedStaff([staffName]);
 };
 // ── FS 사업장 현황 ──────────────────────────
 window.setBizTab=function(tab){
