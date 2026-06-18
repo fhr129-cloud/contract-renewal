@@ -947,6 +947,13 @@ function renderWeekView(){
         var names=s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]);
         return names.some(function(n){ return n&&n.includes(staff.split(' ')[0]); });
       });
+      var mealOrder=['조식','중식','석식','야식'];
+      items.sort(function(a,b){
+        var am=a.meals&&a.meals.length?mealOrder.indexOf(a.meals[0]):-1;
+        var bm=b.meals&&b.meals.length?mealOrder.indexOf(b.meals[0]):-1;
+        if(am===-1) am=99; if(bm===-1) bm=99;
+        return am-bm;
+      });
       html+='<div class="week-cell'+(isToday?' today-col':'')+'" onclick="openSupportModalWithStaff(\''+dStr+'\',\''+staff+'\')" style="cursor:pointer;">'+
         items.map(function(s){
           var cls2=getStaffColor(staff);
