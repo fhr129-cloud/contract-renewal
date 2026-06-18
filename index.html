@@ -650,8 +650,9 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
       </form>
     </div>
     <div class="modal-body" id="tab-hist" style="display:none;">
-      <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
-        <button class="btn primary sm" onclick="addHistRow()"><i class="ti ti-plus"></i> 이력 추가</button>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;">
+        <button class="btn sm" style="border-color:#A32D2D;color:#A32D2D;" onclick="addHistRow('terminate')"><i class="ti ti-file-off"></i> 계약 해지</button>
+        <button class="btn primary sm" onclick="addHistRow('renewal')"><i class="ti ti-refresh"></i> 재계약</button>
       </div>
       <div id="hist-list"></div>
     </div>
