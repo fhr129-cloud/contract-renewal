@@ -1169,7 +1169,7 @@ function renderWeekView(){
   });
 
   // 팀공지 행
-  html+='<div class="week-staff-label" style="background:#FFF9E6;"></div>';
+  html+='<div class="week-staff-label" style="background:#FFF9E6;"><span style="font-size:9px;font-weight:600;color:#854F0B;">팀공지</span></div>';
   days.forEach(function(d){
     var dStr=localDateStr(d),isToday=dStr===todayStr;
     var teamItems=filtered.filter(function(s){
