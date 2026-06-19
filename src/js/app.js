@@ -413,7 +413,21 @@ async function saveHistRecords(records,name) {
   var {doc,setDoc,serverTimestamp}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
   await setDoc(doc(db,'history',editingId),{contractId:editingId,name:name||'',records:records,updatedAt:serverTimestamp()});
 }
-
+// 시간 드롭다운 옵션 생성
+function buildTimeOptions(selectEl, includeEmpty) {
+  var html = includeEmpty ? '<option value="">-</option>' : '';
+  for(var h=0;h<24;h++){
+    for(var m=0;m<60;m+=30){
+      var val=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+      html+='<option value="'+val+'">'+val+'</option>';
+    }
+  }
+  selectEl.innerHTML=html;
+}
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.meal-time-start').forEach(function(el){ buildTimeOptions(el,true); });
+  document.querySelectorAll('.meal-time-end').forEach(function(el){ buildTimeOptions(el,true); });
+});
 // ── 초기화 ──────────────────────────
 async function init() {
   await seedIfEmpty();
