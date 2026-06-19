@@ -696,8 +696,8 @@ function renderDashboard() {
           var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
           var isLeave=s.personalType==='연차'||s.personalType==='반차(오전)'||s.personalType==='반차(오후)';
           
-          return '<div class="today-item" onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;background:'+(isLeave?'#FFF0F0':'#f8f8f8')+';border-radius:6px;padding:6px 8px;margin-bottom:3px;">'+
-            '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'" style="'+(isLeave?'background:#FCEBEB;color:#A32D2D;':'')+'">'+staffStr.split(' ')[0]+'</span>'+
+          return '<div class="today-item" onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;background:#f8f8f8;border-radius:6px;padding:6px 8px;margin-bottom:3px;">'+
+            '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'" style="'+(isLeave?'background:#FFCDD2;color:#A32D2D;font-weight:600;':'')+'">'+staffStr.split(' ')[0]+'</span>'+
             '<span style="font-weight:500;">'+s.bizName+'</span>'+
             '<span style="font-size:12px;color:#888;">'+(s.content||'')+'</span>'+
             '</div>';
@@ -1191,7 +1191,18 @@ function renderWeekView(){
     var borderCol=getStaffBorderColor(staff);
     var bgMap2={'박주형':'#E6F1FB','김재희':'#EAF3DE','손도란':'#FAEEDA','이소영':'#F3E6FB','김상준':'#FCEBEB','안은재':'#E6FBF8','견병록':'#FBF6E6','임성창':'#F0F0EC','김동현':'#FBE6F0'};
     var staffBg='#f0f0ec'; for(var sk in bgMap2){ if(staff.includes(sk)){ staffBg=bgMap2[sk]; break; } }
-    html+='<div class="week-staff-label"><span style="font-size:10px;font-weight:600;color:#555;padding:2px 8px;background:'+staffBg+';border-radius:4px;display:inline-block;">'+staff.split(' ')[0]+'</span></div>';
+    // 이 담당자의 이번 주 연차/반차 여부 체크 (오늘 기준 아닌 주간 전체)
+    var hasLeaveThisWeek=supports.some(function(s){
+      if(s.type!=='personal') return false;
+      if(!s.personalType||!(s.personalType==='연차'||s.personalType==='반차(오전)'||s.personalType==='반차(오후)')) return false;
+      var names=s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]);
+      if(!names.some(function(n){ return n&&n.includes(staff.split(' ')[0]); })) return false;
+      var start=s.date.slice(0,10),end=s.dateEnd?s.dateEnd.slice(0,10):start;
+      return days.some(function(d){ var dStr=localDateStr(d); return dStr>=start&&dStr<=end; });
+    });
+    var labelBg=hasLeaveThisWeek?'#FFCDD2':staffBg;
+    var labelColor=hasLeaveThisWeek?'#A32D2D':'#555';
+    html+='<div class="week-staff-label"><span style="font-size:10px;font-weight:600;color:'+labelColor+';padding:2px 8px;background:'+labelBg+';border-radius:4px;display:inline-block;">'+staff.split(' ')[0]+'</span></div>';
     days.forEach(function(d){
       var dStr=localDateStr(d),isToday=dStr===todayStr;
       var items=filtered.filter(function(s){
@@ -1210,16 +1221,8 @@ function renderWeekView(){
         return am-bm;
       });
       // 연차/반차면 셀 배경색 변경
-      var hasYeoncha=items.some(function(s){ return s.type==='personal'&&s.personalType==='연차'; });
-      var hasBancha=items.some(function(s){ return s.type==='personal'&&(s.personalType==='반차(오전)'||s.personalType==='반차(오후)'); });
-      var banchaAm=items.some(function(s){ return s.type==='personal'&&s.personalType==='반차(오전)'; });
       var cellBg='';
-      if(hasYeoncha){
-        cellBg='background:#FFECEC;';
-      } else if(hasBancha){
-        if(banchaAm) cellBg='background:linear-gradient(to bottom,#FFECEC 50%,#fff 50%);';
-        else cellBg='background:linear-gradient(to bottom,#fff 50%,#FFECEC 50%);';
-      } else if(isToday){
+      if(isToday){
         cellBg='background:#fafff8;';
       }
       html+='<div class="week-cell'+(isToday?' today-col':'')+'" style="'+cellBg+'" onclick="openTypeSelectWithStaff(\''+dStr+'\',\''+staff+'\')" >'+
