@@ -666,8 +666,8 @@ function renderDashboard() {
       schedEl.innerHTML='<div class="today-schedule-empty">오늘 등록된 일정이 없어요</div>';
     } else {
       var teamItems=sortedItems.filter(function(s){ return s.type==='team'; });
-      var personalItems=sortedItems.filter(function(s){ return s.type==='personal'; });
       var supportItems=sortedItems.filter(function(s){ return !s.type||s.type==='support'; });
+      var personalItems=sortedItems.filter(function(s){ return s.type==='personal'; });
       var html='';
       if(teamItems.length){
         html+='<div style="font-size:11px;font-weight:600;color:#854F0B;margin:6px 0 4px;">📢 팀 공지</div>';
@@ -676,6 +676,17 @@ function renderDashboard() {
             '<span class="badge-cat" style="background:#FFF3CC;color:#854F0B;">팀공지</span>'+
             '<span style="font-weight:500;">'+s.bizName+'</span>'+
             '<span style="font-size:12px;color:#888;">'+(s.content||'')+'</span>'+
+            '</div>';
+        }).join('');
+      }
+      if(supportItems.length){
+        html+='<div style="font-size:11px;font-weight:600;color:#185FA5;margin:6px 0 4px;">📋 업장 지원</div>';
+        html+=supportItems.map(function(s){
+          var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
+          return '<div class="today-item" onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;">'+
+            '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr.split(' ')[0]+'</span>'+
+            '<span style="font-weight:500;">'+s.bizName+'</span>'+
+            '<span style="font-size:12px;color:#888;">'+(s.category||'')+'</span>'+
             '</div>';
         }).join('');
       }
@@ -690,17 +701,6 @@ function renderDashboard() {
             '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'" style="'+(isLeave?'background:#FCEBEB;color:#A32D2D;':'')+'">'+staffStr.split(' ')[0]+'</span>'+
             '<span style="font-weight:500;">'+icon+' '+s.bizName+'</span>'+
             '<span style="font-size:12px;color:#888;">'+(s.content||'')+'</span>'+
-            '</div>';
-        }).join('');
-      }
-      if(supportItems.length){
-        html+='<div style="font-size:11px;font-weight:600;color:#185FA5;margin:6px 0 4px;">📋 업장 지원</div>';
-        html+=supportItems.map(function(s){
-          var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
-          return '<div class="today-item" onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;">'+
-            '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr.split(' ')[0]+'</span>'+
-            '<span style="font-weight:500;">'+s.bizName+'</span>'+
-            '<span style="font-size:12px;color:#888;">'+(s.category||'')+'</span>'+
             '</div>';
         }).join('');
       }
@@ -1233,7 +1233,14 @@ function renderWeekView(){
             evStyle='background:'+(isLeave?'#FFF0F0':'#f8f8f8')+';color:'+(isLeave?'#A32D2D':'#555')+';border-left:3px solid '+(isLeave?'#A32D2D':borderColor)+';font-weight:'+(isLeave?'600':'400')+';';
             label=pIcon+' '+s.bizName;
           } else {
-            evStyle='background:#fff;color:#1a1a18;border-left:3px solid '+borderColor+';';
+            var bgMap={
+              '박주형':'#E6F1FB','김재희':'#EAF3DE','손도란':'#FAEEDA',
+              '이소영':'#F3E6FB','김상준':'#FCEBEB','안은재':'#E6FBF8',
+              '견병록':'#FBF6E6','임성창':'#F0F0EC','김동현':'#FBE6F0'
+            };
+            var bg='#f5f5f3';
+            for(var k in bgMap){ if(staff.includes(k)){ bg=bgMap[k]; break; } }
+            evStyle='background:'+bg+';color:#1a1a18;border-left:3px solid '+borderColor+';';
             label=s.bizName;
           }
           return '<div class="week-event" onclick="event.stopPropagation();openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:2px;'+evStyle+'">'+
