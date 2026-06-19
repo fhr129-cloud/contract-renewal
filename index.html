@@ -265,12 +265,17 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 .toast{position:fixed;bottom:24px;right:24px;background:#1a1a18;color:#fff;padding:11px 16px;border-radius:8px;font-size:13px;z-index:999;animation:fadeUp .2s ease;white-space:nowrap;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
-/* 지원현황 카드 그리드 */
 .sup-stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
 .sup-stat-card{background:#f5f5f3;border-radius:8px;padding:10px 12px;cursor:pointer;transition:box-shadow .1s;border:.5px solid #e8e8e4;}
 .sup-stat-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);}
 .sup-stat-card-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;}
 .sup-stat-card-count{font-size:18px;font-weight:700;}
+
+/* 타입 선택 모달 */
+.type-select-item{display:flex;align-items:center;gap:14px;padding:16px;border:.5px solid #e8e8e4;border-radius:12px;cursor:pointer;margin-bottom:10px;transition:background .1s;}
+.type-select-item:last-child{margin-bottom:0;}
+.type-select-item:hover{background:#f5f5f3;}
+.type-select-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
 
 @media(max-width:900px){
   .resp-layout{grid-template-columns:1fr 1fr;}
@@ -279,7 +284,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
   .sup-stat-grid{grid-template-columns:repeat(3,1fr);}
 }
 @media(max-width:700px){
- .week-grid{grid-template-columns:72px repeat(7,1fr);}
+  .week-grid{grid-template-columns:72px repeat(7,1fr);}
   .sup-stat-grid{grid-template-columns:repeat(2,1fr);}
 }
 @media(max-width:600px){
@@ -378,7 +383,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
       <div style="display:flex;gap:6px;margin-left:auto;">
         <button class="btn sm active-filter" id="view-week-btn" onclick="setCalView('week')">주간</button>
         <button class="btn sm" id="view-month-btn" onclick="setCalView('month')">월간</button>
-        <button class="btn sm primary" onclick="openSupportModal()"><i class="ti ti-plus"></i> 등록</button>
+        <button class="btn sm primary" onclick="openTypeSelect()"><i class="ti ti-plus"></i> 등록</button>
       </div>
     </div>
     <div style="display:flex;gap:6px;margin-bottom:12px;align-items:center;flex-wrap:wrap;">
@@ -465,6 +470,129 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
     </div>
   </div>
   <div class="detail-body" id="detail-body"></div>
+</div>
+
+<!-- 일정 타입 선택 모달 -->
+<div class="sup-modal" id="type-select-modal">
+  <div class="sup-modal-inner" style="max-width:360px;">
+    <div class="sup-modal-header">
+      <h3>어떤 일정인가요?</h3>
+      <button class="btn sm" onclick="closeTypeSelect()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="sup-modal-body">
+      <div class="type-select-item" onclick="selectScheduleType('support')">
+        <div class="type-select-icon" style="background:#E6F1FB;">📋</div>
+        <div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:2px;">업장 지원</div>
+          <div style="font-size:12px;color:#aaa;">업장 방문, 점검, 특식 등</div>
+        </div>
+      </div>
+      <div class="type-select-item" onclick="selectScheduleType('personal')">
+        <div class="type-select-icon" style="background:#EAF3DE;">👤</div>
+        <div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:2px;">개인 일정</div>
+          <div style="font-size:12px;color:#aaa;">연차, 반차, 외근, 교육 등</div>
+        </div>
+      </div>
+      <div class="type-select-item" onclick="selectScheduleType('team')" style="margin-bottom:0;">
+        <div class="type-select-icon" style="background:#FAEEDA;">📢</div>
+        <div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:2px;">팀 공지</div>
+          <div style="font-size:12px;color:#aaa;">팀 전체 일정, 회의, 공지</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 개인 일정 모달 -->
+<div class="sup-modal" id="personal-modal">
+  <div class="sup-modal-inner">
+    <div class="sup-modal-header">
+      <h3 id="personal-modal-title">개인 일정 등록</h3>
+      <button class="btn sm" onclick="closePersonalModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="sup-modal-body">
+      <div class="sup-form-group">
+        <label>일정 종류 *</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;" id="personal-type-wrap">
+          <div class="staff-chip" onclick="selectPersonalType(this,'연차')">연차</div>
+          <div class="staff-chip" onclick="selectPersonalType(this,'반차(오전)')">반차(오전)</div>
+          <div class="staff-chip" onclick="selectPersonalType(this,'반차(오후)')">반차(오후)</div>
+          <div class="staff-chip" onclick="selectPersonalType(this,'외근')">외근</div>
+          <div class="staff-chip" onclick="selectPersonalType(this,'교육')">교육</div>
+          <div class="staff-chip" onclick="selectPersonalType(this,'기타')">기타</div>
+        </div>
+        <input type="hidden" id="personal-type-val">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="sup-form-group">
+          <label>시작일 *</label>
+          <input type="date" id="personal-date">
+        </div>
+        <div class="sup-form-group">
+          <label>종료일 <span style="font-size:10px;color:#aaa;">(선택)</span></label>
+          <input type="date" id="personal-date-end">
+        </div>
+      </div>
+      <div class="sup-form-group">
+        <label>담당자 *</label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;" id="personal-staff-wrap">
+          <div class="staff-chip" onclick="togglePersonalStaffChip(this,'박주형 본부장')">박주형 본부장</div>
+          <div class="staff-chip" onclick="togglePersonalStaffChip(this,'김재희 차장')">김재희 차장</div>
+          <div class="staff-chip" onclick="togglePersonalStaffChip(this,'손도란 대리')">손도란 대리</div>
+          <div class="staff-chip" onclick="togglePersonalStaffChip(this,'이소영 주임')">이소영 주임</div>
+          <div class="staff-chip" onclick="togglePersonalStaffChip(this,'김상준 주임')">김상준 주임</div>
+          <div class="staff-chip" onclick="togglePersonalStaffChip(this,'안은재 주임')">안은재 주임</div>
+          <div class="staff-chip" onclick="togglePersonalStaffChip(this,'견병록 매니저')">견병록 매니저</div>
+          <div class="staff-chip" onclick="togglePersonalStaffChip(this,'임성창 차장')">임성창 차장</div>
+          <div class="staff-chip" onclick="togglePersonalStaffChip(this,'김동현 대리')">김동현 대리</div>
+        </div>
+      </div>
+      <div class="sup-form-group">
+        <label>메모</label>
+        <textarea id="personal-content" placeholder="특이사항" style="padding:8px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;font-family:inherit;width:100%;min-height:60px;resize:vertical;"></textarea>
+      </div>
+    </div>
+    <div class="sup-modal-footer">
+      <button class="btn" onclick="closePersonalModal()">취소</button>
+      <button class="btn primary" onclick="submitPersonal()"><i class="ti ti-check"></i> 등록</button>
+    </div>
+  </div>
+</div>
+
+<!-- 팀 공지 모달 -->
+<div class="sup-modal" id="team-modal">
+  <div class="sup-modal-inner">
+    <div class="sup-modal-header">
+      <h3 id="team-modal-title">팀 공지 등록</h3>
+      <button class="btn sm" onclick="closeTeamModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="sup-modal-body">
+      <div class="sup-form-group">
+        <label>제목 *</label>
+        <input type="text" id="team-title" placeholder="예: 월간 팀 회의, 워크샵 등">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="sup-form-group">
+          <label>시작일 *</label>
+          <input type="date" id="team-date">
+        </div>
+        <div class="sup-form-group">
+          <label>종료일 <span style="font-size:10px;color:#aaa;">(선택)</span></label>
+          <input type="date" id="team-date-end">
+        </div>
+      </div>
+      <div class="sup-form-group">
+        <label>내용</label>
+        <textarea id="team-content" placeholder="공지 내용" style="padding:8px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;font-family:inherit;width:100%;min-height:72px;resize:vertical;"></textarea>
+      </div>
+    </div>
+    <div class="sup-modal-footer">
+      <button class="btn" onclick="closeTeamModal()">취소</button>
+      <button class="btn primary" onclick="submitTeam()"><i class="ti ti-check"></i> 등록</button>
+    </div>
+  </div>
 </div>
 
 <!-- 운영지원 등록 모달 -->
