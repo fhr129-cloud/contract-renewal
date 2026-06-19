@@ -1230,7 +1230,7 @@ function renderWeekView(){
           var evStyle='',label='';
           if(isPersonal){
             var isLeave=s.personalType==='연차'||s.personalType==='반차(오전)'||s.personalType==='반차(오후)';
-            evStyle='background:'+(isLeave?'#FFCDD2':'#e8e8e8')+';color:'+(isLeave?'#A32D2D':'#444')+';font-weight:'+(isLeave?'600':'400')+';';
+            evStyle=isLeave?'background:transparent;color:#A32D2D;font-weight:600;':'background:#e8e8e8;color:#444;';
             label=s.bizName;
           } else {
             var bgMap={
