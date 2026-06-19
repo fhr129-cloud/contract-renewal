@@ -1169,7 +1169,7 @@ function renderWeekView(){
   });
 
   // 팀공지 행
-  html+='<div class="week-staff-label" style="background:#FFF9E6;"><span style="font-size:9px;font-weight:600;color:#854F0B;">팀공지</span></div>';
+  html+='<div class="week-staff-label" style="background:#FFF9E6;"><span style="font-size:10px;font-weight:700;color:#854F0B;">📢 팀공지</span></div>';
   days.forEach(function(d){
     var dStr=localDateStr(d),isToday=dStr===todayStr;
     var teamItems=filtered.filter(function(s){
@@ -1240,7 +1240,7 @@ function renderWeekView(){
             };
             var bg='#f5f5f3';
             for(var k in bgMap){ if(staff.includes(k)){ bg=bgMap[k]; break; } }
-            evStyle='background:'+bg+';color:#1a1a18;border-left:3px solid '+borderColor+';';
+            evStyle='background:'+bg+';color:#1a1a18;border-left:3px solid '+borderColor+';font-weight:600;';
             label=s.bizName;
           }
           return '<div class="week-event" onclick="event.stopPropagation();openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:2px;'+evStyle+'">'+
