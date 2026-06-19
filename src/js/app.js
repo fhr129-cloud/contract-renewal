@@ -30,10 +30,15 @@ var STAFF_COLORS = {
   '이소영':'sc-이소영','김상준':'sc-김상준','안은재':'sc-안은재',
   '견병록':'sc-견병록','임성창':'sc-임성창','김동현':'sc-김동현',
 };
-function getStaffColor(name) {
-  if(!name) return '';
-  for(var k in STAFF_COLORS) { if(name.includes(k)) return STAFF_COLORS[k]; }
-  return '';
+var STAFF_BORDER_COLORS = {
+  '박주형':'#185FA5','김재희':'#3B6D11','손도란':'#854F0B',
+  '이소영':'#6B2FA0','김상준':'#A32D2D','안은재':'#0B6B5A',
+  '견병록':'#6B5B0B','임성창':'#444','김동현':'#A32D6B',
+};
+function getStaffBorderColor(name) {
+  if(!name) return '#ccc';
+  for(var k in STAFF_BORDER_COLORS) { if(name.includes(k)) return STAFF_BORDER_COLORS[k]; }
+  return '#ccc';
 }
 
 var COORDS = {
@@ -1146,7 +1151,8 @@ function renderWeekView(){
   // 담당자 행
   staffOrder.forEach(function(staff){
     var cls=getStaffColor(staff);
-    html+='<div class="week-staff-label"><span class="badge-cat '+(cls||'')+'" style="font-size:10px;">'+staff.split(' ')[0]+'</span></div>';
+    var borderCol=getStaffBorderColor(staff);
+    html+='<div class="week-staff-label"><span style="font-size:10px;font-weight:600;color:#555;padding:2px 6px;border-left:3px solid '+borderCol+';display:inline-block;">'+staff.split(' ')[0]+'</span></div>';
     days.forEach(function(d){
       var dStr=localDateStr(d),isToday=dStr===todayStr;
       var items=filtered.filter(function(s){
@@ -1180,20 +1186,21 @@ function renderWeekView(){
       html+='<div class="week-cell'+(isToday?' today-col':'')+'" style="'+cellBg+'" onclick="openTypeSelectWithStaff(\''+dStr+'\',\''+staff+'\')" >'+
         items.map(function(s){
           var isPersonal=s.type==='personal';
-          var cls2=isPersonal?'':getStaffColor(staff);
+          var borderColor=getStaffBorderColor(staff);
           var personalIcons={'연차':'🏖️','반차(오전)':'🌅','반차(오후)':'🌇','외근':'🚗','교육':'📚','기타':'📌'};
           var evStyle='',label='';
           if(isPersonal){
             var pIcon=personalIcons[s.personalType]||'👤';
             var isLeave=s.personalType==='연차'||s.personalType==='반차(오전)'||s.personalType==='반차(오후)';
-            evStyle=isLeave?'background:rgba(200,0,0,0.12);color:#A32D2D;font-weight:600;border:.5px solid rgba(200,0,0,0.2);':'background:#E6F1FB;color:#185FA5;border:.5px solid #B5D4F4;';
+            evStyle='background:'+(isLeave?'#FFF0F0':'#f8f8f8')+';color:'+(isLeave?'#A32D2D':'#555')+';border-left:3px solid '+(isLeave?'#A32D2D':borderColor)+';font-weight:'+(isLeave?'600':'400')+';';
             label=pIcon+' '+s.bizName;
           } else {
+            evStyle='background:#fff;color:#1a1a18;border-left:3px solid '+borderColor+';';
             label=s.bizName;
           }
-          return '<div class="week-event '+(cls2||'')+'" onclick="event.stopPropagation();openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:2px;'+evStyle+'">'+
+          return '<div class="week-event" onclick="event.stopPropagation();openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:2px;'+evStyle+'">'+
             '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">'+label+'</span>'+
-            (s.category&&!isPersonal?'<span style="font-size:8px;opacity:0.75;flex-shrink:0;white-space:nowrap;">'+s.category.slice(0,2)+'</span>':'')+
+            (s.category&&!isPersonal?'<span style="font-size:8px;color:#aaa;flex-shrink:0;white-space:nowrap;">'+s.category.slice(0,2)+'</span>':'')+
           '</div>';
         }).join('')+'</div>';
     });
