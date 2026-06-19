@@ -1222,8 +1222,7 @@ function renderWeekView(){
       } else if(isToday){
         cellBg='background:#fafff8;';
       }
-      var cellHeight=hasYeoncha?'min-height:88px;':'';
-      html+='<div class="week-cell'+(isToday?' today-col':'')+'" style="'+cellBg+cellHeight+'" onclick="openTypeSelectWithStaff(\''+dStr+'\',\''+staff+'\')" >'+
+      html+='<div class="week-cell'+(isToday?' today-col':'')+'" style="'+cellBg+'" onclick="openTypeSelectWithStaff(\''+dStr+'\',\''+staff+'\')" >'+
         items.map(function(s){
           var isPersonal=s.type==='personal';
           var borderColor=getStaffBorderColor(staff);
@@ -1231,7 +1230,7 @@ function renderWeekView(){
           var evStyle='',label='';
           if(isPersonal){
             var isLeave=s.personalType==='연차'||s.personalType==='반차(오전)'||s.personalType==='반차(오후)';
-            evStyle='background:'+(isLeave?'#FFCDD2':'#e8e8e8')+';color:'+(isLeave?'#A32D2D':'#444')+';font-weight:'+(isLeave?'600':'400')+';'+(isLeave?'min-height:36px;display:flex;align-items:center;':'');
+            evStyle='background:'+(isLeave?'#FFCDD2':'#e8e8e8')+';color:'+(isLeave?'#A32D2D':'#444')+';font-weight:'+(isLeave?'600':'400')+';';
             label=s.bizName;
           } else {
             var bgMap={
