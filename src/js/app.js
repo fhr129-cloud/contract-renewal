@@ -30,6 +30,11 @@ var STAFF_COLORS = {
   '이소영':'sc-이소영','김상준':'sc-김상준','안은재':'sc-안은재',
   '견병록':'sc-견병록','임성창':'sc-임성창','김동현':'sc-김동현',
 };
+function getStaffColor(name) {
+  if(!name) return '';
+  for(var k in STAFF_COLORS) { if(name.includes(k)) return STAFF_COLORS[k]; }
+  return '';
+}
 var STAFF_BORDER_COLORS = {
   '박주형':'#185FA5','김재희':'#3B6D11','손도란':'#854F0B',
   '이소영':'#6B2FA0','김상준':'#A32D2D','안은재':'#0B6B5A',
@@ -657,17 +662,50 @@ function renderDashboard() {
       if(ai===-1) ai=99; if(bi===-1) bi=99;
       return ai-bi;
     });
-    schedEl.innerHTML=sortedItems.length?sortedItems.map(function(s){
-      var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
-      var label=s.type==='personal'?'['+s.bizName+'] ':s.type==='team'?'[팀공지] ':'';
-      return '<div class="today-item" onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;">'+
-        '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+
-          (s.type==='team'?'팀공지':staffStr)+
-        '</span>'+
-        '<span style="font-weight:500;">'+label+(s.type==='support'?s.bizName:s.type==='personal'?s.staffName||staffStr:s.bizName)+'</span>'+
-        '<span style="font-size:12px;color:#888;">'+(s.category||'')+'</span>'+
-        '</div>';
-    }).join(''):'<div class="today-schedule-empty">오늘 등록된 일정이 없어요</div>';
+    if(!sortedItems.length){
+      schedEl.innerHTML='<div class="today-schedule-empty">오늘 등록된 일정이 없어요</div>';
+    } else {
+      var teamItems=sortedItems.filter(function(s){ return s.type==='team'; });
+      var personalItems=sortedItems.filter(function(s){ return s.type==='personal'; });
+      var supportItems=sortedItems.filter(function(s){ return !s.type||s.type==='support'; });
+      var html='';
+      if(teamItems.length){
+        html+='<div style="font-size:11px;font-weight:600;color:#854F0B;margin:6px 0 4px;">📢 팀 공지</div>';
+        html+=teamItems.map(function(s){
+          return '<div class="today-item" onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;background:#FFFDF0;border-radius:6px;padding:6px 8px;margin-bottom:3px;">'+
+            '<span class="badge-cat" style="background:#FFF3CC;color:#854F0B;">팀공지</span>'+
+            '<span style="font-weight:500;">'+s.bizName+'</span>'+
+            '<span style="font-size:12px;color:#888;">'+(s.content||'')+'</span>'+
+            '</div>';
+        }).join('');
+      }
+      if(personalItems.length){
+        html+='<div style="font-size:11px;font-weight:600;color:#555;margin:6px 0 4px;">👤 개인 일정</div>';
+        html+=personalItems.map(function(s){
+          var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
+          var isLeave=s.personalType==='연차'||s.personalType==='반차(오전)'||s.personalType==='반차(오후)';
+          var personalIcons={'연차':'🏖️','반차(오전)':'🌅','반차(오후)':'🌇','외근':'🚗','교육':'📚','기타':'📌'};
+          var icon=personalIcons[s.personalType]||'👤';
+          return '<div class="today-item" onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;background:'+(isLeave?'#FFF0F0':'#f8f8f8')+';border-radius:6px;padding:6px 8px;margin-bottom:3px;">'+
+            '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'" style="'+(isLeave?'background:#FCEBEB;color:#A32D2D;':'')+'">'+staffStr.split(' ')[0]+'</span>'+
+            '<span style="font-weight:500;">'+icon+' '+s.bizName+'</span>'+
+            '<span style="font-size:12px;color:#888;">'+(s.content||'')+'</span>'+
+            '</div>';
+        }).join('');
+      }
+      if(supportItems.length){
+        html+='<div style="font-size:11px;font-weight:600;color:#185FA5;margin:6px 0 4px;">📋 업장 지원</div>';
+        html+=supportItems.map(function(s){
+          var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
+          return '<div class="today-item" onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;">'+
+            '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr.split(' ')[0]+'</span>'+
+            '<span style="font-weight:500;">'+s.bizName+'</span>'+
+            '<span style="font-size:12px;color:#888;">'+(s.category||'')+'</span>'+
+            '</div>';
+        }).join('');
+      }
+      schedEl.innerHTML=html;
+    }
   }
 
   var thisY=now.getFullYear(),thisM=now.getMonth();
