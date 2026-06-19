@@ -1165,14 +1165,32 @@ function renderWeekView(){
         return am-bm;
       });
       // 연차/반차면 셀 배경색 변경
-      var hasLeave=items.some(function(s){ return s.type==='personal'&&(s.personalType==='연차'||s.personalType==='반차(오전)'||s.personalType==='반차(오후)'); });
-      var cellBg=hasLeave?'background:#FFF0F0;':'';
-      html+='<div class="week-cell'+(isToday?' today-col':'')+'" style="'+cellBg+(isToday&&!hasLeave?'background:#fafff8;':'')+'" onclick="openTypeSelectWithStaff(\''+dStr+'\',\''+staff+'\')" >'+
+      var hasYeoncha=items.some(function(s){ return s.type==='personal'&&s.personalType==='연차'; });
+      var hasBancha=items.some(function(s){ return s.type==='personal'&&(s.personalType==='반차(오전)'||s.personalType==='반차(오후)'); });
+      var banchaAm=items.some(function(s){ return s.type==='personal'&&s.personalType==='반차(오전)'; });
+      var cellBg='';
+      if(hasYeoncha){
+        cellBg='background:repeating-linear-gradient(45deg,#fff0f0,#fff0f0 4px,#ffe0e0 4px,#ffe0e0 8px);';
+      } else if(hasBancha){
+        if(banchaAm) cellBg='background:linear-gradient(to bottom,repeating-linear-gradient(45deg,#fff5f0,#fff5f0 4px,#ffe8e0 4px,#ffe8e0 8px) 0 0/100% 50%,#fff 50% 100%) no-repeat;';
+        else cellBg='background:linear-gradient(to bottom,#fff 0 50%,repeating-linear-gradient(45deg,#fff5f0,#fff5f0 4px,#ffe8e0 4px,#ffe8e0 8px) 50% 100%) no-repeat;';
+      } else if(isToday){
+        cellBg='background:#fafff8;';
+      }
+      html+='<div class="week-cell'+(isToday?' today-col':'')+'" style="'+cellBg+'" onclick="openTypeSelectWithStaff(\''+dStr+'\',\''+staff+'\')" >'+
         items.map(function(s){
           var isPersonal=s.type==='personal';
           var cls2=isPersonal?'':getStaffColor(staff);
-          var evStyle=isPersonal?'background:#f0f0ec;color:#666;':'';
-          var label=isPersonal?s.bizName:s.bizName;
+          var personalIcons={'연차':'🏖️','반차(오전)':'🌅','반차(오후)':'🌇','외근':'🚗','교육':'📚','기타':'📌'};
+          var evStyle='',label='';
+          if(isPersonal){
+            var pIcon=personalIcons[s.personalType]||'👤';
+            var isLeave=s.personalType==='연차'||s.personalType==='반차(오전)'||s.personalType==='반차(오후)';
+            evStyle=isLeave?'background:rgba(200,0,0,0.12);color:#A32D2D;font-weight:600;border:.5px solid rgba(200,0,0,0.2);':'background:#E6F1FB;color:#185FA5;border:.5px solid #B5D4F4;';
+            label=pIcon+' '+s.bizName;
+          } else {
+            label=s.bizName;
+          }
           return '<div class="week-event '+(cls2||'')+'" onclick="event.stopPropagation();openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:2px;'+evStyle+'">'+
             '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">'+label+'</span>'+
             (s.category&&!isPersonal?'<span style="font-size:8px;opacity:0.75;flex-shrink:0;white-space:nowrap;">'+s.category.slice(0,2)+'</span>':'')+
