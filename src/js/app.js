@@ -1200,9 +1200,7 @@ function renderWeekView(){
       var start=s.date.slice(0,10),end=s.dateEnd?s.dateEnd.slice(0,10):start;
       return days.some(function(d){ var dStr=localDateStr(d); return dStr>=start&&dStr<=end; });
     });
-    var labelBg=hasLeaveThisWeek?'#FFCDD2':staffBg;
-    var labelColor=hasLeaveThisWeek?'#A32D2D':'#555';
-    html+='<div class="week-staff-label"><span style="font-size:10px;font-weight:600;color:'+labelColor+';padding:2px 8px;background:'+labelBg+';border-radius:4px;display:inline-block;">'+staff.split(' ')[0]+'</span></div>';
+   html+='<div class="week-staff-label"><span style="font-size:10px;font-weight:600;color:#555;padding:2px 8px;background:'+staffBg+';border-radius:4px;display:inline-block;">'+staff.split(' ')[0]+'</span></div>';
     days.forEach(function(d){
       var dStr=localDateStr(d),isToday=dStr===todayStr;
       var items=filtered.filter(function(s){
