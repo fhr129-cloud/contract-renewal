@@ -670,38 +670,42 @@ function renderDashboard() {
       var personalItems=sortedItems.filter(function(s){ return s.type==='personal'; });
       var html='';
       if(teamItems.length){
-        html+='<div style="font-size:11px;font-weight:600;color:#854F0B;margin:6px 0 4px;">📢 팀 공지</div>';
-        html+=teamItems.map(function(s){
-          return '<div class="today-item" onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;background:#FFFDF0;border-radius:6px;padding:6px 8px;margin-bottom:3px;">'+
-            '<span class="badge-cat" style="background:#FFF3CC;color:#854F0B;">팀공지</span>'+
-            '<span style="font-weight:500;">'+s.bizName+'</span>'+
-            '<span style="font-size:12px;color:#888;">'+(s.content||'')+'</span>'+
+        html+='<div style="background:#FFFBEE;border:.5px solid #FAC775;border-radius:10px;padding:10px 12px;margin-bottom:8px;">'+
+          '<div style="font-size:11px;font-weight:700;color:#854F0B;margin-bottom:6px;">📢 팀 공지</div>'+
+          teamItems.map(function(s){
+            return '<div onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid #FAE8B0;font-size:13px;" class="today-item-inner">'+
+              '<span style="font-weight:600;flex:1;">'+s.bizName+'</span>'+
+              '<span style="font-size:12px;color:#888;white-space:nowrap;">'+(s.content||'')+'</span>'+
             '</div>';
-        }).join('');
+          }).join('')+
+        '</div>';
       }
       if(supportItems.length){
-        html+='<div style="font-size:11px;font-weight:600;color:#185FA5;margin:6px 0 4px;">📋 업장 지원</div>';
-        html+=supportItems.map(function(s){
-          var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
-          return '<div class="today-item" onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;">'+
-            '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr.split(' ')[0]+'</span>'+
-            '<span style="font-weight:500;">'+s.bizName+'</span>'+
-            '<span style="font-size:12px;color:#888;">'+(s.category||'')+'</span>'+
+        html+='<div style="background:#EEF5FF;border:.5px solid #B5D4F4;border-radius:10px;padding:10px 12px;margin-bottom:8px;">'+
+          '<div style="font-size:11px;font-weight:700;color:#185FA5;margin-bottom:6px;">📋 업장 지원</div>'+
+          supportItems.map(function(s){
+            var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
+            return '<div onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid #C8DEFA;font-size:13px;">'+
+              '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr.split(' ')[0]+'</span>'+
+              '<span style="font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+s.bizName+'</span>'+
+              '<span style="font-size:12px;color:#888;white-space:nowrap;flex-shrink:0;">'+(s.category||'')+'</span>'+
             '</div>';
-        }).join('');
+          }).join('')+
+        '</div>';
       }
       if(personalItems.length){
-        html+='<div style="font-size:11px;font-weight:600;color:#555;margin:6px 0 4px;">👤 개인 일정</div>';
-        html+=personalItems.map(function(s){
-          var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
-          var isLeave=s.personalType==='연차'||s.personalType==='반차(오전)'||s.personalType==='반차(오후)';
-          
-          return '<div class="today-item" onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;background:#f8f8f8;border-radius:6px;padding:6px 8px;margin-bottom:3px;">'+
-            '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'" style="'+(isLeave?'background:#FFCDD2;color:#A32D2D;font-weight:600;':'')+'">'+staffStr.split(' ')[0]+'</span>'+
-            '<span style="font-weight:500;">'+s.bizName+'</span>'+
-            '<span style="font-size:12px;color:#888;">'+(s.content||'')+'</span>'+
+        html+='<div style="background:#F5F5F3;border:.5px solid #ddd;border-radius:10px;padding:10px 12px;margin-bottom:8px;">'+
+          '<div style="font-size:11px;font-weight:700;color:#555;margin-bottom:6px;">👤 개인 일정</div>'+
+          personalItems.map(function(s){
+            var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
+            var isLeave=s.personalType==='연차'||s.personalType==='반차(오전)'||s.personalType==='반차(오후)';
+            return '<div onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid #e0e0dc;font-size:13px;">'+
+              '<span class="badge-cat" style="'+(isLeave?'background:#FFCDD2;color:#A32D2D;':'')+'">'+staffStr.split(' ')[0]+'</span>'+
+              '<span style="font-weight:600;flex:1;">'+s.bizName+'</span>'+
+              '<span style="font-size:12px;color:#888;white-space:nowrap;">'+(s.content||'')+'</span>'+
             '</div>';
-        }).join('');
+          }).join('')+
+        '</div>';
       }
       schedEl.innerHTML=html;
     }
