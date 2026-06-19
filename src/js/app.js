@@ -1162,7 +1162,7 @@ function renderWeekView(){
   // 팀 공지 행
   var html='<div class="week-grid">';
   // 헤더 행
-  html+='<div class="week-header" style="font-size:9px;color:#aaa;line-height:1.4;">담당자<br><span style="font-weight:600;color:#555;">날짜</span></div>';
+  html+='<div class="week-header"></div>';
   days.forEach(function(d,i){
     var dStr=localDateStr(d),isToday=dStr===todayStr;
     html+='<div class="week-header'+(isToday?' today-col':'')+'">'+dayLabels[i]+'<br><span style="font-weight:600;">'+d.getDate()+'</span></div>';
