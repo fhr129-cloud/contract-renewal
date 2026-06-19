@@ -695,11 +695,10 @@ function renderDashboard() {
         html+=personalItems.map(function(s){
           var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
           var isLeave=s.personalType==='연차'||s.personalType==='반차(오전)'||s.personalType==='반차(오후)';
-          var personalIcons={'연차':'🏖️','반차(오전)':'🌅','반차(오후)':'🌇','외근':'🚗','교육':'📚','기타':'📌'};
-          var icon=personalIcons[s.personalType]||'👤';
+          
           return '<div class="today-item" onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;background:'+(isLeave?'#FFF0F0':'#f8f8f8')+';border-radius:6px;padding:6px 8px;margin-bottom:3px;">'+
             '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'" style="'+(isLeave?'background:#FCEBEB;color:#A32D2D;':'')+'">'+staffStr.split(' ')[0]+'</span>'+
-            '<span style="font-weight:500;">'+icon+' '+s.bizName+'</span>'+
+            '<span style="font-weight:500;">'+s.bizName+'</span>'+
             '<span style="font-size:12px;color:#888;">'+(s.content||'')+'</span>'+
             '</div>';
         }).join('');
@@ -1163,14 +1162,14 @@ function renderWeekView(){
   // 팀 공지 행
   var html='<div class="week-grid">';
   // 헤더 행
-  html+='<div class="week-header" style="background:#FFF9E6;font-size:10px;color:#854F0B;">팀공지</div>';
+  html+='<div class="week-header" style="background:#FFF9E6;font-size:10px;color:#854F0B;display:flex;align-items:center;justify-content:center;">📢</div>';
   days.forEach(function(d,i){
     var dStr=localDateStr(d),isToday=dStr===todayStr;
     html+='<div class="week-header'+(isToday?' today-col':'')+'">'+dayLabels[i]+'<br><span style="font-weight:600;">'+d.getDate()+'</span></div>';
   });
 
   // 팀공지 행
-  html+='<div class="week-staff-label" style="background:#FFF9E6;"><span style="font-size:10px;color:#854F0B;">📢</span></div>';
+  html+='<div class="week-staff-label" style="background:#FFF9E6;"></div>';
   days.forEach(function(d){
     var dStr=localDateStr(d),isToday=dStr===todayStr;
     var teamItems=filtered.filter(function(s){
@@ -1190,7 +1189,9 @@ function renderWeekView(){
   staffOrder.forEach(function(staff){
     var cls=getStaffColor(staff);
     var borderCol=getStaffBorderColor(staff);
-    html+='<div class="week-staff-label"><span style="font-size:10px;font-weight:600;color:#555;padding:2px 6px;border-left:3px solid '+borderCol+';display:inline-block;">'+staff.split(' ')[0]+'</span></div>';
+    var bgMap2={'박주형':'#E6F1FB','김재희':'#EAF3DE','손도란':'#FAEEDA','이소영':'#F3E6FB','김상준':'#FCEBEB','안은재':'#E6FBF8','견병록':'#FBF6E6','임성창':'#F0F0EC','김동현':'#FBE6F0'};
+    var staffBg='#f0f0ec'; for(var sk in bgMap2){ if(staff.includes(sk)){ staffBg=bgMap2[sk]; break; } }
+    html+='<div class="week-staff-label"><span style="font-size:10px;font-weight:600;color:#555;padding:2px 8px;background:'+staffBg+';border-radius:4px;display:inline-block;">'+staff.split(' ')[0]+'</span></div>';
     days.forEach(function(d){
       var dStr=localDateStr(d),isToday=dStr===todayStr;
       var items=filtered.filter(function(s){
@@ -1214,24 +1215,24 @@ function renderWeekView(){
       var banchaAm=items.some(function(s){ return s.type==='personal'&&s.personalType==='반차(오전)'; });
       var cellBg='';
       if(hasYeoncha){
-        cellBg='background:repeating-linear-gradient(45deg,#fff0f0,#fff0f0 4px,#ffe0e0 4px,#ffe0e0 8px);';
+        cellBg='background:#FFECEC;';
       } else if(hasBancha){
-        if(banchaAm) cellBg='background:linear-gradient(to bottom,repeating-linear-gradient(45deg,#fff5f0,#fff5f0 4px,#ffe8e0 4px,#ffe8e0 8px) 0 0/100% 50%,#fff 50% 100%) no-repeat;';
-        else cellBg='background:linear-gradient(to bottom,#fff 0 50%,repeating-linear-gradient(45deg,#fff5f0,#fff5f0 4px,#ffe8e0 4px,#ffe8e0 8px) 50% 100%) no-repeat;';
+        if(banchaAm) cellBg='background:linear-gradient(to bottom,#FFECEC 50%,#fff 50%);';
+        else cellBg='background:linear-gradient(to bottom,#fff 50%,#FFECEC 50%);';
       } else if(isToday){
         cellBg='background:#fafff8;';
       }
-      html+='<div class="week-cell'+(isToday?' today-col':'')+'" style="'+cellBg+'" onclick="openTypeSelectWithStaff(\''+dStr+'\',\''+staff+'\')" >'+
+      var cellHeight=hasYeoncha?'min-height:88px;':'';
+      html+='<div class="week-cell'+(isToday?' today-col':'')+'" style="'+cellBg+cellHeight+'" onclick="openTypeSelectWithStaff(\''+dStr+'\',\''+staff+'\')" >'+
         items.map(function(s){
           var isPersonal=s.type==='personal';
           var borderColor=getStaffBorderColor(staff);
-          var personalIcons={'연차':'🏖️','반차(오전)':'🌅','반차(오후)':'🌇','외근':'🚗','교육':'📚','기타':'📌'};
+          
           var evStyle='',label='';
           if(isPersonal){
-            var pIcon=personalIcons[s.personalType]||'👤';
             var isLeave=s.personalType==='연차'||s.personalType==='반차(오전)'||s.personalType==='반차(오후)';
-            evStyle='background:'+(isLeave?'#FFF0F0':'#f8f8f8')+';color:'+(isLeave?'#A32D2D':'#555')+';border-left:3px solid '+(isLeave?'#A32D2D':borderColor)+';font-weight:'+(isLeave?'600':'400')+';';
-            label=pIcon+' '+s.bizName;
+            evStyle='background:'+(isLeave?'#FFCDD2':'#e8e8e8')+';color:'+(isLeave?'#A32D2D':'#444')+';font-weight:'+(isLeave?'600':'400')+';'+(isLeave?'min-height:36px;display:flex;align-items:center;':'');
+            label=s.bizName;
           } else {
             var bgMap={
               '박주형':'#E6F1FB','김재희':'#EAF3DE','손도란':'#FAEEDA',
