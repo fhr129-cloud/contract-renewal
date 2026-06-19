@@ -894,8 +894,9 @@ function renderMonthView(){
       '<div class="cal-num">'+d+'</div>'+
       uniqueItems.slice(0,3).map(function(s){
         var staffStr=s.staffNames&&s.staffNames.length?s.staffNames[0]:(s.staffName||'');
+        var allStaff=s.staffNames&&s.staffNames.length?s.staffNames.map(function(n){ return n.split(' ')[0]; }).join('·'):(s.staffName?s.staffName.split(' ')[0]:'');
         var cls=getStaffColor(staffStr);
-        return '<div class="cal-event '+(cls||'')+'">'+s.bizName+(staffStr?'/'+staffStr.split(' ')[0]:'')+'</div>';
+        return '<div class="cal-event '+(cls||'')+'">'+s.bizName+(allStaff?'/'+allStaff:'')+'</div>';
       }).join('')+
       (uniqueItems.length>3?'<div class="cal-more">+'+(uniqueItems.length-3)+'건</div>':'')+
       '<div class="cal-dots">'+
