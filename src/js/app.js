@@ -17,6 +17,8 @@ var ssOptions = [];
 var currentModalTab = 'basic';
 var weekOffset = 0;
 window.detailId = null;
+window._typeSelectDate = null;
+window._typeSelectStaff = null;
 
 function localDateStr(d) {
   var dt=d||new Date();
@@ -100,7 +102,6 @@ window.formatPhone = function(input) {
 window.updateChip = function(cb) {
   var label=cb.closest('.meal-chip');
   if(label) label.classList.toggle('checked',cb.checked);
-  // 끼니 시간 행 표시/숨기기 (평일만)
   if(cb.dataset&&cb.dataset.day==='weekday'&&cb.value){
     var rows=document.querySelectorAll('.meal-time-row');
     rows.forEach(function(row){
@@ -123,7 +124,6 @@ window.toggleWeekend = function(day) {
 function getMeals() {
   var r={weekday:[],sat:[],sun:[],times:{}};
   document.querySelectorAll('.meal-cb[data-day="weekday"]:checked').forEach(function(cb){ r.weekday.push(cb.value); });
-  // 끼니별 시간 수집
   document.querySelectorAll('.meal-time-row').forEach(function(row){
     var meal=row.dataset.meal;
     var start=row.querySelector('.meal-time-start').value;
@@ -139,7 +139,6 @@ function getMeals() {
 function setMeals(meals) {
   document.querySelectorAll('.meal-cb').forEach(function(cb){ cb.checked=false; cb.closest('.meal-chip')&&cb.closest('.meal-chip').classList.remove('checked'); });
   ['sat','sun'].forEach(function(d){ var cb=document.getElementById('meal-'+d),sub=document.getElementById('meal-'+d+'-sub'); if(cb)cb.checked=false; if(sub)sub.style.display='none'; });
-  // 시간 초기화
   document.querySelectorAll('.meal-time-row').forEach(function(row){
     row.style.display='none';
     row.querySelector('.meal-time-start').value='';
@@ -152,7 +151,6 @@ function setMeals(meals) {
     if(day!=='weekday'){ var cb=document.getElementById('meal-'+day),sub=document.getElementById('meal-'+day+'-sub'); if(cb)cb.checked=true; if(sub)sub.style.display='flex'; }
     meals[day].forEach(function(v){ var cb=document.querySelector('.meal-cb[data-day="'+day+'"][value="'+v+'"]'); if(cb){cb.checked=true;cb.closest('.meal-chip')&&cb.closest('.meal-chip').classList.add('checked');} });
   });
-  // 시간 복원
   if(meals.times){
     Object.keys(meals.times).forEach(function(meal){
       var row=document.querySelector('.meal-time-row[data-meal="'+meal+'"]');
@@ -306,6 +304,7 @@ window.toggleSpecialMenu=function(cat){
   wrap.style.display=cat==='특식지원'?'block':'none';
   if(cat!=='특식지원'){ var inp=document.getElementById('sup-special-menu'); if(inp) inp.value=''; }
 };
+
 // ── 모달 탭 ──────────────────────────
 window.switchModalTab = function(tab) {
   currentModalTab=tab;
@@ -323,7 +322,6 @@ function renderHistTab() {
   var h=editingId?historyData.find(function(x){ return x.contractId===editingId; }):null;
   var records=h&&h.records?h.records:[];
   if(!records.length){ el.innerHTML='<div class="empty-state"><i class="ti ti-history"></i>이력이 없어요</div>'; return; }
-  // 버튼을 이력 추가 대신 재계약/계약해지로 교체 (hist 탭 상단)
   el.innerHTML=records.map(function(r,i){
     var isCurrent=i===records.length-1,label=i===0?'최초':i+'차'; if(isCurrent) label='현재';
     return '<div class="hist-tab-row">'+
@@ -390,11 +388,10 @@ window.saveHistForm=async function(idx){
     priceType:document.getElementById('hf-priceType').value,
     note:document.getElementById('hf-note').value.trim(),
     updatedAt:new Date().toISOString(),
-    addType:idx===-1?(r.addType||'renewal'):'edit'
+    addType:idx===-1?(h&&h.records&&h.records.length>0?'renewal':'new'):'edit'
   };
   if(idx===-1){ records.push(newRecord); } else records[idx]=newRecord;
   await saveHistRecords(records,c?c.name:'');
-  // 현재 이력(마지막)으로 계약 endDate, price, priceType 업데이트
   var lastRecord=records[records.length-1];
   if(lastRecord&&lastRecord.endDate){
     await updateContract(editingId,{
@@ -413,7 +410,8 @@ async function saveHistRecords(records,name) {
   var {doc,setDoc,serverTimestamp}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
   await setDoc(doc(db,'history',editingId),{contractId:editingId,name:name||'',records:records,updatedAt:serverTimestamp()});
 }
-// 시간 드롭다운 옵션 생성
+
+// ── 시간 드롭다운 ──────────────────────────
 function buildTimeOptions(selectEl, includeEmpty) {
   var html = includeEmpty ? '<option value="">-</option>' : '';
   for(var h=0;h<24;h++){
@@ -428,6 +426,132 @@ document.addEventListener('DOMContentLoaded',function(){
   document.querySelectorAll('.meal-time-start').forEach(function(el){ buildTimeOptions(el,true); });
   document.querySelectorAll('.meal-time-end').forEach(function(el){ buildTimeOptions(el,true); });
 });
+
+// ── 일정 타입 선택 ──────────────────────────
+window.openTypeSelect=function(date){
+  window._typeSelectDate=date||null;
+  window._typeSelectStaff=null;
+  document.getElementById('type-select-modal').classList.add('open');
+};
+window.closeTypeSelect=function(){
+  document.getElementById('type-select-modal').classList.remove('open');
+};
+window.selectScheduleType=function(type){
+  closeTypeSelect();
+  var date=window._typeSelectDate;
+  var staff=window._typeSelectStaff;
+  window._typeSelectDate=null;
+  window._typeSelectStaff=null;
+  if(type==='support'){
+    openSupportModal();
+    if(date) document.getElementById('sup-date').value=date;
+    if(staff) setTimeout(function(){ setSelectedStaff([staff]); },50);
+  } else if(type==='personal'){
+    openPersonalModal();
+    if(date) document.getElementById('personal-date').value=date;
+    if(staff) setTimeout(function(){ setPersonalStaff([staff]); },50);
+  } else if(type==='team'){
+    openTeamModal();
+    if(date) document.getElementById('team-date').value=date;
+  }
+};
+
+// ── 개인 일정 모달 ──────────────────────────
+function setPersonalStaff(names){
+  document.querySelectorAll('#personal-staff-wrap .staff-chip').forEach(function(c){ c.classList.remove('selected'); });
+  if(!names||!names.length) return;
+  document.querySelectorAll('#personal-staff-wrap .staff-chip').forEach(function(c){
+    if(names.some(function(n){ return n===c.textContent.trim(); })) c.classList.add('selected');
+  });
+}
+function getPersonalStaff(){
+  var r=[];
+  document.querySelectorAll('#personal-staff-wrap .staff-chip.selected').forEach(function(c){ r.push(c.textContent.trim()); });
+  return r;
+}
+window.togglePersonalStaffChip=function(el,name){
+  el.classList.toggle('selected');
+};
+window.selectPersonalType=function(el,type){
+  document.querySelectorAll('#personal-type-wrap .staff-chip').forEach(function(c){ c.classList.remove('selected'); });
+  el.classList.add('selected');
+  document.getElementById('personal-type-val').value=type;
+};
+window.openPersonalModal=function(){
+  document.getElementById('personal-modal-title').textContent='개인 일정 등록';
+  document.getElementById('personal-type-val').value='';
+  document.getElementById('personal-date').value='';
+  document.getElementById('personal-date-end').value='';
+  document.getElementById('personal-content').value='';
+  document.querySelectorAll('#personal-type-wrap .staff-chip').forEach(function(c){ c.classList.remove('selected'); });
+  document.querySelectorAll('#personal-staff-wrap .staff-chip').forEach(function(c){ c.classList.remove('selected'); });
+  document.getElementById('personal-modal').classList.add('open');
+};
+window.closePersonalModal=function(){
+  document.getElementById('personal-modal').classList.remove('open');
+};
+window.submitPersonal=async function(){
+  var pType=document.getElementById('personal-type-val').value;
+  var date=document.getElementById('personal-date').value;
+  var dateEnd=document.getElementById('personal-date-end').value;
+  var content=document.getElementById('personal-content').value.trim();
+  var staffNames=getPersonalStaff();
+  if(!pType||!date||!staffNames.length){ showToast('일정 종류, 날짜, 담당자는 필수예요.'); return; }
+  var data={
+    type:'personal',
+    bizName:pType,
+    personalType:pType,
+    date:date,
+    dateEnd:dateEnd,
+    staffNames:staffNames,
+    staffName:staffNames.join(', '),
+    category:'개인일정',
+    content:content,
+    meals:[]
+  };
+  try{
+    await addSupport(data);
+    showToast('등록되었습니다.');
+    closePersonalModal();
+  } catch(e){ showToast('오류가 발생했습니다.'); }
+};
+
+// ── 팀 공지 모달 ──────────────────────────
+window.openTeamModal=function(){
+  document.getElementById('team-modal-title').textContent='팀 공지 등록';
+  document.getElementById('team-title').value='';
+  document.getElementById('team-date').value='';
+  document.getElementById('team-date-end').value='';
+  document.getElementById('team-content').value='';
+  document.getElementById('team-modal').classList.add('open');
+};
+window.closeTeamModal=function(){
+  document.getElementById('team-modal').classList.remove('open');
+};
+window.submitTeam=async function(){
+  var title=document.getElementById('team-title').value.trim();
+  var date=document.getElementById('team-date').value;
+  var dateEnd=document.getElementById('team-date-end').value;
+  var content=document.getElementById('team-content').value.trim();
+  if(!title||!date){ showToast('제목과 날짜는 필수예요.'); return; }
+  var data={
+    type:'team',
+    bizName:title,
+    date:date,
+    dateEnd:dateEnd,
+    staffNames:[],
+    staffName:'',
+    category:'팀공지',
+    content:content,
+    meals:[]
+  };
+  try{
+    await addSupport(data);
+    showToast('등록되었습니다.');
+    closeTeamModal();
+  } catch(e){ showToast('오류가 발생했습니다.'); }
+};
+
 // ── 초기화 ──────────────────────────
 async function init() {
   await seedIfEmpty();
@@ -530,9 +654,12 @@ function renderDashboard() {
     });
     schedEl.innerHTML=sortedItems.length?sortedItems.map(function(s){
       var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
+      var label=s.type==='personal'?'['+s.bizName+'] ':s.type==='team'?'[팀공지] ':'';
       return '<div class="today-item" onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;">'+
-        '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span>'+
-        '<span style="font-weight:500;">'+s.bizName+'</span>'+
+        '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+
+          (s.type==='team'?'팀공지':staffStr)+
+        '</span>'+
+        '<span style="font-weight:500;">'+label+(s.type==='support'?s.bizName:s.type==='personal'?s.staffName||staffStr:s.bizName)+'</span>'+
         '<span style="font-size:12px;color:#888;">'+(s.category||'')+'</span>'+
         '</div>';
     }).join(''):'<div class="today-schedule-empty">오늘 등록된 일정이 없어요</div>';
@@ -570,7 +697,6 @@ function renderDashboard() {
     var c=contracts.find(function(x){ return x.id===h.contractId; }); if(!c) return;
     var latest=h.records[h.records.length-1];
     if(!latest.updatedAt) return;
-    // 재계약/계약해지로 추가된 것만 표시 (수정은 제외, 최초 등록은 포함)
     if(latest.addType==='edit') return;
     var updDate=new Date(latest.updatedAt);
     var diffDays=Math.floor((now-updDate)/(1000*60*60*24));
@@ -633,10 +759,12 @@ window.setSupStatTab=function(tab){
 };
 
 function renderCatStat(list){
-  if(!list.length) return '<div style="color:#aaa;font-size:12px;padding:8px 0;">내역이 없어요</div>';
+  // 개인일정/팀공지 제외
+  var filtered=list.filter(function(s){ return !s.type||s.type==='support'; });
+  if(!filtered.length) return '<div style="color:#aaa;font-size:12px;padding:8px 0;">내역이 없어요</div>';
   var CATS=['운영점검','위생점검','환경개선','특식지원','배식지원','고객미팅','기타지원'];
   var catMap={};
-  list.forEach(function(s){
+  filtered.forEach(function(s){
     var cat=s.category||'기타지원';
     if(!catMap[cat]) catMap[cat]={count:0,items:[]};
     catMap[cat].count++;
@@ -644,6 +772,7 @@ function renderCatStat(list){
   });
   var cats=CATS.filter(function(c){ return catMap[c]; });
   Object.keys(catMap).forEach(function(c){ if(CATS.indexOf(c)===-1) cats.push(c); });
+  if(!cats.length) return '<div style="color:#aaa;font-size:12px;padding:8px 0;">내역이 없어요</div>';
   var maxCat=Math.max.apply(null,cats.map(function(c){ return catMap[c].count; }));
   return '<div style="display:flex;flex-direction:column;gap:4px;">'+
     cats.map(function(cat){
@@ -765,9 +894,9 @@ function renderSupStat(tab){
 
   } else if(tab==='year'){
     var monthLabels=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
-    var totalYear=supports.filter(function(s){ return s.date&&s.date.startsWith(thisY+'')&&s.date<=todayStr; }).length;
+    var totalYear=supports.filter(function(s){ return s.date&&s.date.startsWith(thisY+'')&&s.date<=todayStr&&(!s.type||s.type==='support'); }).length;
     var bizYear={};
-    supports.forEach(function(s){ if(s.date&&s.date.startsWith(thisY+'')&&s.date<=todayStr) bizYear[s.bizName]=true; });
+    supports.forEach(function(s){ if(s.date&&s.date.startsWith(thisY+'')&&s.date<=todayStr&&(!s.type||s.type==='support')) bizYear[s.bizName]=true; });
     var html='<div style="display:flex;gap:8px;margin-bottom:12px;">'+
       '<div style="background:#E6F1FB;border-radius:8px;padding:10px 16px;flex:1;text-align:center;">'+
         '<div style="font-size:11px;color:#185FA5;font-weight:600;">올해 총 지원</div>'+
@@ -838,7 +967,7 @@ function renderDetail(c) {
       '<span class="hist-dates">'+(r.startDate?fmtDate(r.startDate):'-')+' ~ '+(r.endDate?fmtDate(r.endDate):'-')+'</span>'+
       '<span class="hist-price">'+priceHistLabel(r)+'</span></div>';
   }).join(''):'<div style="color:#aaa;font-size:13px;padding:12px 0;">히스토리 없음</div>';
-  var bizSups=supports.filter(function(sp){ return sp.bizName===c.name; }).sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+  var bizSups=supports.filter(function(sp){ return sp.bizName===c.name&&(!sp.type||sp.type==='support'); }).sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
   var supHtml=bizSups.length?bizSups.map(function(sp){
     var staffStr=sp.staffNames&&sp.staffNames.length?sp.staffNames.join(', '):(sp.staffName||'');
     var dateStr=sp.date||'';
@@ -900,6 +1029,7 @@ window.changeMonth=function(dir){
 function filterSupports(){
   if(!staffFilter) return supports;
   return supports.filter(function(s){
+    if(s.type==='team') return true; // 팀공지는 항상 표시
     var names=s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]);
     return names.some(function(n){ return n&&n.includes(staffFilter.split(' ')[0]); });
   });
@@ -915,7 +1045,6 @@ function renderCalendar(){
     var baseM=base.getMonth()+1,endM=end.getMonth()+1;
     if(el) el.textContent=(baseM===endM?baseM+'월 '+base.getDate()+'~'+end.getDate()+'일':baseM+'월 '+base.getDate()+'일 ~ '+endM+'월 '+end.getDate()+'일');
     renderWeekView();
-    // 오늘 날짜 컬럼으로 자동 스크롤
     setTimeout(function(){
       var calWrap=document.querySelector('#calendar').parentElement;
       var todayCol=document.querySelector('.week-header.today-col');
@@ -955,25 +1084,19 @@ function renderMonthView(){
     html+='<div class="cal-day'+(isToday?' today':'')+'" onclick="openCalPopup(\''+key+'\')">'+
       '<div class="cal-num">'+d+'</div>'+
       uniqueItems.slice(0,3).map(function(s){
+        var isPersonal=s.type==='personal',isTeam=s.type==='team';
         var staffStr=s.staffNames&&s.staffNames.length?s.staffNames[0]:(s.staffName||'');
         var allStaff=s.staffNames&&s.staffNames.length?s.staffNames.map(function(n){ return n.split(' ')[0]; }).join('·'):(s.staffName?s.staffName.split(' ')[0]:'');
-        var cls=getStaffColor(staffStr);
-        return '<div class="cal-event '+(cls||'')+'">'+s.bizName+(allStaff?'/'+allStaff:'')+'</div>';
+        var cls=isTeam?'':isPersonal?'':getStaffColor(staffStr);
+        var evStyle=isTeam?'background:#FFF9E6;color:#854F0B;':isPersonal?'background:#f0f0ec;color:#666;':'';
+        var displayName=isTeam?'📢 '+s.bizName:isPersonal?s.bizName+(allStaff?'/'+allStaff:''):s.bizName+(allStaff?'/'+allStaff:'');
+        return '<div class="cal-event '+(cls||'')+'" style="'+evStyle+'">'+displayName+'</div>';
       }).join('')+
       (uniqueItems.length>3?'<div class="cal-more">+'+(uniqueItems.length-3)+'건</div>':'')+
-      '<div class="cal-dots">'+
-        uniqueItems.slice(0,5).map(function(s){
-          var staffStr=s.staffNames&&s.staffNames.length?s.staffNames[0]:(s.staffName||'');
-          var cls=getStaffColor(staffStr);
-          return '<div class="cal-dot '+(cls||'')+'" style="'+(cls?'':'background:#aaa;')+'"></div>';
-        }).join('')+
-        (uniqueItems.length>5?'<div style="font-size:8px;color:#aaa;line-height:6px;">+</div>':'')+
-      '</div>'+
       '</div>';
   }
   html+='</div>';
   var calEl=document.getElementById('calendar'); if(calEl) calEl.innerHTML=html;
-  // 오늘 날짜로 자동 스크롤
   setTimeout(function(){
     var todayEl=document.querySelector('.cal-day.today');
     if(todayEl){ todayEl.scrollIntoView({block:'center',behavior:'smooth'}); }
@@ -993,17 +1116,41 @@ function renderWeekView(){
   var filtered=filterSupports();
   var staffOrder=['박주형 본부장','김재희 차장','손도란 대리','이소영 주임','김상준 주임','안은재 주임','견병록 매니저','임성창 차장','김동현 대리'];
   var dayLabels=['월','화','수','목','금','토','일'];
-  var html='<div class="week-grid"><div class="week-header"></div>';
+
+  // 팀 공지 행
+  var html='<div class="week-grid">';
+  // 헤더 행
+  html+='<div class="week-header" style="background:#FFF9E6;font-size:10px;color:#854F0B;">팀공지</div>';
   days.forEach(function(d,i){
     var dStr=localDateStr(d),isToday=dStr===todayStr;
     html+='<div class="week-header'+(isToday?' today-col':'')+'">'+dayLabels[i]+'<br><span style="font-weight:600;">'+d.getDate()+'</span></div>';
   });
+
+  // 팀공지 행
+  html+='<div class="week-staff-label" style="background:#FFF9E6;"><span style="font-size:10px;color:#854F0B;">📢</span></div>';
+  days.forEach(function(d){
+    var dStr=localDateStr(d),isToday=dStr===todayStr;
+    var teamItems=filtered.filter(function(s){
+      if(s.type!=='team'||!s.date) return false;
+      var start=s.date.slice(0,10),end=s.dateEnd?s.dateEnd.slice(0,10):start;
+      return dStr>=start&&dStr<=end;
+    });
+    html+='<div class="week-cell'+(isToday?' today-col':'')+'" style="background:'+(isToday?'#fffdf0':'#FFFDF5')+';" onclick="openTypeSelectWithStaff(\''+dStr+'\',\'\')">'+
+      teamItems.map(function(s){
+        return '<div class="week-event" onclick="event.stopPropagation();openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;background:#FFF3CC;color:#854F0B;display:flex;align-items:center;gap:2px;">'+
+          '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">'+s.bizName+'</span>'+
+        '</div>';
+      }).join('')+'</div>';
+  });
+
+  // 담당자 행
   staffOrder.forEach(function(staff){
     var cls=getStaffColor(staff);
     html+='<div class="week-staff-label"><span class="badge-cat '+(cls||'')+'" style="font-size:10px;">'+staff.split(' ')[0]+'</span></div>';
     days.forEach(function(d){
       var dStr=localDateStr(d),isToday=dStr===todayStr;
       var items=filtered.filter(function(s){
+        if(s.type==='team') return false;
         if(!s.date) return false;
         var start=s.date.slice(0,10),end=s.dateEnd?s.dateEnd.slice(0,10):start;
         if(dStr<start||dStr>end) return false;
@@ -1017,12 +1164,18 @@ function renderWeekView(){
         if(am===-1) am=99; if(bm===-1) bm=99;
         return am-bm;
       });
-      html+='<div class="week-cell'+(isToday?' today-col':'')+'" onclick="openSupportModalWithStaff(\''+dStr+'\',\''+staff+'\')" style="cursor:pointer;">'+
+      // 연차/반차면 셀 배경색 변경
+      var hasLeave=items.some(function(s){ return s.type==='personal'&&(s.personalType==='연차'||s.personalType==='반차(오전)'||s.personalType==='반차(오후)'); });
+      var cellBg=hasLeave?'background:#FFF0F0;':'';
+      html+='<div class="week-cell'+(isToday?' today-col':'')+'" style="'+cellBg+(isToday&&!hasLeave?'background:#fafff8;':'')+'" onclick="openTypeSelectWithStaff(\''+dStr+'\',\''+staff+'\')" >'+
         items.map(function(s){
-          var cls2=getStaffColor(staff);
-          return '<div class="week-event '+(cls2||'')+'" onclick="event.stopPropagation();openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;display:flex;;align-items:center;justify-content:space-between;gap:2px;">'+
-            '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">'+s.bizName+'</span>'+
-            (s.category?'<span style="font-size:8px;opacity:0.75;flex-shrink:0;white-space:nowrap;">'+s.category.slice(0,2)+'</span>':'')+
+          var isPersonal=s.type==='personal';
+          var cls2=isPersonal?'':getStaffColor(staff);
+          var evStyle=isPersonal?'background:#f0f0ec;color:#666;':'';
+          var label=isPersonal?s.bizName:s.bizName;
+          return '<div class="week-event '+(cls2||'')+'" onclick="event.stopPropagation();openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:2px;'+evStyle+'">'+
+            '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">'+label+'</span>'+
+            (s.category&&!isPersonal?'<span style="font-size:8px;opacity:0.75;flex-shrink:0;white-space:nowrap;">'+s.category.slice(0,2)+'</span>':'')+
           '</div>';
         }).join('')+'</div>';
     });
@@ -1048,12 +1201,15 @@ function supItemHtml(s,dateKey){
   var dateStr=s.date||'';
   if(s.dateEnd&&s.dateEnd!==s.date) dateStr+=(' ~ '+s.dateEnd);
   var c=contracts.find(function(x){ return x.name===s.bizName; });
-  var cid=c?c.id:'';
+  var cid=(c&&(!s.type||s.type==='support'))?c.id:'';
+  var isPersonal=s.type==='personal',isTeam=s.type==='team';
   return '<div class="cal-sup-item">'+
     '<div style="min-width:0;flex:1;">'+
-      '<div style="font-weight:600;font-size:14px;margin-bottom:6px;'+(cid?'color:#185FA5;cursor:pointer;':'')+'" '+(cid?'onclick="goDetailByName(\''+s.bizName.replace(/'/g,"\\'")+'\')"':'')+'>'+s.bizName+'</div>'+
+      '<div style="font-weight:600;font-size:14px;margin-bottom:6px;'+(cid?'color:#185FA5;cursor:pointer;':isTeam?'color:#854F0B;':'')+'" '+(cid?'onclick="goDetailByName(\''+s.bizName.replace(/'/g,"\\'")+'\')"':'')+'>'+
+        (isTeam?'📢 ':isPersonal?'👤 ':'')+s.bizName+
+      '</div>'+
       '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">'+
-        '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span>'+
+        (staffStr?'<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span>':'')+
         '<span class="badge-cat">'+(s.category||'')+'</span>'+
         (mealStr?'<span class="badge-cat">'+mealStr+'</span>':'')+
       '</div>'+
@@ -1061,7 +1217,6 @@ function supItemHtml(s,dateKey){
       (s.content?'<div style="font-size:12px;color:#555;background:#f5f5f3;padding:6px 8px;border-radius:6px;">'+s.content+'</div>':'')+
     '</div>'+
     '<div style="display:flex;gap:4px;flex-shrink:0;">'+
-      '<button class="btn sm" onclick="editSupportFromPopup(\''+s.id+'\')"><i class="ti ti-edit"></i></button>'+
       '<button class="btn sm danger" onclick="delSupportFromPopup(\''+s.id+'\')"><i class="ti ti-trash"></i></button>'+
     '</div></div>';
 }
@@ -1074,15 +1229,14 @@ window.openCalPopup=function(dateKey){
     if(dateKey>=start&&dateKey<=end){ ids[s.id]=true; items.push(s); }
   });
   if(!items.length){
-    openSupportModal();
-    document.getElementById('sup-date').value=dateKey;
+    openTypeSelect(dateKey);
     return;
   }
   var popup=getOrCreatePopup();
   document.getElementById('cal-popup-title').textContent=dateKey+' 일정 ('+items.length+'건)';
   document.getElementById('cal-popup-body').innerHTML=
     '<div style="padding:8px 0 12px;">'+
-      '<button class="btn primary sm" onclick="closeCalPopup();openSupportModal();document.getElementById(\'sup-date\').value=\''+dateKey+'\'">'+
+      '<button class="btn primary sm" onclick="closeCalPopup();openTypeSelect(\''+dateKey+'\')">'+
         '<i class="ti ti-plus"></i> 이 날짜에 등록'+
       '</button>'+
     '</div>'+
@@ -1104,6 +1258,12 @@ window.editSupportFromPopup=function(id){ closeCalPopup(); window.editSupport(id
 window.delSupportFromPopup=async function(id){
   if(!confirm('삭제할까요?')) return;
   try{ await deleteSupport(id); showToast('삭제되었습니다.'); closeCalPopup(); } catch(e){ showToast('오류 발생'); }
+};
+
+window.openTypeSelectWithStaff=function(date,staffName){
+  window._typeSelectDate=date||null;
+  window._typeSelectStaff=staffName||null;
+  document.getElementById('type-select-modal').classList.add('open');
 };
 
 // ── 검색 드롭다운 ──────────────────────────
@@ -1163,7 +1323,7 @@ window.submitSupport=async function(){
   var specialMenu=document.getElementById('sup-special-menu')?document.getElementById('sup-special-menu').value.trim():'';
   if(cat==='특식지원'&&specialMenu) content=(specialMenu+(content?' / '+content:''));
   if(!biz||!date||!cat){ showToast('업장, 일자, 카테고리는 필수예요.'); return; }
-  var data={bizName:biz,date:date,dateEnd:dateEnd,timeStart:'',timeEnd:'',meals:meals,staffName:staffNames.join(', '),staffNames:staffNames,category:cat,content:content};
+  var data={type:'support',bizName:biz,date:date,dateEnd:dateEnd,timeStart:'',timeEnd:'',meals:meals,staffName:staffNames.join(', '),staffNames:staffNames,category:cat,content:content};
   try{
     if(editingSupportId){ await updateSupport(editingSupportId,data); editingSupportId=null; showToast('수정되었습니다.'); }
     else{ await addSupport(data); showToast('등록되었습니다.'); }
@@ -1180,7 +1340,6 @@ window.editSupport=function(id){
   if(document.getElementById('sup-date-end')) document.getElementById('sup-date-end').value=s.dateEnd||'';
   document.getElementById('sup-cat').value=s.category||'';
   toggleSpecialMenu(s.category||'');
-  // 특식지원인 경우 content에서 메뉴와 내용 분리
   var smInput=document.getElementById('sup-special-menu');
   if(s.category==='특식지원'&&s.content&&smInput){
     var parts=s.content.split(' / ');
@@ -1210,12 +1369,7 @@ window.delSupportFromDetail=async function(id,contractId){
     if(c) renderDetail(c);
   } catch(e){ showToast('오류 발생'); }
 };
-window.openSupportModalWithStaff=function(date,staffName){
-  openSupportModal();
-  document.getElementById('sup-date').value=date||'';
-  // 해당 담당자 자동 체크
-  setSelectedStaff([staffName]);
-};
+
 // ── FS 사업장 현황 ──────────────────────────
 window.setBizTab=function(tab){
   currentBizTab=tab;
@@ -1423,4 +1577,7 @@ function showToast(msg){
 }
 document.getElementById('modal-overlay').addEventListener('mousedown',function(e){ if(e.target===e.currentTarget) closeModal(); });
 document.getElementById('sup-modal').addEventListener('mousedown',function(e){ if(e.target===e.currentTarget) closeSupportModal(); });
+document.getElementById('type-select-modal').addEventListener('mousedown',function(e){ if(e.target===e.currentTarget) closeTypeSelect(); });
+document.getElementById('personal-modal').addEventListener('mousedown',function(e){ if(e.target===e.currentTarget) closePersonalModal(); });
+document.getElementById('team-modal').addEventListener('mousedown',function(e){ if(e.target===e.currentTarget) closeTeamModal(); });
 history.replaceState({screen:'home'},'','');
