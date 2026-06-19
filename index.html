@@ -616,6 +616,32 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
                   <label class="meal-chip"><input type="checkbox" class="meal-cb" data-day="weekday" value="석" onchange="updateChip(this)"> 석식</label>
                   <label class="meal-chip"><input type="checkbox" class="meal-cb" data-day="weekday" value="야" onchange="updateChip(this)"> 야식</label>
                 </div>
+                <div style="padding:6px 12px 10px;display:flex;flex-direction:column;gap:6px;" id="meal-time-wrap">
+                  <div class="meal-time-row" data-meal="조" style="display:none;align-items:center;gap:6px;font-size:12px;">
+                    <span style="min-width:28px;color:#666;">조식</span>
+                    <input type="time" class="meal-time-start" data-meal="조" style="padding:4px 6px;border:.5px solid #ccc;border-radius:6px;font-size:12px;font-family:inherit;">
+                    <span style="color:#aaa;">~</span>
+                    <input type="time" class="meal-time-end" data-meal="조" style="padding:4px 6px;border:.5px solid #ccc;border-radius:6px;font-size:12px;font-family:inherit;" placeholder="종료(선택)">
+                  </div>
+                  <div class="meal-time-row" data-meal="중" style="display:none;align-items:center;gap:6px;font-size:12px;">
+                    <span style="min-width:28px;color:#666;">중식</span>
+                    <input type="time" class="meal-time-start" data-meal="중" style="padding:4px 6px;border:.5px solid #ccc;border-radius:6px;font-size:12px;font-family:inherit;">
+                    <span style="color:#aaa;">~</span>
+                    <input type="time" class="meal-time-end" data-meal="중" style="padding:4px 6px;border:.5px solid #ccc;border-radius:6px;font-size:12px;font-family:inherit;" placeholder="종료(선택)">
+                  </div>
+                  <div class="meal-time-row" data-meal="석" style="display:none;align-items:center;gap:6px;font-size:12px;">
+                    <span style="min-width:28px;color:#666;">석식</span>
+                    <input type="time" class="meal-time-start" data-meal="석" style="padding:4px 6px;border:.5px solid #ccc;border-radius:6px;font-size:12px;font-family:inherit;">
+                    <span style="color:#aaa;">~</span>
+                    <input type="time" class="meal-time-end" data-meal="석" style="padding:4px 6px;border:.5px solid #ccc;border-radius:6px;font-size:12px;font-family:inherit;" placeholder="종료(선택)">
+                  </div>
+                  <div class="meal-time-row" data-meal="야" style="display:none;align-items:center;gap:6px;font-size:12px;">
+                    <span style="min-width:28px;color:#666;">야식</span>
+                    <input type="time" class="meal-time-start" data-meal="야" style="padding:4px 6px;border:.5px solid #ccc;border-radius:6px;font-size:12px;font-family:inherit;">
+                    <span style="color:#aaa;">~</span>
+                    <input type="time" class="meal-time-end" data-meal="야" style="padding:4px 6px;border:.5px solid #ccc;border-radius:6px;font-size:12px;font-family:inherit;" placeholder="종료(선택)">
+                  </div>
+                </div>
               </div>
               <div class="meal-day-section">
                 <div class="meal-day-header">
