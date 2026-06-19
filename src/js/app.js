@@ -100,6 +100,15 @@ window.formatPhone = function(input) {
 window.updateChip = function(cb) {
   var label=cb.closest('.meal-chip');
   if(label) label.classList.toggle('checked',cb.checked);
+  // 끼니 시간 행 표시/숨기기
+  if(cb.dataset.day==='weekday'){
+    var row=document.querySelector('.meal-time-row[data-meal="'+cb.value+'"]');
+    if(row) row.style.display=cb.checked?'flex':'none';
+    if(!cb.checked){
+      var s=row&&row.querySelector('.meal-time-start'); if(s) s.value='';
+      var e=row&&row.querySelector('.meal-time-end'); if(e) e.value='';
+    }
+  }
 };
 window.toggleWeekend = function(day) {
   var cb=document.getElementById('meal-'+day),sub=document.getElementById('meal-'+day+'-sub');
@@ -108,8 +117,15 @@ window.toggleWeekend = function(day) {
   if(!cb.checked) sub.querySelectorAll('input[type=checkbox]').forEach(function(c){ c.checked=false; c.closest('.meal-chip')&&c.closest('.meal-chip').classList.remove('checked'); });
 };
 function getMeals() {
-  var r={weekday:[],sat:[],sun:[]};
+  var r={weekday:[],sat:[],sun:[],times:{}};
   document.querySelectorAll('.meal-cb[data-day="weekday"]:checked').forEach(function(cb){ r.weekday.push(cb.value); });
+  // 끼니별 시간 수집
+  document.querySelectorAll('.meal-time-row').forEach(function(row){
+    var meal=row.dataset.meal;
+    var start=row.querySelector('.meal-time-start').value;
+    var end=row.querySelector('.meal-time-end').value;
+    if(start) r.times[meal]={start:start,end:end||''};
+  });
   if(document.getElementById('meal-sat')&&document.getElementById('meal-sat').checked)
     document.querySelectorAll('.meal-cb[data-day="sat"]:checked').forEach(function(cb){ r.sat.push(cb.value); });
   if(document.getElementById('meal-sun')&&document.getElementById('meal-sun').checked)
@@ -119,6 +135,12 @@ function getMeals() {
 function setMeals(meals) {
   document.querySelectorAll('.meal-cb').forEach(function(cb){ cb.checked=false; cb.closest('.meal-chip')&&cb.closest('.meal-chip').classList.remove('checked'); });
   ['sat','sun'].forEach(function(d){ var cb=document.getElementById('meal-'+d),sub=document.getElementById('meal-'+d+'-sub'); if(cb)cb.checked=false; if(sub)sub.style.display='none'; });
+  // 시간 초기화
+  document.querySelectorAll('.meal-time-row').forEach(function(row){
+    row.style.display='none';
+    row.querySelector('.meal-time-start').value='';
+    row.querySelector('.meal-time-end').value='';
+  });
   if(!meals) return;
   if(typeof meals==='string'){ meals.split('/').forEach(function(v){ var cb=document.querySelector('.meal-cb[data-day="weekday"][value="'+v.trim()+'"]'); if(cb){cb.checked=true;cb.closest('.meal-chip')&&cb.closest('.meal-chip').classList.add('checked');} }); return; }
   ['weekday','sat','sun'].forEach(function(day){
@@ -126,14 +148,36 @@ function setMeals(meals) {
     if(day!=='weekday'){ var cb=document.getElementById('meal-'+day),sub=document.getElementById('meal-'+day+'-sub'); if(cb)cb.checked=true; if(sub)sub.style.display='flex'; }
     meals[day].forEach(function(v){ var cb=document.querySelector('.meal-cb[data-day="'+day+'"][value="'+v+'"]'); if(cb){cb.checked=true;cb.closest('.meal-chip')&&cb.closest('.meal-chip').classList.add('checked');} });
   });
+  // 시간 복원
+  if(meals.times){
+    Object.keys(meals.times).forEach(function(meal){
+      var row=document.querySelector('.meal-time-row[data-meal="'+meal+'"]');
+      if(row){
+        row.style.display='flex';
+        row.querySelector('.meal-time-start').value=meals.times[meal].start||'';
+        row.querySelector('.meal-time-end').value=meals.times[meal].end||'';
+      }
+    });
+  }
 }
 function mealsDisplay(meals) {
   if(!meals) return '-';
   if(typeof meals==='string') return meals;
+  var mealNames={조:'조식',중:'중식',석:'석식',야:'야식'};
   var p=[];
-  if(meals.weekday&&meals.weekday.length) p.push('평일:'+meals.weekday.join('/'));
-  if(meals.sat&&meals.sat.length) p.push('토:'+meals.sat.join('/'));
-  if(meals.sun&&meals.sun.length) p.push('일:'+meals.sun.join('/'));
+  if(meals.weekday&&meals.weekday.length){
+    var wd=meals.weekday.map(function(v){
+      var label=mealNames[v]||v;
+      if(meals.times&&meals.times[v]){
+        label+=' '+meals.times[v].start;
+        if(meals.times[v].end) label+='~'+meals.times[v].end;
+      }
+      return label;
+    });
+    p.push('평일: '+wd.join(' / '));
+  }
+  if(meals.sat&&meals.sat.length) p.push('토: '+meals.sat.join('/'));
+  if(meals.sun&&meals.sun.length) p.push('일: '+meals.sun.join('/'));
   return p.join(' | ')||'-';
 }
 function priceHistLabel(r) {
