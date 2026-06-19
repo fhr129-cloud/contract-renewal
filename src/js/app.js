@@ -100,14 +100,18 @@ window.formatPhone = function(input) {
 window.updateChip = function(cb) {
   var label=cb.closest('.meal-chip');
   if(label) label.classList.toggle('checked',cb.checked);
-  // 끼니 시간 행 표시/숨기기
-  if(cb.dataset.day==='weekday'){
-    var row=document.querySelector('.meal-time-row[data-meal="'+cb.value+'"]');
-    if(row) row.style.display=cb.checked?'flex':'none';
-    if(!cb.checked){
-      var s=row&&row.querySelector('.meal-time-start'); if(s) s.value='';
-      var e=row&&row.querySelector('.meal-time-end'); if(e) e.value='';
-    }
+  // 끼니 시간 행 표시/숨기기 (평일만)
+  if(cb.dataset&&cb.dataset.day==='weekday'&&cb.value){
+    var rows=document.querySelectorAll('.meal-time-row');
+    rows.forEach(function(row){
+      if(row.getAttribute('data-meal')===cb.value){
+        row.style.display=cb.checked?'flex':'none';
+        if(!cb.checked){
+          var st=row.querySelector('.meal-time-start'); if(st) st.value='';
+          var en=row.querySelector('.meal-time-end'); if(en) en.value='';
+        }
+      }
+    });
   }
 };
 window.toggleWeekend = function(day) {
