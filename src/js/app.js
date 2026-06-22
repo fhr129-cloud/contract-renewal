@@ -361,14 +361,15 @@ window.delHistRow=async function(idx){
   var deletedRecord=h.records[idx];
   var records=h.records.slice(); records.splice(idx,1);
   await saveHistRecords(records,h.name);
-  // 해지 이력 삭제 시 terminated 플래그 해제
   if(deletedRecord&&deletedRecord.addType==='terminate'){
     var prevRecord=records.length?records[records.length-1]:null;
+    var c=contracts.find(function(x){ return x.id===editingId; });
     await updateContract(editingId,{
       terminated:false,
-      endDate:prevRecord?prevRecord.endDate:'',
-      price:prevRecord?prevRecord.price:0,
-      priceType:prevRecord?prevRecord.priceType:'per-meal'
+      startDate:prevRecord?prevRecord.startDate:(c?c.startDate:''),
+      endDate:prevRecord?prevRecord.endDate:(c?c.endDate:''),
+      price:prevRecord?prevRecord.price:(c?c.price:0),
+      priceType:prevRecord?prevRecord.priceType:(c?c.priceType:'per-meal')
     });
   }
   showToast('삭제되었습니다.'); renderHistTab();
@@ -813,7 +814,7 @@ function renderDashboard() {
           '<div style="min-width:0;flex:1;">'+
             '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'+
               '<span class="dash-mini-name" style="flex:none;">'+item.c.name+'</span>'+
-              '<span class="badge '+s+'" style="font-size:10px;">'+STATUS_META[s].label+'</span>'+
+              (!item.c.terminated?'<span class="badge '+s+'" style="font-size:10px;">'+STATUS_META[s].label+'</span>':'')+
             '</div>'+
             '<div style="display:flex;align-items:center;flex-wrap:wrap;margin-top:2px;">'+
               (isNew?priceHtml:'<span style="font-size:11px;color:#555;background:#f0f0ec;padding:1px 6px;border-radius:99px;">갱신</span>'+priceHtml)+
