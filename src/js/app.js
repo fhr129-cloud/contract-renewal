@@ -394,6 +394,7 @@ function showHistForm(idx,r) {
         '<button class="btn" onclick="closeHistForm()">취소</button>'+
         '<button class="btn primary" onclick="saveHistForm('+idx+')"><i class="ti ti-check"></i> 저장</button>'+
       '</div></div></div>';
+  popup.setAttribute('data-addtype', addType);
   popup.addEventListener('click',function(e){ if(e.target===popup) closeHistForm(); });
   document.body.appendChild(popup);
 }
@@ -402,6 +403,8 @@ window.saveHistForm=async function(idx){
   var h=editingId?historyData.find(function(x){ return x.contractId===editingId; }):null;
   var records=h&&h.records?h.records.slice():[];
   var c=contracts.find(function(x){ return x.id===editingId; });
+  var popup=document.getElementById('hist-form-popup');
+  var detectedType=popup?popup.getAttribute('data-addtype')||'':'';
   var newRecord={
     startDate:document.getElementById('hf-start').value,
     endDate:document.getElementById('hf-end').value,
@@ -409,7 +412,7 @@ window.saveHistForm=async function(idx){
     priceType:document.getElementById('hf-priceType').value,
     note:document.getElementById('hf-note').value.trim(),
     updatedAt:new Date().toISOString(),
-    addType:idx===-1?(addType==='terminate'?'terminate':h&&h.records&&h.records.length>0?'renewal':'new'):'edit'
+    addType:idx===-1?(detectedType==='terminate'?'terminate':h&&h.records&&h.records.length>0?'renewal':'new'):'edit'
   };
   if(idx===-1){ records.push(newRecord); } else records[idx]=newRecord;
   await saveHistRecords(records,c?c.name:'');
