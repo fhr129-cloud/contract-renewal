@@ -856,7 +856,7 @@ function renderDashboard() {
           '<div style="min-width:0;flex:1;">'+
             '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'+
               '<span class="dash-mini-name" style="flex:none;">'+item.c.name+'</span>'+
-              (!item.c.terminated?'<span class="badge '+s+'" style="font-size:10px;">'+STATUS_META[s].label+'</span>':'')+
+              (item.c.terminated?'<span class="badge urgent" style="font-size:10px;">해지</span>':'<span class="badge '+s+'" style="font-size:10px;">'+STATUS_META[s].label+'</span>')+
             '</div>'+
             '<div style="display:flex;align-items:center;flex-wrap:wrap;margin-top:2px;">'+
               (isNew?priceHtml:'<span style="font-size:11px;color:#555;background:#f0f0ec;padding:1px 6px;border-radius:99px;">갱신</span>'+priceHtml)+
