@@ -614,10 +614,9 @@ async function init() {
       if(c) renderDetail(c);
     }
   });
-  listenHistory(function(data){
+ listenHistory(function(data){
     var prevData=historyData;
     historyData=data;
-    // 히스토리 탭이 열려있고 실제로 데이터가 바뀐 경우만 갱신
     if(currentModalTab==='hist'&&editingId){
       var prev=prevData.find(function(x){ return x.contractId===editingId; });
       var curr=data.find(function(x){ return x.contractId===editingId; });
