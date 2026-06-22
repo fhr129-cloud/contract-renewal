@@ -405,12 +405,14 @@ window.saveHistForm=async function(idx){
   await saveHistRecords(records,c?c.name:'');
   var lastRecord=records[records.length-1];
   if(lastRecord&&lastRecord.endDate){
-    await updateContract(editingId,{
+    var updateData={
       startDate:lastRecord.startDate||c.startDate,
       endDate:lastRecord.endDate,
       price:lastRecord.price||0,
       priceType:lastRecord.priceType||'per-meal'
-    });
+    };
+    if(lastRecord.addType==='terminate') updateData.terminated=true;
+    await updateContract(editingId,updateData);
   }
   closeHistForm(); showToast(idx===-1?'이력이 추가되었습니다.':'이력이 수정되었습니다.');
   renderHistTab();
@@ -766,7 +768,10 @@ function renderDashboard() {
         var isNew=item.prev===null;
         var priceChanged=item.prev&&(item.prev.price!==item.latest.price||item.prev.priceType!==item.latest.priceType);
         var priceHtml='';
-        if(isNew){
+        var isTerminate=item.latest.addType==='terminate';
+        if(isTerminate){
+          priceHtml='<span style="font-size:11px;color:#A32D2D;background:#FCEBEB;padding:1px 6px;border-radius:99px;margin-left:4px;">해지</span>';
+        } else if(isNew){
           priceHtml='<span style="font-size:11px;color:#3B6D11;background:#EAF3DE;padding:1px 6px;border-radius:99px;margin-left:4px;">신규</span>';
         } else if(priceChanged){
           priceHtml='<span style="font-size:11px;color:#888;margin-left:4px;">'+priceHistLabel(item.prev)+'</span>'+
