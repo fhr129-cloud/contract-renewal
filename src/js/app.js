@@ -368,10 +368,10 @@ window.delHistRow=async function(idx){
   if(isTerminate){
     await updateContract(editingId,{
       terminated:false,
-      startDate:prevRecord?prevRecord.startDate:(c?c.startDate:''),
-      endDate:prevRecord?prevRecord.endDate:(c?c.endDate:''),
-      price:prevRecord?prevRecord.price:(c?c.price:0),
-      priceType:prevRecord?prevRecord.priceType:(c?c.priceType:'per-meal')
+      startDate:prevRecord?prevRecord.startDate:(c?c.startDate:'')||'',
+      endDate:prevRecord?prevRecord.endDate:(c?c.endDate:'')||'',
+      price:prevRecord?prevRecord.price:(c?c.price:0)||0,
+      priceType:prevRecord?prevRecord.priceType:(c?c.priceType:null)||'per-meal'
     });
   }
   showToast('삭제되었습니다.');
