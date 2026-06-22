@@ -1635,7 +1635,13 @@ window.renderBizTab=function(){
         '<i class="ti ti-chevron-down toggle-icon"></i>'+
       '</div>'+
       '<div class="team-body open" id="nt-new">'+
-        (newBiz.length?newBiz.map(function(c){
+        (newBiz.length?newBiz.slice().sort(function(a,b){
+          var ah=historyData.find(function(x){ return x.contractId===a.id; });
+          var bh=historyData.find(function(x){ return x.contractId===b.id; });
+          var ad=ah&&ah.records&&ah.records.length?ah.records[0].startDate:'';
+          var bd=bh&&bh.records&&bh.records.length?bh.records[0].startDate:'';
+          return ad.localeCompare(bd);
+        }).map(function(c){
           var h=historyData.find(function(x){ return x.contractId===c.id; });
           var openDate='';
           if(h&&h.records&&h.records.length){
