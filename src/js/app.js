@@ -1727,7 +1727,15 @@ window.renderBizTab=function(){
 // ── 관리자 수정 ──────────────────────────
 window.renderAdmin=function(){
   var searchEl=document.getElementById('admin-search'),q=searchEl?searchEl.value.toLowerCase():'';
-  var rows=contracts.filter(function(c){ return !q||c.name.toLowerCase().includes(q); }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
+  var statusOrder={urgent:0,near:1,ok:2,auto:3,terminated:4};
+  var rows=contracts.filter(function(c){ return !q||c.name.toLowerCase().includes(q); }).sort(function(a,b){
+    var as=a.terminated?'terminated':calcStatus(a);
+    var bs=b.terminated?'terminated':calcStatus(b);
+    var ao=statusOrder[as]!==undefined?statusOrder[as]:99;
+    var bo=statusOrder[bs]!==undefined?statusOrder[bs]:99;
+    if(ao!==bo) return ao-bo;
+    return new Date(a.endDate)-new Date(b.endDate);
+  });
   var el=document.getElementById('admin-count'); if(el) el.textContent=rows.length+'건';
   var tbody=document.getElementById('admin-tbody'); if(!tbody) return;
   tbody.innerHTML=rows.map(function(c){
@@ -1736,7 +1744,7 @@ window.renderAdmin=function(){
       '<td>'+(c.terminated?'<span class="badge" style="background:#FCEBEB;color:#A32D2D;border-color:#F7C1C1;">해지</span>':'<span class="badge '+s+'">'+STATUS_META[s].label+'</span>')+'</td>'+
       '<td style="font-weight:500;">'+c.name+'</td>'+
       '<td>'+fmtDate(c.endDate)+'</td>'+
-      '<td style="font-size:12px;font-weight:500;color:'+(s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':'#888')+';">'+dDayLabel(d)+'</td>'+
+      '<td style="font-size:12px;font-weight:500;color:'+(s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':'#888')+';">'+(c.terminated?'-':dDayLabel(d))+'</td>'+
       '<td>'+priceLabel(c)+'</td>'+
       '<td onclick="event.stopPropagation()"><button class="btn sm danger" onclick="handleDelete(\''+c.id+'\',\''+c.name.replace(/'/g,'')+'\')" ><i class="ti ti-trash"></i></button></td></tr>';
   }).join('')||'<tr><td colspan="6"><div class="empty-state">없음</div></td></tr>';
