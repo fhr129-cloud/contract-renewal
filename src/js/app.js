@@ -640,7 +640,7 @@ function renderDashboard() {
   var todayEl=document.getElementById('dash-today');
   if(todayEl) todayEl.textContent=now.getFullYear()+'년 '+(now.getMonth()+1)+'월 '+now.getDate()+'일 ('+days[now.getDay()]+')';
   var counts={total:contracts.length,urgent:0,near:0,ok:0,auto:0};
-  contracts.forEach(function(c){ var s=calcStatus(c); if(s==='urgent') counts.urgent++; else if(s==='near') counts.near++; else if(s==='auto') counts.auto++; else counts.ok++; });
+  contracts.forEach(function(c){ if(c.terminated) return; var s=calcStatus(c); if(s==='urgent') counts.urgent++; else if(s==='near') counts.near++; else if(s==='auto') counts.auto++; else counts.ok++; });
   function mk(id,cls,icon,label,count) {
     var el=document.getElementById(id); if(!el) return;
     el.innerHTML='<div class="stat-icon '+cls+'"><i class="ti '+icon+'"></i></div><div class="stat-info"><div class="stat-label">'+label+'</div><div class="stat-val '+cls+'">'+count+'</div></div>';
@@ -720,7 +720,7 @@ function renderDashboard() {
 
   var thisY=now.getFullYear(),thisM=now.getMonth();
   var nextY=thisM===11?thisY+1:thisY,nextM=thisM===11?0:thisM+1;
-  function expireList(year,month){ return contracts.filter(function(c){ if(!c.endDate) return false; var d=new Date(c.endDate); return d.getFullYear()===year&&d.getMonth()===month; }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); }); }
+  function expireList(year,month){ return contracts.filter(function(c){ if(c.terminated) return false; if(!c.endDate) return false; var d=new Date(c.endDate); return d.getFullYear()===year&&d.getMonth()===month; }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); }); }
   function expireHtml(list) {
     if(!list.length) return '<div style="color:#aaa;font-size:12px;padding:12px 0;">없음</div>';
     var threeMonthsAgo=new Date(now); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth()-3);
@@ -1060,7 +1060,7 @@ function renderDetail(c) {
   }).join(''):'<div style="color:#aaa;font-size:13px;padding:12px 0;">지원 이력 없음</div>';
   document.getElementById('detail-body').innerHTML=
     '<div class="detail-section">'+
-    '<div class="detail-row"><span class="detail-label">계약 상태</span><div class="detail-val" style="display:flex;align-items:center;gap:8px;"><span class="badge '+s+'">'+STATUS_META[s].label+'</span><span style="color:'+col+';font-weight:500;">'+dDayLabel(d)+'</span></div></div>'+
+    '<div class="detail-row"><span class="detail-label">계약 상태</span><div class="detail-val" style="display:flex;align-items:center;gap:8px;">'+(c.terminated?'<span class="badge" style="background:#FCEBEB;color:#A32D2D;border-color:#F7C1C1;">해지</span>':'<span class="badge '+s+'">'+STATUS_META[s].label+'</span><span style="color:'+col+';font-weight:500;">'+dDayLabel(d)+'</span>')+'</div></div>'+
     '<div class="detail-row"><span class="detail-label">소재지</span><span class="detail-val">'+(c.addr||'-')+'</span></div>'+
     '<div class="detail-row"><span class="detail-label">담당자</span><span class="detail-val">'+contactHtml+'</span></div>'+
     '<div class="detail-row"><span class="detail-label">담당영양사</span><span class="detail-val">'+(c.nutritionists&&c.nutritionists.length?c.nutritionists.map(function(nt){ return (nt.name||'')+(nt.phone?' · '+nt.phone:''); }).join('<br>'):'-')+'</span></div>'+
@@ -1718,8 +1718,8 @@ window.renderAdmin=function(){
   var tbody=document.getElementById('admin-tbody'); if(!tbody) return;
   tbody.innerHTML=rows.map(function(c){
     var s=calcStatus(c),d=dDiff(c.endDate);
-    return '<tr onclick="openEditModal(\''+c.id+'\')">' +
-      '<td><span class="badge '+s+'">'+STATUS_META[s].label+'</span></td>'+
+    return '<tr onclick="openEditModal(\''+c.id+'\')" style="'+(c.terminated?'opacity:0.5;':'')+'">' +
+      '<td>'+(c.terminated?'<span class="badge" style="background:#FCEBEB;color:#A32D2D;border-color:#F7C1C1;">해지</span>':'<span class="badge '+s+'">'+STATUS_META[s].label+'</span>')+'</td>'+
       '<td style="font-weight:500;">'+c.name+'</td>'+
       '<td>'+fmtDate(c.endDate)+'</td>'+
       '<td style="font-size:12px;font-weight:500;color:'+(s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':'#888')+';">'+dDayLabel(d)+'</td>'+
