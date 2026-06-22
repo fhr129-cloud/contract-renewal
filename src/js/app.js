@@ -675,8 +675,8 @@ function renderDashboard() {
       var personalItems=sortedItems.filter(function(s){ return s.type==='personal'; });
       var html='';
       if(teamItems.length){
-        html+='<div style="background:#FFFBEE;border:.5px solid #FAC775;border-radius:10px;padding:10px 12px;margin-bottom:8px;">'+
-          '<div style="font-size:11px;font-weight:700;color:#854F0B;margin-bottom:6px;">📢 팀 공지</div>'+
+        html+='<div style="margin-bottom:8px;">'+
+          '<div style="font-size:11px;font-weight:600;color:#854F0B;margin-bottom:4px;">📢 팀 공지</div>'+
           teamItems.map(function(s){
             return '<div onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid #FAE8B0;font-size:13px;" class="today-item-inner">'+
               '<span style="font-weight:600;flex:1;">'+s.bizName+'</span>'+
@@ -686,8 +686,8 @@ function renderDashboard() {
         '</div>';
       }
       if(supportItems.length){
-        html+='<div style="background:#fff;border:.5px solid #e8e8e4;border-radius:10px;padding:10px 12px;margin-bottom:8px;">'+
-          '<div style="font-size:11px;font-weight:700;color:#185FA5;margin-bottom:6px;">📋 업장 지원</div>'+
+        html+='<div style="margin-bottom:8px;">'+
+          '<div style="font-size:11px;font-weight:600;color:#185FA5;margin-bottom:4px;">📋 업장 지원</div>'+
           supportItems.map(function(s){
             var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
             return '<div onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid #C8DEFA;font-size:13px;">'+
@@ -699,8 +699,8 @@ function renderDashboard() {
         '</div>';
       }
       if(personalItems.length){
-        html+='<div style="background:#F5F5F3;border:.5px solid #ddd;border-radius:10px;padding:10px 12px;margin-bottom:8px;">'+
-          '<div style="font-size:11px;font-weight:700;color:#555;margin-bottom:6px;">👤 개인 일정</div>'+
+        html+='<div style="margin-bottom:8px;">'+
+          '<div style="font-size:11px;font-weight:600;color:#555;margin-bottom:4px;">👤 개인 일정</div>'+
           personalItems.map(function(s){
             var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
             var isLeave=s.personalType==='연차'||s.personalType==='반차(오전)'||s.personalType==='반차(오후)';
