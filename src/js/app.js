@@ -839,19 +839,39 @@ function renderCatStat(list){
           '<i class="ti ti-chevron-down" id="ico-'+id+'" style="font-size:13px;color:#aaa;transition:transform .2s;"></i>'+
         '</div>'+
         '<div id="'+id+'" style="display:none;border-top:.5px solid #f0f0ec;">'+
-          data.items.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); }).map(function(s){
-            var c=contracts.find(function(x){ return x.name===s.bizName; }),cid=c?c.id:'';
-            var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
-            var dateStr=s.date||'';
-            if(s.dateEnd&&s.dateEnd!==s.date) dateStr+='~'+s.dateEnd.slice(5);
-            return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:.5px solid #f0f0ec;gap:8px;'+(cid?'cursor:pointer;':'')+'"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+'>'+
-              '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">'+
-                '<span style="font-size:13px;font-weight:500;'+(cid?'color:#185FA5;':'')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+s.bizName+'</span>'+
-                '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr.split(' ')[0]+'</span>'+
-              '</div>'+
-              '<span style="font-size:11px;color:#aaa;flex-shrink:0;">'+dateStr+'</span>'+
-            '</div>';
-          }).join('')+
+          (function(){
+            var staffMap={};
+            data.items.forEach(function(s){
+              var names=s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]);
+              names.forEach(function(n){
+                var short=n.split(' ')[0];
+                if(!staffMap[short]) staffMap[short]={count:0,items:[],color:getStaffColor(n)};
+                staffMap[short].count++;
+                staffMap[short].items.push(s);
+              });
+            });
+            return Object.keys(staffMap).map(function(name){
+              var sd=staffMap[name];
+              var subId=id+'-'+name;
+              return '<div style="border-bottom:.5px solid #f0f0ec;">'+
+                '<div onclick="toggleCatGroup(\''+subId+'\')" style="display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;background:#fafaf8;">'+
+                  '<span class="badge-cat '+sd.color+'">'+name+'</span>'+
+                  '<span style="font-size:13px;font-weight:600;flex:1;">'+sd.count+'회</span>'+
+                  '<i class="ti ti-chevron-down" id="ico-'+subId+'" style="font-size:12px;color:#aaa;transition:transform .2s;"></i>'+
+                '</div>'+
+                '<div id="'+subId+'" style="display:none;">'+
+                  sd.items.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); }).map(function(s){
+                    var c=contracts.find(function(x){ return x.name===s.bizName; }),cid=c?c.id:'';
+                    var dateStr=s.date||''; if(s.dateEnd&&s.dateEnd!==s.date) dateStr+='~'+s.dateEnd.slice(5);
+                    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 14px 7px 28px;border-top:.5px solid #f0f0ec;gap:8px;'+(cid?'cursor:pointer;':'')+'"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+'>'+
+                      '<span style="font-size:12px;font-weight:500;'+(cid?'color:#185FA5;':'')+';flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+s.bizName+'</span>'+
+                      '<span style="font-size:11px;color:#aaa;flex-shrink:0;">'+dateStr+'</span>'+
+                    '</div>';
+                  }).join('')+
+                '</div>'+
+              '</div>';
+            }).join('');
+          })()+
         '</div>'+
       '</div>';
     }).join('')+
