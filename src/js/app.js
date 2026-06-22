@@ -366,11 +366,20 @@ function showHistForm(idx,r) {
   var popup=document.createElement('div');
   popup.id='hist-form-popup';
   popup.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;display:flex;align-items:center;justify-content:center;';
+  var c=contracts.find(function(x){ return x.id===editingId; });
+  var defaultEndDate=r.endDate||(c&&c.endDate?c.endDate:'');
   popup.innerHTML='<div style="background:#fff;border-radius:14px;width:400px;max-width:95vw;padding:20px;">'+
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">'+
       '<h4 style="font-size:14px;font-weight:600;">'+(isNew?(addType==='terminate'?'계약 해지':'재계약'):(idx===0?'최초':idx+'차')+' 수정')+'</h4>'+
       '<button class="btn sm" onclick="closeHistForm()"><i class="ti ti-x"></i></button></div>'+
     '<div style="display:flex;flex-direction:column;gap:10px;">'+
+    (addType==='terminate'?
+      '<div class="form-group"><label>해지일</label><input type="date" id="hf-end" value="'+defaultEndDate+'"></div>'+
+      '<input type="hidden" id="hf-start" value="'+(r.startDate||'')+'">'+
+      '<input type="hidden" id="hf-priceType" value="'+(r.priceType||'per-meal')+'">'+
+      '<input type="hidden" id="hf-price" value="'+(r.price||0)+'">'+
+      '<div class="form-group"><label>해지 사유</label><input type="text" id="hf-note" value="'+(r.note||'')+'" placeholder="해지 사유 (선택)"></div>'
+    :
       '<div class="form-group"><label>시작일</label><input type="date" id="hf-start" value="'+(r.startDate||'')+'"></div>'+
       '<div class="form-group"><label>종료일</label><input type="date" id="hf-end" value="'+(r.endDate||'')+'"></div>'+
       '<div class="form-group"><label>단가 구분</label><select id="hf-priceType">'+
@@ -379,7 +388,8 @@ function showHistForm(idx,r) {
         '<option value="fixed"'+(r.priceType==='fixed'?' selected':'')+'>고정금액</option>'+
       '</select></div>'+
       '<div class="form-group"><label>단가 (원)</label><input type="number" id="hf-price" value="'+(r.price||0)+'"></div>'+
-      '<div class="form-group"><label>비고</label><input type="text" id="hf-note" value="'+(r.note||'')+'" placeholder="특이사항"></div>'+
+      '<div class="form-group"><label>비고</label><input type="text" id="hf-note" value="'+(r.note||'')+'" placeholder="특이사항"></div>'
+    )+
       '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;">'+
         '<button class="btn" onclick="closeHistForm()">취소</button>'+
         '<button class="btn primary" onclick="saveHistForm('+idx+')"><i class="ti ti-check"></i> 저장</button>'+
@@ -399,7 +409,7 @@ window.saveHistForm=async function(idx){
     priceType:document.getElementById('hf-priceType').value,
     note:document.getElementById('hf-note').value.trim(),
     updatedAt:new Date().toISOString(),
-    addType:idx===-1?(h&&h.records&&h.records.length>0?'renewal':'new'):'edit'
+    addType:idx===-1?(addType==='terminate'?'terminate':h&&h.records&&h.records.length>0?'renewal':'new'):'edit'
   };
   if(idx===-1){ records.push(newRecord); } else records[idx]=newRecord;
   await saveHistRecords(records,c?c.name:'');
