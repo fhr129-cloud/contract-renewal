@@ -839,7 +839,8 @@ function renderDashboard() {
         var priceHtml='';
         var isTerminate=item.latest.addType==='terminate';
         if(isTerminate){
-          priceHtml='<span style="font-size:11px;color:#A32D2D;background:#FCEBEB;padding:1px 6px;border-radius:99px;margin-left:4px;">해지</span>';
+          var termDateStr=item.latest.endDate?fmtDate(item.latest.endDate):'';
+          priceHtml='<span style="font-size:11px;color:#888;margin-left:4px;">'+(termDateStr?termDateStr+' 해지':'해지')+'</span>';
         } else if(isNew){
           priceHtml='<span style="font-size:11px;color:#3B6D11;background:#EAF3DE;padding:1px 6px;border-radius:99px;margin-left:4px;">신규</span>';
         } else if(priceChanged){
@@ -855,7 +856,7 @@ function renderDashboard() {
           '<div style="min-width:0;flex:1;">'+
             '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'+
               '<span class="dash-mini-name" style="flex:none;">'+item.c.name+'</span>'+
-              (item.c.terminated?'<span class="badge urgent" style="font-size:10px;">해지</span>':'<span class="badge '+s+'" style="font-size:10px;">'+STATUS_META[s].label+'</span>')+
+              (!item.c.terminated?'<span class="badge '+s+'" style="font-size:10px;">'+STATUS_META[s].label+'</span>':'')+
             '</div>'+
             '<div style="display:flex;align-items:center;flex-wrap:wrap;margin-top:2px;">'+
               (isNew?priceHtml:'<span style="font-size:11px;color:#555;background:#f0f0ec;padding:1px 6px;border-radius:99px;">갱신</span>'+priceHtml)+
