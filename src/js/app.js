@@ -1547,7 +1547,7 @@ window.delSupportFromDetail=async function(id,contractId){
 window.setBizTab=function(tab){
   currentBizTab=tab;
   document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
-  var idx={team:0,resp:1,region:2},btns=document.querySelectorAll('.tab-btn');
+  var idx={team:0,resp:1,region:2,newterm:3},btns=document.querySelectorAll('.tab-btn');
   if(btns[idx[tab]!==undefined?idx[tab]:0]) btns[idx[tab]!==undefined?idx[tab]:0].classList.add('active');
   if(mapInstance&&tab!=='region'){mapInstance.remove();mapInstance=null;}
   document.querySelectorAll('.team-body').forEach(function(b){ b.classList.remove('open'); });
