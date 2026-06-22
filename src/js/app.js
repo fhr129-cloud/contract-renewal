@@ -691,7 +691,7 @@ function renderDashboard() {
           supportItems.map(function(s){
             var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
             return '<div onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid #C8DEFA;font-size:13px;">'+
-              '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr.split(' ')[0]+'</span>'+
+              '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span>'+
               '<span style="font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+s.bizName+'</span>'+
               '<span style="font-size:12px;color:#888;white-space:nowrap;flex-shrink:0;">'+(s.category||'')+'</span>'+
             '</div>';
@@ -813,7 +813,7 @@ function renderCatStat(list){
   // 개인일정/팀공지 제외
   var filtered=list.filter(function(s){ return !s.type||s.type==='support'; });
   if(!filtered.length) return '<div style="color:#aaa;font-size:12px;padding:8px 0;">내역이 없어요</div>';
-  var CATS=['운영점검','위생점검','환경개선','특식지원','이벤트 ','배식지원','고객미팅','기타지원'];
+  var CATS=['운영점검','위생점검','환경개선','특식지원','이벤트','배식지원','고객미팅','기타지원'];
   var catMap={};
   filtered.forEach(function(s){
     var cat=s.category||'기타지원';
@@ -1140,7 +1140,8 @@ function renderMonthView(){
         var allStaff=s.staffNames&&s.staffNames.length?s.staffNames.map(function(n){ return n.split(' ')[0]; }).join('·'):(s.staffName?s.staffName.split(' ')[0]:'');
         var cls=isTeam?'':isPersonal?'':getStaffColor(staffStr);
         var evStyle=isTeam?'background:#FFECEC;color:#A32D2D;font-weight:700;':isPersonal?'background:#f0f0ec;color:#666;':'';
-        var displayName=isTeam?'📢 '+s.bizName:isPersonal?s.bizName+(allStaff?'/'+allStaff:''):s.bizName+(allStaff?'/'+allStaff:'');
+        var catLabel=s.category==='이벤트'?'이벤트':s.category?s.category.slice(0,2):'';
+        var displayName=isTeam?'📢 '+s.bizName:isPersonal?s.bizName+(allStaff?'/'+allStaff:''):s.bizName+(catLabel?'/'+catLabel:'');
         return '<div class="cal-event '+(cls||'')+'" style="'+evStyle+'">'+displayName+'</div>';
       }).join('')+
       (uniqueItems.length>3?'<div class="cal-more">+'+(uniqueItems.length-3)+'건</div>':'')+
