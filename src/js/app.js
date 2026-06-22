@@ -1627,14 +1627,14 @@ window.renderBizTab=function(){
       return new Date(first.startDate).getFullYear()>=thisYear;
     });
     var termBiz=contracts.filter(function(c){ return c.terminated; });
-   var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">';
+   var html='<div class="team-layout">';
     // 신규
     html+='<div>'+
       '<div class="team-header green" onclick="toggleTeam(\'nt-new\')" style="margin-bottom:0;">'+
         '<i class="ti ti-sparkles"></i> 신규 <span>'+newBiz.length+'개소</span>'+
         '<i class="ti ti-chevron-down toggle-icon"></i>'+
       '</div>'+
-      '<div class="team-body open" id="nt-new">'+
+      '<div class="team-body" id="nt-new">'+
         (newBiz.length?newBiz.slice().sort(function(a,b){
           var ah=historyData.find(function(x){ return x.contractId===a.id; });
           var bh=historyData.find(function(x){ return x.contractId===b.id; });
@@ -1668,8 +1668,14 @@ window.renderBizTab=function(){
         '<i class="ti ti-file-off"></i> 해지 <span>'+termBiz.length+'개소</span>'+
         '<i class="ti ti-chevron-down toggle-icon"></i>'+
       '</div>'+
-      '<div class="team-body open" id="nt-term">'+
-        (termBiz.length?termBiz.map(function(c){
+      '<div class="team-body" id="nt-term">'+
+        (termBiz.length?termBiz.slice().sort(function(a,b){
+          var ah=historyData.find(function(x){ return x.contractId===a.id; });
+          var bh=historyData.find(function(x){ return x.contractId===b.id; });
+          var ad=ah&&ah.records&&ah.records.length?ah.records[ah.records.length-1].endDate:'';
+          var bd=bh&&bh.records&&bh.records.length?bh.records[bh.records.length-1].endDate:'';
+          return ad.localeCompare(bd);
+        }).map(function(c){
           var h=historyData.find(function(x){ return x.contractId===c.id; });
           var termDate='';
           if(h&&h.records&&h.records.length){
@@ -1687,12 +1693,7 @@ window.renderBizTab=function(){
     '</div>';
     html+='</div>';
    el.innerHTML=html;
-    setTimeout(function(){
-      ['nt-new','nt-term'].forEach(function(id){
-        var body=document.getElementById(id),icon=body?body.previousElementSibling.querySelector('.toggle-icon'):null;
-        if(body&&body.classList.contains('open')&&icon) icon.style.transform='rotate(180deg)';
-      });
-    },50);
+    
   } else {
     el.innerHTML='<div class="map-legend"><span><span class="leg-dot" style="background:#E24B4A;"></span>긴급</span><span><span class="leg-dot" style="background:#EF9F27;"></span>임박</span><span><span class="leg-dot" style="background:#4A90D9;"></span>여유/자동연장</span></div><div id="map"></div>';
     setTimeout(function(){
