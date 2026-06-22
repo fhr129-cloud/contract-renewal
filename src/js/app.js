@@ -686,7 +686,7 @@ function renderDashboard() {
         '</div>';
       }
       if(supportItems.length){
-        html+='<div style="background:#EEF5FF;border:.5px solid #B5D4F4;border-radius:10px;padding:10px 12px;margin-bottom:8px;">'+
+        html+='<div style="background:#fff;border:.5px solid #e8e8e4;border-radius:10px;padding:10px 12px;margin-bottom:8px;">'+
           '<div style="font-size:11px;font-weight:700;color:#185FA5;margin-bottom:6px;">📋 업장 지원</div>'+
           supportItems.map(function(s){
             var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
