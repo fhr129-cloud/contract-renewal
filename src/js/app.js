@@ -1164,8 +1164,11 @@ function renderMonthView(){
         var cls=isTeam?'':isPersonal?'':getStaffColor(staffStr);
         var evStyle=isTeam?'background:#FFECEC;color:#A32D2D;font-weight:700;':isPersonal?'background:#f0f0ec;color:#666;':'';
         var catLabel=s.category==='이벤트'?'이벤트':s.category?s.category.slice(0,2):'';
-        var displayName=isTeam?'📢 '+s.bizName:isPersonal?s.bizName+(allStaff?'/'+allStaff:''):(allStaff?allStaff+' ':'')+s.bizName+(catLabel?' '+catLabel:'');
-        return '<div class="cal-event '+(cls||'')+'" style="'+evStyle+'">'+displayName+'</div>';
+        var mainName=isTeam?'📢 '+s.bizName:isPersonal?s.bizName+(allStaff?'/'+allStaff:''):(allStaff?allStaff+' ':'')+s.bizName;
+        return '<div class="cal-event '+(cls||'')+'" style="'+evStyle+';display:flex;align-items:center;justify-content:space-between;gap:2px;">'+
+          '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">'+mainName+'</span>'+
+          (!isTeam&&!isPersonal&&catLabel?'<span style="font-size:8px;color:#aaa;flex-shrink:0;white-space:nowrap;">'+catLabel+'</span>':'')+
+        '</div>';
       }).join('')+
       (uniqueItems.length>3?'<div class="cal-more">+'+(uniqueItems.length-3)+'건</div>':'')+
       '</div>';
