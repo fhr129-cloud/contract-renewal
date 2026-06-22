@@ -1655,8 +1655,7 @@ window.renderBizTab=function(){
         '</div>';
       }).join(''):'<div style="color:#aaa;font-size:13px;padding:12px 0;">해지 사업장이 없어요</div>')+
     '</div>';
-    el.innerHTML=html;
-  } else {
+   el.innerHTML=html;
   } else {
     el.innerHTML='<div class="map-legend"><span><span class="leg-dot" style="background:#E24B4A;"></span>긴급</span><span><span class="leg-dot" style="background:#EF9F27;"></span>임박</span><span><span class="leg-dot" style="background:#4A90D9;"></span>여유/자동연장</span></div><div id="map"></div>';
     setTimeout(function(){
