@@ -375,14 +375,22 @@ window.delHistRow=async function(idx){
     });
   }
   showToast('삭제되었습니다.');
-  // 상세 화면이 열려있으면 즉시 갱신 (contracts 리스너 타이밍 보장용)
   if(isTerminate){
-    setTimeout(function(){
-      var c2=contracts.find(function(x){ return x.id===editingId; });
-      if(c2&&document.getElementById('detail-screen').style.display==='flex'){
+    // contracts 배열 즉시 업데이트 (리스너 대기 없이)
+    var c2=contracts.find(function(x){ return x.id===editingId; });
+    if(c2){
+      c2.terminated=false;
+      if(prevRecord){
+        c2.startDate=prevRecord.startDate||c2.startDate;
+        c2.endDate=prevRecord.endDate||c2.endDate;
+        c2.price=prevRecord.price||0;
+        c2.priceType=prevRecord.priceType||'per-meal';
+      }
+      if(document.getElementById('detail-screen').style.display==='flex'){
         renderDetail(c2);
       }
-    },800);
+      renderAdmin();
+    }
   }
 };
 function showHistForm(idx,r) {
