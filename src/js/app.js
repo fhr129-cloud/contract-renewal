@@ -1627,35 +1627,66 @@ window.renderBizTab=function(){
       return new Date(first.startDate).getFullYear()>=thisYear;
     });
     var termBiz=contracts.filter(function(c){ return c.terminated; });
-    var html='';
-    html+='<div style="margin-bottom:16px;">'+
-      '<div style="font-size:13px;font-weight:600;color:#3B6D11;margin-bottom:8px;display:flex;align-items:center;gap:6px;">'+
-        '<span style="background:#EAF3DE;color:#3B6D11;padding:2px 10px;border-radius:99px;font-size:12px;">신규</span>'+
-        '<span style="font-size:12px;color:#aaa;font-weight:400;">올해 오픈 사업장</span>'+
-      '</div>'+
-      (newBiz.length?newBiz.map(bizCard).join(''):'<div style="color:#aaa;font-size:13px;padding:12px 0;">올해 신규 사업장이 없어요</div>')+
-    '</div>';
+   var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">';
+    // 신규
     html+='<div>'+
-      '<div style="font-size:13px;font-weight:600;color:#A32D2D;margin-bottom:8px;display:flex;align-items:center;gap:6px;">'+
-        '<span style="background:#FCEBEB;color:#A32D2D;padding:2px 10px;border-radius:99px;font-size:12px;">해지</span>'+
-        '<span style="font-size:12px;color:#aaa;font-weight:400;">계약 해지 사업장</span>'+
+      '<div class="team-header green" onclick="toggleTeam(\'nt-new\')" style="margin-bottom:0;">'+
+        '<i class="ti ti-sparkles"></i> 신규 <span>'+newBiz.length+'개소</span>'+
+        '<i class="ti ti-chevron-down toggle-icon"></i>'+
       '</div>'+
-      (termBiz.length?termBiz.map(function(c){
-        var h=historyData.find(function(x){ return x.contractId===c.id; });
-        var termDate='';
-        if(h&&h.records&&h.records.length){
-          var last=h.records[h.records.length-1];
-          if(last.addType==='terminate'&&last.endDate) termDate=fmtDate(last.endDate)+' 해지';
-        }
-        return '<div class="biz-card" style="border-color:#F7C1C1;opacity:0.8;">'+
-          '<div class="biz-card-top"><span class="biz-name" style="color:#888;">'+c.name+'</span>'+
-          '<span style="font-size:11px;color:#A32D2D;background:#FCEBEB;padding:2px 8px;border-radius:99px;">해지</span></div>'+
-          '<div class="biz-info"><div class="biz-info-row"><i class="ti ti-map-pin"></i><span>'+(c.addr||'-')+'</span></div></div>'+
-          '<div class="biz-bottom"><span>'+(c.resp||'-')+'</span><span style="color:#A32D2D;">'+termDate+'</span></div>'+
-        '</div>';
-      }).join(''):'<div style="color:#aaa;font-size:13px;padding:12px 0;">해지 사업장이 없어요</div>')+
+      '<div class="team-body open" id="nt-new">'+
+        (newBiz.length?newBiz.map(function(c){
+          var h=historyData.find(function(x){ return x.contractId===c.id; });
+          var openDate='';
+          if(h&&h.records&&h.records.length){
+            var first=h.records[0];
+            if(first.startDate) openDate=fmtDate(first.startDate)+' 오픈';
+          }
+          var s=calcStatus(c),d=dDiff(c.endDate),col=s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':s==='near'?'#854F0B':'#3B6D11';
+          var nutriStr=c.nutritionists&&c.nutritionists.length?c.nutritionists.map(function(nt){ return nt.name; }).join(' / '):'';
+          return '<div class="biz-card" onclick="goDetail(\''+c.id+'\')">'+
+            '<div class="biz-card-top"><span class="biz-name">'+c.name+'</span>'+
+            '<span style="font-size:11px;color:#3B6D11;background:#EAF3DE;padding:2px 8px;border-radius:99px;">신규</span></div>'+
+            '<div class="biz-info">'+
+              '<div class="biz-info-row"><i class="ti ti-map-pin"></i><span>'+(c.addr||'-')+'</span></div>'+
+              (nutriStr?'<div class="biz-info-row"><i class="ti ti-user"></i><span>'+nutriStr+'</span></div>':'')+
+            '</div>'+
+            '<div class="biz-bottom"><span style="color:#3B6D11;font-weight:500;">'+openDate+'</span><span style="font-weight:500;color:'+col+'">'+dDayLabel(d)+'</span></div>'+
+          '</div>';
+        }).join(''):'<div style="color:#aaa;font-size:13px;padding:12px 0;">올해 신규 사업장이 없어요</div>')+
+      '</div>'+
     '</div>';
+    // 해지
+    html+='<div>'+
+      '<div class="team-header red" onclick="toggleTeam(\'nt-term\')" style="margin-bottom:0;">'+
+        '<i class="ti ti-file-off"></i> 해지 <span>'+termBiz.length+'개소</span>'+
+        '<i class="ti ti-chevron-down toggle-icon"></i>'+
+      '</div>'+
+      '<div class="team-body open" id="nt-term">'+
+        (termBiz.length?termBiz.map(function(c){
+          var h=historyData.find(function(x){ return x.contractId===c.id; });
+          var termDate='';
+          if(h&&h.records&&h.records.length){
+            var last=h.records[h.records.length-1];
+            if(last.addType==='terminate'&&last.endDate) termDate=fmtDate(last.endDate)+' 해지';
+          }
+          return '<div class="biz-card" style="border-color:#F7C1C1;opacity:0.8;">'+
+            '<div class="biz-card-top"><span class="biz-name" style="color:#888;">'+c.name+'</span>'+
+            '<span style="font-size:11px;color:#A32D2D;background:#FCEBEB;padding:2px 8px;border-radius:99px;">해지</span></div>'+
+            '<div class="biz-info"><div class="biz-info-row"><i class="ti ti-map-pin"></i><span>'+(c.addr||'-')+'</span></div></div>'+
+            '<div class="biz-bottom"><span>'+(c.resp||'-')+'</span><span style="color:#A32D2D;font-weight:500;">'+termDate+'</span></div>'+
+          '</div>';
+        }).join(''):'<div style="color:#aaa;font-size:13px;padding:12px 0;">해지 사업장이 없어요</div>')+
+      '</div>'+
+    '</div>';
+    html+='</div>';
    el.innerHTML=html;
+    setTimeout(function(){
+      ['nt-new','nt-term'].forEach(function(id){
+        var body=document.getElementById(id),icon=body?body.previousElementSibling.querySelector('.toggle-icon'):null;
+        if(body&&body.classList.contains('open')&&icon) icon.style.transform='rotate(180deg)';
+      });
+    },50);
   } else {
     el.innerHTML='<div class="map-legend"><span><span class="leg-dot" style="background:#E24B4A;"></span>긴급</span><span><span class="leg-dot" style="background:#EF9F27;"></span>임박</span><span><span class="leg-dot" style="background:#4A90D9;"></span>여유/자동연장</span></div><div id="map"></div>';
     setTimeout(function(){
