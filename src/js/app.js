@@ -375,6 +375,15 @@ window.delHistRow=async function(idx){
     });
   }
   showToast('삭제되었습니다.');
+  // 상세 화면이 열려있으면 즉시 갱신 (contracts 리스너 타이밍 보장용)
+  if(isTerminate){
+    setTimeout(function(){
+      var c2=contracts.find(function(x){ return x.id===editingId; });
+      if(c2&&document.getElementById('detail-screen').style.display==='flex'){
+        renderDetail(c2);
+      }
+    },800);
+  }
 };
 function showHistForm(idx,r) {
   var existing=document.getElementById('hist-form-popup'); if(existing) existing.remove();
