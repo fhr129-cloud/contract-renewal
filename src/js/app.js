@@ -1064,6 +1064,8 @@ window.setStaffFilter=function(name){
   var labelEl=document.getElementById('active-filter-label');
   if(labelEl){ if(name){labelEl.textContent=name+' 필터 중';labelEl.style.display='inline';}else{labelEl.style.display='none';} }
   var allBtn=document.getElementById('filter-all'); if(allBtn) allBtn.classList.toggle('active-filter',!name);
+  document.querySelectorAll('#page-support .btn.sm').forEach(function(b){ b.classList.remove('active-filter'); });
+  if(!name&&allBtn) allBtn.classList.add('active-filter');
   renderCalendar();
 };
 window.changeMonth=function(dir){
