@@ -1728,7 +1728,7 @@ window.renderBizTab=function(){
             var last=h.records[h.records.length-1];
             if(last.addType==='terminate'&&last.endDate) termDate=fmtDate(last.endDate)+' 해지';
           }
-          return '<div class="biz-card" style="border-color:#F7C1C1;opacity:0.8;">'+
+          return '<div class="biz-card" style="border-color:#F7C1C1;opacity:0.8;cursor:pointer;" onclick="goDetail(\''+c.id+'\')">'+
             '<div class="biz-card-top"><span class="biz-name" style="color:#888;">'+c.name+'</span>'+
             '<span style="font-size:11px;color:#A32D2D;background:#FCEBEB;padding:2px 8px;border-radius:99px;">해지</span></div>'+
             '<div class="biz-info"><div class="biz-info-row"><i class="ti ti-map-pin"></i><span>'+(c.addr||'-')+'</span></div></div>'+
