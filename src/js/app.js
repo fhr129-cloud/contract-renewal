@@ -1255,7 +1255,7 @@ function renderWeekView(){
           }
           return '<div class="week-event" onclick="event.stopPropagation();openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:2px;'+evStyle+'">'+
             '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">'+label+'</span>'+
-            (s.category&&!isPersonal?'<span style="font-size:8px;color:#aaa;flex-shrink:0;white-space:nowrap;">'+s.category.slice(0,2)+'</span>':'')+
+            (s.category&&!isPersonal?'<span style="font-size:8px;color:#aaa;flex-shrink:0;white-space:nowrap;">'+(s.category==='이벤트'?'이벤트':s.category.slice(0,2))+'</span>':'')+
           '</div>';
         }).join('')+'</div>';
     });
