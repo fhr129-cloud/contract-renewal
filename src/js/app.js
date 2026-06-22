@@ -1292,6 +1292,7 @@ function supItemHtml(s,dateKey){
       (s.content?'<div style="font-size:12px;color:#555;background:#f5f5f3;padding:6px 8px;border-radius:6px;">'+s.content+'</div>':'')+
     '</div>'+
     '<div style="display:flex;gap:4px;flex-shrink:0;">'+
+      (!isTeam&&!isPersonal?'<button class="btn sm" onclick="closeCalPopup();editSupport(\''+s.id+'\')"><i class="ti ti-edit"></i></button>':'')+
       '<button class="btn sm danger" onclick="delSupportFromPopup(\''+s.id+'\')"><i class="ti ti-trash"></i></button>'+
     '</div></div>';
 }
