@@ -334,11 +334,14 @@ function renderHistTab() {
   var records=h&&h.records?h.records:[];
   if(!records.length){ el.innerHTML='<div class="empty-state"><i class="ti ti-history"></i>이력이 없어요</div>'; return; }
   el.innerHTML=records.map(function(r,i){
-    var isCurrent=i===records.length-1,label=i===0?'최초':i+'차'; if(isCurrent) label='현재';
+    var isCurrent=i===records.length-1,label=i===0?'최초':i+'차';
+    if(isCurrent) label=r.addType==='terminate'?'해지':'현재';
     return '<div class="hist-tab-row">'+
-      '<span class="hist-tab-label'+(isCurrent?' current':'')+'">'+label+'</span>'+
-      '<span class="hist-tab-info">'+(r.startDate?fmtDate(r.startDate):'-')+' ~ '+(r.endDate?fmtDate(r.endDate):'-')+
-      ' · '+priceHistLabel(r)+(r.note?' · '+r.note:'')+'</span>'+
+      '<span class="hist-tab-label'+(isCurrent?' current':'')+(r.addType==='terminate'?' style="background:#FCEBEB;color:#A32D2D;"':'')+'">'+label+'</span>'+
+      '<span class="hist-tab-info">'+(r.addType==='terminate'?
+        '해지일: '+(r.endDate?fmtDate(r.endDate):'-')+(r.note?' · '+r.note:''):
+        (r.startDate?fmtDate(r.startDate):'-')+' ~ '+(r.endDate?fmtDate(r.endDate):'-')+' · '+priceHistLabel(r)+(r.note?' · '+r.note:'')
+      )+'</span>'+
       '<div style="display:flex;gap:4px;flex-shrink:0;">'+
         '<button class="btn sm" onclick="editHistRow('+i+')"><i class="ti ti-edit"></i></button>'+
         '<button class="btn sm danger" onclick="delHistRow('+i+')"><i class="ti ti-trash"></i></button>'+
@@ -1051,10 +1054,11 @@ function renderDetail(c) {
   else contactHtml=(c.contactName||'-')+(c.contactPhone?' · '+c.contactPhone:'')+(c.tel?' · '+c.tel:'');
   var h=historyData.find(function(x){ return x.contractId===c.id; });
   var histHtml=h&&h.records&&h.records.length?h.records.map(function(r,i){
-    var isCurrent=i===h.records.length-1,label=i===0?'최초':i+'차'; if(isCurrent) label='현재';
+    var isCurrent=i===h.records.length-1,label=i===0?'최초':i+'차';
+    if(isCurrent) label=r.addType==='terminate'?'해지':'현재';
     return '<div class="hist-record"><span class="hist-round">'+label+'</span>'+
-      '<span class="hist-dates">'+(r.startDate?fmtDate(r.startDate):'-')+' ~ '+(r.endDate?fmtDate(r.endDate):'-')+'</span>'+
-      '<span class="hist-price">'+priceHistLabel(r)+'</span></div>';
+      '<span class="hist-dates">'+(r.addType==='terminate'?'해지일: '+(r.endDate?fmtDate(r.endDate):'-'):(r.startDate?fmtDate(r.startDate):'-')+' ~ '+(r.endDate?fmtDate(r.endDate):'-'))+'</span>'+
+      '<span class="hist-price">'+(r.addType==='terminate'?'':priceHistLabel(r))+'</span></div>';
   }).join(''):'<div style="color:#aaa;font-size:13px;padding:12px 0;">히스토리 없음</div>';
   var bizSups=supports.filter(function(sp){ return sp.bizName===c.name&&(!sp.type||sp.type==='support'); }).sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
   var supHtml=bizSups.length?bizSups.map(function(sp){
