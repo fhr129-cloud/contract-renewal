@@ -812,7 +812,7 @@ function renderCatStat(list){
   // 개인일정/팀공지 제외
   var filtered=list.filter(function(s){ return !s.type||s.type==='support'; });
   if(!filtered.length) return '<div style="color:#aaa;font-size:12px;padding:8px 0;">내역이 없어요</div>';
-  var CATS=['운영점검','위생점검','환경개선','특식지원','배식지원','고객미팅','기타지원'];
+  var CATS=['운영점검','위생점검','환경개선','특식지원','이벤트 ','배식지원','고객미팅','기타지원'];
   var catMap={};
   filtered.forEach(function(s){
     var cat=s.category||'기타지원';
