@@ -855,7 +855,7 @@ function renderDashboard() {
           '<div style="min-width:0;flex:1;">'+
             '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'+
               '<span class="dash-mini-name" style="flex:none;">'+item.c.name+'</span>'+
-              (!item.c.terminated?'<span class="badge '+s+'" style="font-size:10px;">'+STATUS_META[s].label+'</span>':'')+
+              (item.c.terminated?'<span class="badge urgent">해지</span>':'<span class="badge '+s+'" style="font-size:10px;">'+STATUS_META[s].label+'</span>')+
             '</div>'+
             '<div style="display:flex;align-items:center;flex-wrap:wrap;margin-top:2px;">'+
               (isNew?priceHtml:'<span style="font-size:11px;color:#555;background:#f0f0ec;padding:1px 6px;border-radius:99px;">갱신</span>'+priceHtml)+
@@ -1130,7 +1130,7 @@ function renderDetail(c) {
   }).join(''):'<div style="color:#aaa;font-size:13px;padding:12px 0;">지원 이력 없음</div>';
   document.getElementById('detail-body').innerHTML=
     '<div class="detail-section">'+
-    '<div class="detail-row"><span class="detail-label">계약 상태</span><div class="detail-val" style="display:flex;align-items:center;gap:8px;">'+(c.terminated?'<span class="badge" style="background:#FCEBEB;color:#A32D2D;border-color:#F7C1C1;">해지</span>':'<span class="badge '+s+'">'+STATUS_META[s].label+'</span><span style="color:'+col+';font-weight:500;">'+dDayLabel(d)+'</span>')+'</div></div>'+
+    '<div class="detail-row"><span class="detail-label">계약 상태</span><div class="detail-val" style="display:flex;align-items:center;gap:8px;">'+(c.terminated?'<span class="badge urgent">해지</span>':'<span class="badge '+s+'">'+STATUS_META[s].label+'</span><span style="color:'+col+';font-weight:500;">'+dDayLabel(d)+'</span>')+'</div></div>'+
     '<div class="detail-row"><span class="detail-label">소재지</span><span class="detail-val">'+(c.addr||'-')+'</span></div>'+
     '<div class="detail-row"><span class="detail-label">담당자</span><span class="detail-val">'+contactHtml+'</span></div>'+
     '<div class="detail-row"><span class="detail-label">담당영양사</span><span class="detail-val">'+(c.nutritionists&&c.nutritionists.length?c.nutritionists.map(function(nt){ return (nt.name||'')+(nt.phone?' · '+nt.phone:''); }).join('<br>'):'-')+'</span></div>'+
@@ -1722,7 +1722,7 @@ window.renderBizTab=function(){
           var nutriStr=c.nutritionists&&c.nutritionists.length?c.nutritionists.map(function(nt){ return nt.name; }).join(' / '):'';
           return '<div class="biz-card" onclick="goDetail(\''+c.id+'\')">'+
             '<div class="biz-card-top"><span class="biz-name">'+c.name+'</span>'+
-            '<span style="font-size:11px;color:#3B6D11;background:#EAF3DE;padding:2px 8px;border-radius:99px;">신규</span></div>'+
+            '<span class="badge ok">신규</span></div>'+
             '<div class="biz-info">'+
               '<div class="biz-info-row"><i class="ti ti-map-pin"></i><span>'+(c.addr||'-')+'</span></div>'+
               (nutriStr?'<div class="biz-info-row"><i class="ti ti-user"></i><span>'+nutriStr+'</span></div>':'')+
@@ -1754,7 +1754,7 @@ window.renderBizTab=function(){
           }
           return '<div class="biz-card" style="border-color:#F7C1C1;opacity:0.8;cursor:pointer;" onclick="goDetail(\''+c.id+'\')">'+
             '<div class="biz-card-top"><span class="biz-name" style="color:#888;">'+c.name+'</span>'+
-            '<span style="font-size:11px;color:#A32D2D;background:#FCEBEB;padding:2px 8px;border-radius:99px;">해지</span></div>'+
+            '<span class="badge urgent">해지</span></div>'+
             '<div class="biz-info"><div class="biz-info-row"><i class="ti ti-map-pin"></i><span>'+(c.addr||'-')+'</span></div></div>'+
             '<div class="biz-bottom"><span>'+(c.resp||'-')+'</span><span style="color:#A32D2D;font-weight:500;">'+termDate+'</span></div>'+
           '</div>';
@@ -1798,7 +1798,7 @@ window.renderAdmin=function(){
   tbody.innerHTML=rows.map(function(c){
     var s=calcStatus(c),d=dDiff(c.endDate);
     return '<tr onclick="openEditModal(\''+c.id+'\')" style="'+(c.terminated?'opacity:0.5;':'')+'">' +
-      '<td>'+(c.terminated?'<span class="badge" style="background:#FCEBEB;color:#A32D2D;border-color:#F7C1C1;">해지</span>':'<span class="badge '+s+'">'+STATUS_META[s].label+'</span>')+'</td>'+
+      '<td>'+(c.terminated?'<span class="badge urgent">해지</span>':'<span class="badge '+s+'">'+STATUS_META[s].label+'</span>')+'</td>'+
       '<td style="font-weight:500;">'+c.name+'</td>'+
       '<td>'+fmtDate(c.endDate)+'</td>'+
       '<td style="font-size:12px;font-weight:500;color:'+(s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':'#888')+';">'+(c.terminated?'-':dDayLabel(d))+'</td>'+
