@@ -390,6 +390,7 @@ window.delHistRow=async function(idx){
         renderDetail(c2);
       }
       renderAdmin();
+      renderBizTab();
     }
   }
 };
