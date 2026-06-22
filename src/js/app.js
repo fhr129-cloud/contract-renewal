@@ -364,28 +364,18 @@ window.delHistRow=async function(idx){
   var records=h.records.slice(); records.splice(idx,1);
   var prevRecord=records.length?records[records.length-1]:null;
   var c=contracts.find(function(x){ return x.id===editingId; });
-  // 해지 취소 시 terminated 플래그도 같이 히스토리에 저장
+  await saveHistRecords(records,h.name);
   if(isTerminate){
-    var restoreData={
+    await updateContract(editingId,{
       terminated:false,
       startDate:prevRecord?prevRecord.startDate:(c?c.startDate:''),
       endDate:prevRecord?prevRecord.endDate:(c?c.endDate:''),
       price:prevRecord?prevRecord.price:(c?c.price:0),
       priceType:prevRecord?prevRecord.priceType:(c?c.priceType:'per-meal')
-    };
-    await saveHistRecords(records,h.name);
-    await updateContract(editingId,restoreData);
-  } else {
-    await saveHistRecords(records,h.name);
+    });
   }
   showToast('삭제되었습니다.');
-  setTimeout(function(){
-    renderHistTab();
-    if(document.getElementById('detail-screen').style.display==='flex'){
-      var c2=contracts.find(function(x){ return x.id===editingId; });
-      if(c2) renderDetail(c2);
-    }
-  },600);
+  renderHistTab();
 };
 function showHistForm(idx,r) {
   var existing=document.getElementById('hist-form-popup'); if(existing) existing.remove();
@@ -618,6 +608,11 @@ async function init() {
     ssOptions=data.slice().sort(function(a,b){ return a.name.localeCompare(b.name,'ko'); });
     if(currentPage) renderPage(currentPage);
     updateHomeBadge();
+    // 상세 화면이 열려있으면 최신 데이터로 갱신
+    if(document.getElementById('detail-screen').style.display==='flex'&&window.detailId){
+      var c=contracts.find(function(x){ return x.id===window.detailId; });
+      if(c) renderDetail(c);
+    }
   });
   listenHistory(function(data){ historyData=data; });
   listenSupports(function(data){
