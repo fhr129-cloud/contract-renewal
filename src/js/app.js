@@ -1138,7 +1138,7 @@ function renderMonthView(){
         var staffStr=s.staffNames&&s.staffNames.length?s.staffNames[0]:(s.staffName||'');
         var allStaff=s.staffNames&&s.staffNames.length?s.staffNames.map(function(n){ return n.split(' ')[0]; }).join('·'):(s.staffName?s.staffName.split(' ')[0]:'');
         var cls=isTeam?'':isPersonal?'':getStaffColor(staffStr);
-        var evStyle=isTeam?'background:#FFF9E6;color:#854F0B;':isPersonal?'background:#f0f0ec;color:#666;':'';
+        var evStyle=isTeam?'background:#FFECEC;color:#A32D2D;font-weight:700;':isPersonal?'background:#f0f0ec;color:#666;':'';
         var displayName=isTeam?'📢 '+s.bizName:isPersonal?s.bizName+(allStaff?'/'+allStaff:''):s.bizName+(allStaff?'/'+allStaff:'');
         return '<div class="cal-event '+(cls||'')+'" style="'+evStyle+'">'+displayName+'</div>';
       }).join('')+
@@ -1187,7 +1187,7 @@ function renderWeekView(){
     });
     html+='<div class="week-cell'+(isToday?' today-col':'')+'" style="background:'+(isToday?'#fffdf0':'#FFFDF5')+';" onclick="openTypeSelectWithStaff(\''+dStr+'\',\'\')">'+
       teamItems.map(function(s){
-        return '<div class="week-event" onclick="event.stopPropagation();openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;background:#FFF3CC;color:#854F0B;display:flex;align-items:center;gap:2px;">'+
+        return '<div class="week-event" onclick="event.stopPropagation();openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;background:#FFECEC;color:#A32D2D;font-weight:700;font-size:11px;display:flex;align-items:center;gap:2px;">'+
           '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">'+s.bizName+'</span>'+
         '</div>';
       }).join('')+'</div>';
