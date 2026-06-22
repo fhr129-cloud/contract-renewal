@@ -657,7 +657,7 @@ function renderDashboard() {
   });
   var schedEl=document.getElementById('dash-today-schedule');
   if(schedEl){
-    var staffOrderDash=['박주형','김재희','손도란','이소영','김상준','안은재','견병록','임성창','김동현'];
+    var staffOrderDash=['박주형','김재희','손도란','이소영','김상준','견병록','안은재','임성창','김동현'];
     var sortedItems=todayItems.slice().sort(function(a,b){
       var an=a.staffNames&&a.staffNames.length?a.staffNames[0]:(a.staffName||'');
       var bn=b.staffNames&&b.staffNames.length?b.staffNames[0]:(b.staffName||'');
@@ -1164,7 +1164,7 @@ function renderWeekView(){
   }
   var todayStr=localDateStr(today);
   var filtered=filterSupports();
-  var staffOrder=['박주형 본부장','김재희 차장','손도란 대리','이소영 주임','김상준 주임','안은재 주임','견병록 매니저','임성창 차장','김동현 대리'];
+  var staffOrder=['박주형 본부장','김재희 차장','손도란 대리','이소영 주임','김상준 주임','견병록 매니저','안은재 주임','임성창 차장','김동현 대리'];
   var dayLabels=['월','화','수','목','금','토','일'];
 
   // 팀 공지 행
