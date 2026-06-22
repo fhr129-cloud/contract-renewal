@@ -358,8 +358,19 @@ window.delHistRow=async function(idx){
   if(!confirm('이 이력을 삭제할까요?')) return;
   var h=historyData.find(function(x){ return x.contractId===editingId; });
   if(!h||!h.records) return;
+  var deletedRecord=h.records[idx];
   var records=h.records.slice(); records.splice(idx,1);
   await saveHistRecords(records,h.name);
+  // 해지 이력 삭제 시 terminated 플래그 해제
+  if(deletedRecord&&deletedRecord.addType==='terminate'){
+    var prevRecord=records.length?records[records.length-1]:null;
+    await updateContract(editingId,{
+      terminated:false,
+      endDate:prevRecord?prevRecord.endDate:'',
+      price:prevRecord?prevRecord.price:0,
+      priceType:prevRecord?prevRecord.priceType:'per-meal'
+    });
+  }
   showToast('삭제되었습니다.'); renderHistTab();
 };
 function showHistForm(idx,r) {
