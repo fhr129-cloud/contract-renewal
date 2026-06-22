@@ -374,11 +374,11 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
   <!-- 운영지원 -->
   <div id="page-support" class="page-body" style="display:none;">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
-      <div class="cal-toolbar-title" id="cal-title"></div>
-      <div style="display:flex;gap:6px;">
+      <div style="display:flex;align-items:center;gap:6px;">
         <button class="btn sm" onclick="changeMonth(-1)"><i class="ti ti-chevron-left"></i></button>
-        <button class="btn sm" onclick="changeMonth(0)">오늘</button>
+        <div class="cal-toolbar-title" id="cal-title" style="min-width:140px;text-align:center;"></div>
         <button class="btn sm" onclick="changeMonth(1)"><i class="ti ti-chevron-right"></i></button>
+        <button class="btn sm" onclick="changeMonth(0)" style="margin-left:4px;">오늘</button>
       </div>
       <div style="display:flex;gap:6px;margin-left:auto;">
         <button class="btn sm active-filter" id="view-week-btn" onclick="setCalView('week')">주간</button>
