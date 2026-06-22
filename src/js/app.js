@@ -1144,7 +1144,7 @@ function renderMonthView(){
         var cls=isTeam?'':isPersonal?'':getStaffColor(staffStr);
         var evStyle=isTeam?'background:#FFECEC;color:#A32D2D;font-weight:700;':isPersonal?'background:#f0f0ec;color:#666;':'';
         var catLabel=s.category==='이벤트'?'이벤트':s.category?s.category.slice(0,2):'';
-        var displayName=isTeam?'📢 '+s.bizName:isPersonal?s.bizName+(allStaff?'/'+allStaff:''):s.bizName+(catLabel?'/'+catLabel:'');
+        var displayName=isTeam?'📢 '+s.bizName:isPersonal?s.bizName+(allStaff?'/'+allStaff:''):(allStaff?allStaff+' ':'')+s.bizName;
         return '<div class="cal-event '+(cls||'')+'" style="'+evStyle+'">'+displayName+'</div>';
       }).join('')+
       (uniqueItems.length>3?'<div class="cal-more">+'+(uniqueItems.length-3)+'건</div>':'')+
