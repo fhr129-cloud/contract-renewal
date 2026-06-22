@@ -366,12 +366,16 @@ window.delHistRow=async function(idx){
   var c=contracts.find(function(x){ return x.id===editingId; });
   await saveHistRecords(records,h.name);
   if(isTerminate){
+    var restoreStart=prevRecord&&prevRecord.startDate?prevRecord.startDate:(c&&c.startDate?c.startDate:'');
+    var restoreEnd=prevRecord&&prevRecord.endDate?prevRecord.endDate:(c&&c.endDate?c.endDate:'');
+    var restorePrice=prevRecord&&prevRecord.price!=null?prevRecord.price:(c&&c.price!=null?c.price:0);
+    var restoreType=prevRecord&&prevRecord.priceType?prevRecord.priceType:(c&&c.priceType?c.priceType:'per-meal');
     await updateContract(editingId,{
       terminated:false,
-      startDate:prevRecord?prevRecord.startDate:(c?c.startDate:'')||'',
-      endDate:prevRecord?prevRecord.endDate:(c?c.endDate:'')||'',
-      price:prevRecord?prevRecord.price:(c?c.price:0)||0,
-      priceType:prevRecord?prevRecord.priceType:(c?c.priceType:null)||'per-meal'
+      startDate:restoreStart||'',
+      endDate:restoreEnd||'',
+      price:restorePrice||0,
+      priceType:restoreType||'per-meal'
     });
   }
   showToast('삭제되었습니다.');
