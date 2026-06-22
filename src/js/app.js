@@ -330,6 +330,7 @@ window.switchModalTab = function(tab) {
 // ── 히스토리 탭 ──────────────────────────
 function renderHistTab() {
   var el=document.getElementById('hist-list'); if(!el) return;
+  el.innerHTML='';
   var h=editingId?historyData.find(function(x){ return x.contractId===editingId; }):null;
   var records=h&&h.records?h.records:[];
   if(!records.length){ el.innerHTML='<div class="empty-state"><i class="ti ti-history"></i>이력이 없어요</div>'; return; }
@@ -359,20 +360,36 @@ window.delHistRow=async function(idx){
   var h=historyData.find(function(x){ return x.contractId===editingId; });
   if(!h||!h.records) return;
   var deletedRecord=h.records[idx];
+  var isTerminate=deletedRecord&&deletedRecord.addType==='terminate';
   var records=h.records.slice(); records.splice(idx,1);
-  await saveHistRecords(records,h.name);
-  if(deletedRecord&&deletedRecord.addType==='terminate'){
-    var prevRecord=records.length?records[records.length-1]:null;
-    var c=contracts.find(function(x){ return x.id===editingId; });
-    await updateContract(editingId,{
-      terminated:false,
-      startDate:prevRecord?prevRecord.startDate:(c?c.startDate:''),
-      endDate:prevRecord?prevRecord.endDate:(c?c.endDate:''),
-      price:prevRecord?prevRecord.price:(c?c.price:0),
-      priceType:prevRecord?prevRecord.priceType:(c?c.priceType:'per-meal')
-    });
+  var prevRecord=records.length?records[records.length-1]:null;
+  var c=contracts.find(function(x){ return x.id===editingId; });
+  // 해지 취소 시 terminated 플래그도 같이 히스토리에 저장
+  if(isTerminate){
+    var {db}=await import('./db.js');
+    var {doc,setDoc,updateDoc,serverTimestamp}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    // 두 작업을 동시에 처리해서 리스너 중복 방지
+    await Promise.all([
+      setDoc(doc(db,'history',editingId),{contractId:editingId,name:h.name||'',records:records,updatedAt:serverTimestamp()}),
+      updateDoc(doc(db,'contracts',editingId),{
+        terminated:false,
+        startDate:prevRecord?prevRecord.startDate:(c?c.startDate:''),
+        endDate:prevRecord?prevRecord.endDate:(c?c.endDate:''),
+        price:prevRecord?prevRecord.price:(c?c.price:0),
+        priceType:prevRecord?prevRecord.priceType:(c?c.priceType:'per-meal')
+      })
+    ]);
+  } else {
+    await saveHistRecords(records,h.name);
   }
-  showToast('삭제되었습니다.'); renderHistTab();
+  showToast('삭제되었습니다.');
+  setTimeout(function(){
+    renderHistTab();
+    if(document.getElementById('detail-screen').style.display==='flex'){
+      var c2=contracts.find(function(x){ return x.id===editingId; });
+      if(c2) renderDetail(c2);
+    }
+  },600);
 };
 function showHistForm(idx,r) {
   var existing=document.getElementById('hist-form-popup'); if(existing) existing.remove();
