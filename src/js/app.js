@@ -366,19 +366,15 @@ window.delHistRow=async function(idx){
   var c=contracts.find(function(x){ return x.id===editingId; });
   // 해지 취소 시 terminated 플래그도 같이 히스토리에 저장
   if(isTerminate){
-    var {db}=await import('./db.js');
-    var {doc,setDoc,updateDoc,serverTimestamp}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    // 두 작업을 동시에 처리해서 리스너 중복 방지
-    await Promise.all([
-      setDoc(doc(db,'history',editingId),{contractId:editingId,name:h.name||'',records:records,updatedAt:serverTimestamp()}),
-      updateDoc(doc(db,'contracts',editingId),{
-        terminated:false,
-        startDate:prevRecord?prevRecord.startDate:(c?c.startDate:''),
-        endDate:prevRecord?prevRecord.endDate:(c?c.endDate:''),
-        price:prevRecord?prevRecord.price:(c?c.price:0),
-        priceType:prevRecord?prevRecord.priceType:(c?c.priceType:'per-meal')
-      })
-    ]);
+    var restoreData={
+      terminated:false,
+      startDate:prevRecord?prevRecord.startDate:(c?c.startDate:''),
+      endDate:prevRecord?prevRecord.endDate:(c?c.endDate:''),
+      price:prevRecord?prevRecord.price:(c?c.price:0),
+      priceType:prevRecord?prevRecord.priceType:(c?c.priceType:'per-meal')
+    };
+    await saveHistRecords(records,h.name);
+    await updateContract(editingId,restoreData);
   } else {
     await saveHistRecords(records,h.name);
   }
