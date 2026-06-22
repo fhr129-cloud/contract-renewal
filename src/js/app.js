@@ -375,7 +375,6 @@ window.delHistRow=async function(idx){
     });
   }
   showToast('삭제되었습니다.');
-  renderHistTab();
 };
 function showHistForm(idx,r) {
   var existing=document.getElementById('hist-form-popup'); if(existing) existing.remove();
@@ -606,15 +605,21 @@ async function init() {
   listenContracts(function(data){
     contracts=data;
     ssOptions=data.slice().sort(function(a,b){ return a.name.localeCompare(b.name,'ko'); });
-    if(currentPage) renderPage(currentPage);
+    // 모달이 열려있으면 renderPage 스킵 (히스토리 탭 버튼 중복 방지)
+    var modalOpen=document.getElementById('modal-overlay').classList.contains('open');
+    if(currentPage&&!modalOpen) renderPage(currentPage);
     updateHomeBadge();
-    // 상세 화면이 열려있으면 최신 데이터로 갱신
     if(document.getElementById('detail-screen').style.display==='flex'&&window.detailId){
       var c=contracts.find(function(x){ return x.id===window.detailId; });
       if(c) renderDetail(c);
     }
   });
-  listenHistory(function(data){ historyData=data; });
+  listenHistory(function(data){
+    historyData=data;
+    // 히스토리 탭이 열려있으면 갱신
+    if(currentModalTab==='hist') renderHistTab();
+  });
+  
   listenSupports(function(data){
     supports=data;
     if(currentPage==='support'){ renderCalendar(); renderSupStat(supStatTab||'month'); }
