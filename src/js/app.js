@@ -1094,7 +1094,8 @@ function renderCalendar(){
     var base=new Date(today2.getFullYear(),today2.getMonth(),today2.getDate()+diff2+(weekOffset*7));
     var end=new Date(base.getFullYear(),base.getMonth(),base.getDate()+6);
     var baseM=base.getMonth()+1,endM=end.getMonth()+1;
-    if(el) el.textContent=(baseM===endM?baseM+'월 '+base.getDate()+'~'+end.getDate()+'일':baseM+'월 '+base.getDate()+'일 ~ '+endM+'월 '+end.getDate()+'일');
+    var isMobile=window.innerWidth<=600;
+    if(el) el.textContent=(baseM===endM?(isMobile?baseM+'/'+base.getDate()+'~'+end.getDate():baseM+'월 '+base.getDate()+'~'+end.getDate()+'일'):(isMobile?baseM+'/'+base.getDate()+'~'+endM+'/'+end.getDate():baseM+'월 '+base.getDate()+'일 ~ '+endM+'월 '+end.getDate()+'일'));
     renderWeekView();
     setTimeout(function(){
       var calWrap=document.querySelector('#calendar').parentElement;
