@@ -499,6 +499,8 @@ window.openPersonalModal=function(){
 };
 window.closePersonalModal=function(){
   document.getElementById('personal-modal').classList.remove('open');
+  var footer=document.querySelector('#personal-modal .sup-modal-footer');
+  if(footer) footer.innerHTML='<button class="btn" onclick="closePersonalModal()">취소</button><button class="btn primary" onclick="submitPersonal()"><i class="ti ti-check"></i> 등록</button>';
 };
 window.submitPersonal=async function(){
   var pType=document.getElementById('personal-type-val').value;
@@ -537,6 +539,8 @@ window.openTeamModal=function(){
 };
 window.closeTeamModal=function(){
   document.getElementById('team-modal').classList.remove('open');
+  var footer=document.querySelector('#team-modal .sup-modal-footer');
+  if(footer) footer.innerHTML='<button class="btn" onclick="closeTeamModal()">취소</button><button class="btn primary" onclick="submitTeam()"><i class="ti ti-check"></i> 등록</button>';
 };
 window.submitTeam=async function(){
   var title=document.getElementById('team-title').value.trim();
@@ -1292,6 +1296,8 @@ function supItemHtml(s,dateKey){
       (s.content?'<div style="font-size:12px;color:#555;background:#f5f5f3;padding:6px 8px;border-radius:6px;">'+s.content+'</div>':'')+
     '</div>'+
     '<div style="display:flex;gap:4px;flex-shrink:0;">'+
+     (isPersonal?'<button class="btn sm" onclick="editPersonal(\''+s.id+'\')"><i class="ti ti-edit"></i></button>':'')+
+      (isTeam?'<button class="btn sm" onclick="editTeam(\''+s.id+'\')"><i class="ti ti-edit"></i></button>':'')+
       (!isTeam&&!isPersonal?'<button class="btn sm" onclick="closeCalPopup();editSupport(\''+s.id+'\')"><i class="ti ti-edit"></i></button>':'')+
       '<button class="btn sm danger" onclick="delSupportFromPopup(\''+s.id+'\')"><i class="ti ti-trash"></i></button>'+
     '</div></div>';
@@ -1330,6 +1336,64 @@ window.openCalPopupSingle=function(supportId){
 };
 
 window.closeCalPopup=function(){ var p=document.getElementById('cal-popup'); if(p) p.classList.remove('open'); };
+window.editPersonal=function(id){
+  var s=supports.find(function(x){ return x.id===id; }); if(!s) return;
+  closeCalPopup();
+  document.getElementById('personal-modal-title').textContent='개인 일정 수정';
+  document.getElementById('personal-type-val').value=s.personalType||'';
+  document.getElementById('personal-date').value=s.date||'';
+  document.getElementById('personal-date-end').value=s.dateEnd||'';
+  document.getElementById('personal-content').value=s.content||'';
+  document.querySelectorAll('#personal-type-wrap .staff-chip').forEach(function(c){
+    c.classList.toggle('selected',c.textContent.trim()===s.personalType);
+  });
+  setPersonalStaff(s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]));
+  document.getElementById('personal-modal').classList.add('open');
+  // 저장 버튼을 수정으로 교체
+  var footer=document.querySelector('#personal-modal .sup-modal-footer');
+  footer.innerHTML='<button class="btn" onclick="closePersonalModal()">취소</button>'+
+    '<button class="btn primary" onclick="submitPersonalEdit(\''+id+'\')"><i class="ti ti-check"></i> 수정 저장</button>';
+};
+window.submitPersonalEdit=async function(id){
+  var pType=document.getElementById('personal-type-val').value;
+  var date=document.getElementById('personal-date').value;
+  var dateEnd=document.getElementById('personal-date-end').value;
+  var content=document.getElementById('personal-content').value.trim();
+  var staffNames=getPersonalStaff();
+  if(!pType||!date||!staffNames.length){ showToast('일정 종류, 날짜, 담당자는 필수예요.'); return; }
+  try{
+    await updateSupport(id,{type:'personal',bizName:pType,personalType:pType,date:date,dateEnd:dateEnd,staffNames:staffNames,staffName:staffNames.join(', '),category:'개인일정',content:content,meals:[]});
+    showToast('수정되었습니다.'); closePersonalModal();
+    var footer=document.querySelector('#personal-modal .sup-modal-footer');
+    footer.innerHTML='<button class="btn" onclick="closePersonalModal()">취소</button><button class="btn primary" onclick="submitPersonal()"><i class="ti ti-check"></i> 등록</button>';
+  } catch(e){ showToast('오류가 발생했습니다.'); }
+};
+window.editTeam=function(id){
+  var s=supports.find(function(x){ return x.id===id; }); if(!s) return;
+  closeCalPopup();
+  document.getElementById('team-modal-title').textContent='팀 공지 수정';
+  document.getElementById('team-title').value=s.bizName||'';
+  document.getElementById('team-date').value=s.date||'';
+  document.getElementById('team-date-end').value=s.dateEnd||'';
+  document.getElementById('team-content').value=s.content||'';
+  document.getElementById('team-modal').classList.add('open');
+  var footer=document.querySelector('#team-modal .sup-modal-footer');
+  footer.innerHTML='<button class="btn" onclick="closeTeamModal()">취소</button>'+
+    '<button class="btn primary" onclick="submitTeamEdit(\''+id+'\')"><i class="ti ti-check"></i> 수정 저장</button>';
+};
+window.submitTeamEdit=async function(id){
+  var title=document.getElementById('team-title').value.trim();
+  var date=document.getElementById('team-date').value;
+  var dateEnd=document.getElementById('team-date-end').value;
+  var content=document.getElementById('team-content').value.trim();
+  if(!title||!date){ showToast('제목과 날짜는 필수예요.'); return; }
+  try{
+    await updateSupport(id,{type:'team',bizName:title,date:date,dateEnd:dateEnd,staffNames:[],staffName:'',category:'팀공지',content:content,meals:[]});
+    showToast('수정되었습니다.'); closeTeamModal();
+    var footer=document.querySelector('#team-modal .sup-modal-footer');
+    footer.innerHTML='<button class="btn" onclick="closeTeamModal()">취소</button><button class="btn primary" onclick="submitTeam()"><i class="ti ti-check"></i> 등록</button>';
+  } catch(e){ showToast('오류가 발생했습니다.'); }
+};
 window.editSupportFromPopup=function(id){ closeCalPopup(); window.editSupport(id); };
 window.delSupportFromPopup=async function(id){
   if(!confirm('삭제할까요?')) return;
