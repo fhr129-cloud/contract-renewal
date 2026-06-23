@@ -1785,6 +1785,9 @@ window.renderBizTab=function(){
         marker.bindTooltip(c.name,{permanent:true,direction:'top',offset:[0,-8],opacity:c.terminated?0.5:0.97,className:'map-label'});
         marker.on('click',function(){ window.goDetail(c.id); });
       });
+    },100);
+  }
+};
 
 // ── 관리자 수정 ──────────────────────────
 window.renderAdmin=function(){
