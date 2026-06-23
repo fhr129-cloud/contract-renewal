@@ -657,7 +657,7 @@ async function init() {
 init();
 
 function updateHomeBadge() {
-  var urgent=contracts.filter(function(c){ return calcStatus(c)==='urgent'; }).length;
+  var urgent=contracts.filter(function(c){ return !c.terminated&&calcStatus(c)==='urgent'; }).length;
   var badge=document.getElementById('home-urgent-badge');
   if(badge){ badge.style.display=urgent>0?'block':'none'; badge.textContent=urgent; }
 }
