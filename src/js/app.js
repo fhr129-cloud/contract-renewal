@@ -1653,7 +1653,7 @@ window.renderBizTab=function(){
       '</div>';
   }
   var filtered=contracts.filter(function(c){
-    if(currentBizTab!=='newterm'&&c.terminated) return false;
+    if(currentBizTab!=='newterm'&&currentBizTab!=='region'&&c.terminated) return false;
     if(!q) return true;
     if(c.name.toLowerCase().includes(q)) return true;
     if(c.nutritionists&&c.nutritionists.some(function(nt){ return (nt.name||'').toLowerCase().includes(q); })) return true;
@@ -1770,21 +1770,21 @@ window.renderBizTab=function(){
    el.innerHTML=html;
     
   } else {
-    el.innerHTML='<div class="map-legend"><span><span class="leg-dot" style="background:#E24B4A;"></span>긴급</span><span><span class="leg-dot" style="background:#EF9F27;"></span>임박</span><span><span class="leg-dot" style="background:#4A90D9;"></span>여유/자동연장</span></div><div id="map"></div>';
+    el.innerHTML='<div class="map-legend"><span><span class="leg-dot" style="background:#E24B4A;"></span>긴급</span><span><span class="leg-dot" style="background:#EF9F27;"></span>임박</span><span><span class="leg-dot" style="background:#4A90D9;"></span>여유/자동연장</span><span><span class="leg-dot" style="background:#aaa;"></span>해지</span></div><div id="map"></div>';
     setTimeout(function(){
       if(mapInstance){mapInstance.remove();mapInstance=null;}
       mapInstance=L.map('map').setView([36.98,127.05],9);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapInstance);
-      filtered.forEach(function(c){
+     filtered.forEach(function(c){
         var coord=(c.lat&&c.lng)?{lat:c.lat,lng:c.lng}:COORDS[c.name]; if(!coord) return;
-        var s=calcStatus(c),color=s==='urgent'?'#E24B4A':s==='near'?'#EF9F27':'#4A90D9';
-        var marker=L.circleMarker([coord.lat,coord.lng],{radius:s==='urgent'?10:8,fillColor:color,color:'#fff',weight:2,fillOpacity:0.9}).addTo(mapInstance);
-        marker.bindTooltip(c.name,{permanent:true,direction:'top',offset:[0,-8],opacity:0.97,className:'map-label'});
+        var s=calcStatus(c);
+        var color=c.terminated?'#aaa':s==='urgent'?'#E24B4A':s==='near'?'#EF9F27':'#4A90D9';
+        var radius=c.terminated?6:s==='urgent'?10:8;
+        var opacity=c.terminated?0.4:0.9;
+        var marker=L.circleMarker([coord.lat,coord.lng],{radius:radius,fillColor:color,color:'#fff',weight:2,fillOpacity:opacity}).addTo(mapInstance);
+        marker.bindTooltip(c.name,{permanent:true,direction:'top',offset:[0,-8],opacity:c.terminated?0.5:0.97,className:'map-label'});
         marker.on('click',function(){ window.goDetail(c.id); });
       });
-    },100);
-  }
-};
 
 // ── 관리자 수정 ──────────────────────────
 window.renderAdmin=function(){
