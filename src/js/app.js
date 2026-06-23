@@ -1760,8 +1760,12 @@ window.renderBizTab=function(){
           return '<div class="biz-card" style="border-color:#F7C1C1;opacity:0.8;cursor:pointer;" onclick="goDetail(\''+c.id+'\')">'+
             '<div class="biz-card-top"><span class="biz-name" style="color:#888;">'+c.name+'</span>'+
             '<span class="badge urgent">해지</span></div>'+
-            '<div class="biz-info"><div class="biz-info-row"><i class="ti ti-map-pin"></i><span>'+(c.addr||'-')+'</span></div></div>'+
-            '<div class="biz-bottom"><span>'+(c.resp||'-')+'</span><span style="color:#A32D2D;font-weight:500;">'+termDate+'</span></div>'+
+           '<div class="biz-info">'+
+              '<div class="biz-info-row"><i class="ti ti-map-pin"></i><span>'+(c.addr||'-')+'</span></div>'+
+              (c.nutritionists&&c.nutritionists.length?'<div class="biz-info-row"><i class="ti ti-user"></i><span>'+c.nutritionists.map(function(nt){ return nt.name; }).join(' / ')+'</span></div>':'')+
+            '</div>'+
+            '<div class="biz-bottom"><span style="color:#A32D2D;font-weight:500;">'+termDate+'</span></div>'+
+            '<div class="biz-bottom"><span style="color:#A32D2D;font-weight:500;">'+termDate+'</span></div>'+
           '</div>';
         }).join(''):'<div style="color:#aaa;font-size:13px;padding:12px 0;">해지 사업장이 없어요</div>')+
       '</div>'+
