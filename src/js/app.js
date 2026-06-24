@@ -916,6 +916,7 @@ function renderCatStat(list){
   });
   var cats=CATS.filter(function(c){ return catMap[c]; });
   Object.keys(catMap).forEach(function(c){ if(CATS.indexOf(c)===-1) cats.push(c); });
+  cats.sort(function(a,b){ return catMap[b].count-catMap[a].count; });
   if(!cats.length) return '<div style="color:#aaa;font-size:12px;padding:8px 0;">내역이 없어요</div>';
   var maxCat=Math.max.apply(null,cats.map(function(c){ return catMap[c].count; }));
   return '<div style="display:flex;flex-direction:column;gap:4px;">'+
