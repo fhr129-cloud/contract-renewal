@@ -524,6 +524,54 @@ window.openTypeSelect=function(date){
   window._typeSelectStaff=null;
   document.getElementById('type-select-modal').classList.add('open');
 };
+window.openYearMonthPicker=function(){
+  var existing=document.getElementById('ym-picker'); if(existing) existing.remove();
+  var popup=document.createElement('div');
+  popup.id='ym-picker';
+  popup.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:400;display:flex;align-items:center;justify-content:center;';
+  var years=[];
+  for(var y=2023;y<=2028;y++) years.push(y);
+  var months=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  popup.innerHTML='<div style="background:#fff;border-radius:14px;padding:20px;width:320px;max-width:90vw;">'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">'+
+      '<span style="font-size:14px;font-weight:600;">연도/월 선택</span>'+
+      '<button class="btn sm" onclick="document.getElementById(\'ym-picker\').remove()"><i class="ti ti-x"></i></button>'+
+    '</div>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">'+
+      years.map(function(y){
+        return '<div onclick="ymPickYear('+y+',this)" style="padding:6px 14px;border-radius:8px;border:.5px solid #ccc;cursor:pointer;font-size:13px;'+(y===calYear?'background:#185FA5;color:#fff;border-color:#185FA5;':'')+'" data-year="'+y+'">'+y+'년</div>';
+      }).join('')+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">'+
+      months.map(function(m,i){
+        return '<div onclick="ymPickMonth('+(i)+',this)" style="padding:8px 4px;border-radius:8px;border:.5px solid #ccc;cursor:pointer;font-size:13px;text-align:center;'+(i===calMonth?'background:#185FA5;color:#fff;border-color:#185FA5;':'')+'" data-month="'+i+'">'+m+'</div>';
+      }).join('')+
+    '</div>'+
+    '<div style="margin-top:16px;display:flex;justify-content:flex-end;">'+
+      '<button class="btn primary" onclick="ymConfirm()"><i class="ti ti-check"></i> 이동</button>'+
+    '</div>'+
+  '</div>';
+  popup.addEventListener('click',function(e){ if(e.target===popup) popup.remove(); });
+  document.body.appendChild(popup);
+};
+window.ymPickYear=function(y,el){
+  document.querySelectorAll('#ym-picker [data-year]').forEach(function(e){ e.style.background=''; e.style.color=''; e.style.borderColor='#ccc'; });
+  el.style.background='#185FA5'; el.style.color='#fff'; el.style.borderColor='#185FA5';
+  window._ymYear=y;
+};
+window.ymPickMonth=function(m,el){
+  document.querySelectorAll('#ym-picker [data-month]').forEach(function(e){ e.style.background=''; e.style.color=''; e.style.borderColor='#ccc'; });
+  el.style.background='#185FA5'; el.style.color='#fff'; el.style.borderColor='#185FA5';
+  window._ymMonth=m;
+};
+window.ymConfirm=function(){
+  var y=window._ymYear||calYear, m=window._ymMonth!=null?window._ymMonth:calMonth;
+  calYear=y; calMonth=m; calView='month';
+  document.getElementById('view-month-btn').classList.add('active-filter');
+  document.getElementById('view-week-btn').classList.remove('active-filter');
+  document.getElementById('ym-picker').remove();
+  renderCalendar();
+};
 window.closeTypeSelect=function(){
   document.getElementById('type-select-modal').classList.remove('open');
 };
