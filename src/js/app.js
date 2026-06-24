@@ -780,7 +780,7 @@ function renderDashboard() {
           supportItems.map(function(s){
             var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
             return '<div onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid #C8DEFA;font-size:13px;">'+
-              '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr+'</span>'+
+              '<span class="badge-cat '+(getStaffColor(staffStr)||'')+'">'+staffStr.split(',').map(function(n){ return n.trim().split(' ')[0]; }).join(', ')+'</span>'+
               '<span style="font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+s.bizName+'</span>'+
               '<span style="font-size:12px;color:#888;white-space:nowrap;flex-shrink:0;">'+(s.category||'')+'</span>'+
             '</div>';
