@@ -259,7 +259,9 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 .hist-tab-label{font-size:11px;background:#f0f0ec;color:#666;padding:2px 8px;border-radius:99px;white-space:nowrap;flex-shrink:0;}
 .hist-tab-label.current{background:#185FA5;color:#fff;}
 .hist-tab-info{flex:1;min-width:0;font-size:12px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-
+.today-schedule, .card:has(#dash-recent-updates) {
+  max-width: 680px;
+}
 .empty-state{text-align:center;padding:36px;color:#aaa;font-size:13px;}
 .empty-state i{font-size:28px;display:block;margin-bottom:8px;}
 .toast{position:fixed;bottom:24px;right:24px;background:#1a1a18;color:#fff;padding:11px 16px;border-radius:8px;font-size:13px;z-index:999;animation:fadeUp .2s ease;white-space:nowrap;}
@@ -348,11 +350,11 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
       <div class="stat-card" id="card-ok" onclick="window.toggleDashCard(this,'ok')"></div>
     </div>
     <div class="dash-list-wrap" id="dash-list-wrap" style="display:none;"><div id="dash-list"></div></div>
-    <div class="today-schedule">
+    <div class="today-schedule" style="max-width:680px;">
       <div class="today-schedule-title"><i class="ti ti-clock" style="color:#555;"></i> 오늘 팀 일정</div>
       <div id="dash-today-schedule"></div>
     </div>
-    <div class="card" style="margin-bottom:16px;">
+    <div class="card" style="margin-bottom:16px;max-width:680px;">
       <div class="card-header">
         <span class="card-title"><i class="ti ti-bell" style="color:#185FA5;"></i> 최근 계약 업데이트</span>
         <span style="font-size:11px;color:#aaa;">최근 30일</span>
