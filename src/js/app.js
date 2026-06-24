@@ -1255,7 +1255,7 @@ function renderMonthView(){
     items.forEach(function(s){ if(!seen[s.id]){seen[s.id]=true;uniqueItems.push(s);} });
     var holiday=getHoliday(key);
     html+='<div class="cal-day'+(isToday?' today':'')+(holiday?' holiday':'')+'" onclick="openCalPopup(\''+key+'\')">'+
-      '<div class="cal-num" style="display:flex;align-items:center;gap:3px;">'+d+(holiday?'<span style="font-size:8px;color:#E24B4A;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">'+holiday+'</span>':'')+' </div>'+
+      '<div class="cal-num" style="display:flex;align-items:center;gap:3px;overflow:hidden;">'+d+(holiday?'<span style="font-size:8px;color:#E24B4A;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1;">'+holiday+'</span>':'')+' </div>'+
       uniqueItems.slice(0,3).map(function(s){
         var isPersonal=s.type==='personal',isTeam=s.type==='team';
         var staffStr=s.staffNames&&s.staffNames.length?s.staffNames[0]:(s.staffName||'');
