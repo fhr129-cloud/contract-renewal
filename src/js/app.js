@@ -1303,7 +1303,7 @@ function renderMonthView(){
   var firstDay=new Date(calYear,calMonth,1).getDay(),lastDate=new Date(calYear,calMonth+1,0).getDate();
   var today=localDateStr();
   var html='<div class="cal-grid">';
-  ['일','월','화','수','목','금','토'].forEach(function(d){ html+='<div class="cal-header">'+d+'</div>'; });
+  ['일','월','화','수','목','금','토'].forEach(function(d,i){ html+='<div class="cal-header" style="'+(i===0?'color:#C0392B;font-weight:700;':i===6?'color:#1A5276;font-weight:700;':'')+'">'+d+'</div>'; });
   for(var i=0;i<firstDay;i++) html+='<div class="cal-day empty"></div>';
   for(var d=1;d<=lastDate;d++){
     var key=calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
@@ -1311,8 +1311,10 @@ function renderMonthView(){
     var seen={},uniqueItems=[];
     items.forEach(function(s){ if(!seen[s.id]){seen[s.id]=true;uniqueItems.push(s);} });
     var holiday=getHoliday(key);
+    var dayOfWeek=new Date(key).getDay();
+    var dayColor=dayOfWeek===0?'color:#C0392B;':dayOfWeek===6?'color:#1A5276;':'';
     html+='<div class="cal-day'+(isToday?' today':'')+(holiday?' holiday':'')+'" onclick="openCalPopup(\''+key+'\')">'+
-      '<div class="cal-num">'+d+'</div>'+(holiday?'<div style="font-size:8px;color:#E24B4A;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 2px;margin-top:-2px;">'+holiday+'</div>':'')+
+      '<div class="cal-num" style="'+dayColor+'">'+d+'</div>'+(holiday?'<div style="font-size:8px;color:#E24B4A;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 2px;margin-top:-2px;">'+holiday+'</div>':'')+
       uniqueItems.slice(0,3).map(function(s){
         var isPersonal=s.type==='personal',isTeam=s.type==='team';
         var staffStr=s.staffNames&&s.staffNames.length?s.staffNames[0]:(s.staffName||'');
@@ -1358,7 +1360,8 @@ function renderWeekView(){
   days.forEach(function(d,i){
     var dStr=localDateStr(d),isToday=dStr===todayStr;
     var hday=getHoliday(dStr);
-    html+='<div class="week-header'+(isToday?' today-col':'')+(hday?' holiday':'')+'" style="'+(hday?'color:#E24B4A;':'')+'">' +dayLabels[i]+'<br><div style="display:flex;align-items:center;justify-content:center;gap:3px;"><span style="font-weight:600;">'+d.getDate()+'</span>'+(hday?'<span style="font-size:8px;font-weight:400;color:#E24B4A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:36px;">'+hday+'</span>':'')+' </div></div>';
+    var wdColor=i===5?'color:#1A5276;':i===6?'color:#C0392B;':'';
+    html+='<div class="week-header'+(isToday?' today-col':'')+(hday?' holiday':'')+'" style="'+(hday?'color:#E24B4A;':wdColor)+'">' +dayLabels[i]+'<br><div style="display:flex;align-items:center;justify-content:center;gap:3px;"><span style="font-weight:600;">'+d.getDate()+'</span>'+(hday?'<span style="font-size:8px;font-weight:400;color:#E24B4A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:36px;">'+hday+'</span>':'')+' </div></div>';
   });
 
   // 팀공지 행
