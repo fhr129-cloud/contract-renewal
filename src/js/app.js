@@ -794,7 +794,7 @@ function renderDashboard() {
             var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.join(', '):(s.staffName||'');
             var isLeave=s.personalType==='연차'||s.personalType==='반차(오전)'||s.personalType==='반차(오후)';
             return '<div onclick="openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid #e0e0dc;font-size:13px;">'+
-              '<span class="badge-cat" style="'+(isLeave?'background:#FFCDD2;color:#A32D2D;':'')+'">'+staffStr.split(' ')[0]+'</span>'+
+              '<span class="badge-cat" style="'+(isLeave?'background:#FFCDD2;color:#A32D2D;':'')+'">'+staffStr.split(',').map(function(n){ return n.trim().split(' ')[0]; }).join(', ')+'</span>'+
               '<span style="font-weight:600;flex:1;">'+s.bizName+'</span>'+
               '<span style="font-size:12px;color:#888;white-space:nowrap;">'+(s.content||'')+'</span>'+
             '</div>';
