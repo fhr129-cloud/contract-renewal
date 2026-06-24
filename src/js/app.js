@@ -1255,7 +1255,7 @@ function renderMonthView(){
     items.forEach(function(s){ if(!seen[s.id]){seen[s.id]=true;uniqueItems.push(s);} });
     var holiday=getHoliday(key);
     html+='<div class="cal-day'+(isToday?' today':'')+(holiday?' holiday':'')+'" onclick="openCalPopup(\''+key+'\')">'+
-      '<div class="cal-num">'+d+(holiday?'<span style="font-size:9px;color:#E24B4A;margin-left:3px;font-weight:500;">'+holiday+'</span>':'')+' </div>'+
+      '<div class="cal-num" style="display:flex;align-items:center;gap:3px;">'+d+(holiday?'<span style="font-size:8px;color:#E24B4A;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">'+holiday+'</span>':'')+' </div>'+
       uniqueItems.slice(0,3).map(function(s){
         var isPersonal=s.type==='personal',isTeam=s.type==='team';
         var staffStr=s.staffNames&&s.staffNames.length?s.staffNames[0]:(s.staffName||'');
@@ -1301,7 +1301,7 @@ function renderWeekView(){
   days.forEach(function(d,i){
     var dStr=localDateStr(d),isToday=dStr===todayStr;
     var hday=getHoliday(dStr);
-    html+='<div class="week-header'+(isToday?' today-col':'')+(hday?' holiday':'')+'" style="'+(hday?'color:#E24B4A;':'')+'">' +dayLabels[i]+'<br><span style="font-weight:600;">'+d.getDate()+'</span>'+(hday?'<br><span style="font-size:8px;font-weight:400;color:#E24B4A;">'+hday+'</span>':'')+' </div>';
+    html+='<div class="week-header'+(isToday?' today-col':'')+(hday?' holiday':'')+'" style="'+(hday?'color:#E24B4A;':'')+'">' +dayLabels[i]+'<br><div style="display:flex;align-items:center;justify-content:center;gap:3px;"><span style="font-weight:600;">'+d.getDate()+'</span>'+(hday?'<span style="font-size:8px;font-weight:400;color:#E24B4A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:36px;">'+hday+'</span>':'')+' </div></div>';
   });
 
   // 팀공지 행
