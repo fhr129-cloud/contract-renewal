@@ -20,6 +20,24 @@ window.detailId = null;
 window._typeSelectDate = null;
 window._typeSelectStaff = null;
 
+var HOLIDAYS_2025 = {
+  '2025-01-01':'신정','2025-01-28':'설날 연휴','2025-01-29':'설날','2025-01-30':'설날 연휴',
+  '2025-03-01':'삼일절','2025-03-03':'대체공휴일','2025-05-05':'어린이날','2025-05-06':'대체공휴일',
+  '2025-05-15':'부처님오신날','2025-06-06':'현충일','2025-08-15':'광복절',
+  '2025-10-03':'개천절','2025-10-05':'추석 연휴','2025-10-06':'추석','2025-10-07':'추석 연휴','2025-10-08':'대체공휴일',
+  '2025-07-17':'제헌절','2025-10-09':'한글날','2025-12-25':'크리스마스'
+};
+var HOLIDAYS_2026 = {
+  '2026-01-01':'신정','2026-02-17':'설날 연휴','2026-02-18':'설날','2026-02-19':'설날 연휴',
+  '2026-03-01':'삼일절','2026-05-05':'어린이날','2026-05-24':'부처님오신날',
+  '2026-06-06':'현충일','2026-08-15':'광복절','2026-08-17':'대체공휴일',
+  '2026-09-24':'추석 연휴','2026-09-25':'추석','2026-09-26':'추석 연휴',
+  '2026-07-17':'제헌절','2026-10-03':'개천절','2026-10-09':'한글날','2026-12-25':'크리스마스'
+};
+function getHoliday(dateStr) {
+  return HOLIDAYS_2025[dateStr]||HOLIDAYS_2026[dateStr]||'';
+}
+
 function localDateStr(d) {
   var dt=d||new Date();
   return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
@@ -1235,8 +1253,9 @@ function renderMonthView(){
     var items=dayMap[key]||[],isToday=key===today;
     var seen={},uniqueItems=[];
     items.forEach(function(s){ if(!seen[s.id]){seen[s.id]=true;uniqueItems.push(s);} });
-    html+='<div class="cal-day'+(isToday?' today':'')+'" onclick="openCalPopup(\''+key+'\')">'+
-      '<div class="cal-num">'+d+'</div>'+
+    var holiday=getHoliday(key);
+    html+='<div class="cal-day'+(isToday?' today':'')+(holiday?' holiday':'')+'" onclick="openCalPopup(\''+key+'\')">'+
+      '<div class="cal-num">'+d+(holiday?'<span style="font-size:9px;color:#E24B4A;margin-left:3px;font-weight:500;">'+holiday+'</span>':'')+' </div>'+
       uniqueItems.slice(0,3).map(function(s){
         var isPersonal=s.type==='personal',isTeam=s.type==='team';
         var staffStr=s.staffNames&&s.staffNames.length?s.staffNames[0]:(s.staffName||'');
@@ -1281,7 +1300,8 @@ function renderWeekView(){
   html+='<div class="week-header"></div>';
   days.forEach(function(d,i){
     var dStr=localDateStr(d),isToday=dStr===todayStr;
-    html+='<div class="week-header'+(isToday?' today-col':'')+'">'+dayLabels[i]+'<br><span style="font-weight:600;">'+d.getDate()+'</span></div>';
+    var hday=getHoliday(dStr);
+    html+='<div class="week-header'+(isToday?' today-col':'')+(hday?' holiday':'')+'" style="'+(hday?'color:#E24B4A;':'')+'">' +dayLabels[i]+'<br><span style="font-weight:600;">'+d.getDate()+'</span>'+(hday?'<br><span style="font-size:8px;font-weight:400;color:#E24B4A;">'+hday+'</span>':'')+' </div>';
   });
 
   // 팀공지 행
