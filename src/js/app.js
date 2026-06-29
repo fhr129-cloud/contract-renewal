@@ -63,17 +63,20 @@ window.renderSupportSearch=function(val){
       var menuStr=s.content&&(s.category==='특식지원'||s.category==='이벤트')?s.content.split(' / ')[0]:'';
       return '<div class="dash-mini-item" style="padding:10px 0;align-items:flex-start;gap:10px;" '+(cid?'onclick="goDetail(\''+cid+'\')" ':'')+'>'+
         '<div style="min-width:0;flex:1;">'+
-          '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:wrap;">'+
-            '<span style="font-size:13px;font-weight:600;'+(cid?'color:#185FA5;':'')+'">'+(s.bizName||'')+'</span>'+
+          '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px;">'+
+            '<span style="font-size:13px;font-weight:600;'+(cid?'color:#185FA5;':'')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(s.bizName||'')+'</span>'+
+            '<span style="font-size:11px;color:#888;white-space:nowrap;flex-shrink:0;">'+dateStr+'</span>'+
+          '</div>'+
+          '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">'+
             '<span class="badge-cat">'+(s.category||'')+'</span>'+
             (staffStr?'<span class="badge-cat '+(getStaffColor(s.staffNames&&s.staffNames.length?s.staffNames[0]:(s.staffName||'')))+'">'+(staffStr)+'</span>':'')+
+            (menuStr?'<span style="font-size:11px;color:#854F0B;">'+menuStr+'</span>':'')+
+            (s.content&&!menuStr?'<span style="font-size:11px;color:#888;">'+s.content+'</span>':
+             s.content&&menuStr&&s.content.includes(' / ')?'<span style="font-size:11px;color:#888;">'+s.content.split(' / ').slice(1).join(' / ')+'</span>':'')+
           '</div>'+
-          (menuStr?'<div style="font-size:11px;color:#854F0B;margin-bottom:2px;">'+menuStr+'</div>':'')+
-          (s.content&&!menuStr?'<div style="font-size:11px;color:#888;">'+s.content+'</div>':
-           s.content&&menuStr&&s.content.includes(' / ')?'<div style="font-size:11px;color:#888;">'+s.content.split(' / ').slice(1).join(' / ')+'</div>':'')+
         '</div>'+
         '<div style="flex-shrink:0;text-align:right;">'+
-          '<div style="font-size:11px;color:#888;">'+dateStr+'</div>'+
+          '<div style="display:none;">'+dateStr+'</div>'+
         '</div>'+
         '<div style="display:flex;gap:4px;flex-shrink:0;" onclick="event.stopPropagation();">'+
           '<button class="btn sm" onclick="closeCalPopup();editSupport(\''+s.id+'\')"><i class="ti ti-edit"></i></button>'+
