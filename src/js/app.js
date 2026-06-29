@@ -1356,12 +1356,9 @@ window.setSupportBizFilter=function(val){
 function syncSearchWidth(){
   var search=document.getElementById('support-biz-search');
   var oBtn=document.getElementById('cal-today-btn');
-  var regBtn=document.querySelector('#cal-toolbar-wrap .btn.primary');
-  if(!search||!oBtn||!regBtn) return;
+  if(!search||!oBtn) return;
   var searchLeft=search.getBoundingClientRect().left;
   var oBtnRight=oBtn.getBoundingClientRect().right;
-  var regBtnRight=regBtn.getBoundingClientRect().right;
-  // 검색창: 오늘버튼 끝까지, 일정등록버튼: 주간/월간 끝까지 자동
   if(oBtnRight>searchLeft) search.style.width=(oBtnRight-searchLeft)+'px';
 }
 }
