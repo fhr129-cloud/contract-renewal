@@ -1230,20 +1230,17 @@ function renderSupStat(tab){
 
 window.toggleDashCard=function(el,filter) {
   document.querySelectorAll('.stat-card').forEach(function(c){ c.classList.remove('active-card'); });
-  var wrap=document.getElementById('dash-list-wrap'),listEl=document.getElementById('dash-list');
-  if(el.dataset.lastFilter===filter){ el.dataset.lastFilter=''; wrap.style.display='none'; return; }
-  el.classList.add('active-card'); el.dataset.lastFilter=filter; wrap.style.display='block';
-  // 카드 아래로 스크롤
-  setTimeout(function(){ wrap.scrollIntoView({behavior:'smooth',block:'nearest'}); },50);
+  el.classList.add('active-card');
+  var labels={all:'전체 사업장',urgent:'긴급 (D-30)',near:'임박 (D-90)',auto:'자동연장',ok:'여유'};
   var list=contracts.filter(function(c){ if(c.terminated) return false; var s=calcStatus(c); return filter==='all'?true:s===filter; }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
-  listEl.innerHTML=list.length?list.map(function(c){
+  var now2=new Date(),todayStr2=localDateStr(now2);
+  var threeMonthsAgo=new Date(now2); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth()-3);
+  var threeStr=localDateStr(threeMonthsAgo);
+  var html=list.length?list.map(function(c){
     var s=calcStatus(c),d=dDiff(c.endDate),col=s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':s==='near'?'#854F0B':'#3B6D11';
     var nutriStr=c.nutritionists&&c.nutritionists.length?c.nutritionists[0].name:'';
-    var now2=new Date(),todayStr2=localDateStr(now2);
-    var threeMonthsAgo=new Date(now2); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth()-3);
-    var threeStr=localDateStr(threeMonthsAgo);
     var recentCount=supports.filter(function(sp){ return sp.bizName===c.name&&sp.date&&sp.date>=threeStr&&sp.date<=todayStr2; }).length;
-    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:.5px solid #f0f0ec;cursor:pointer;gap:8px;" onclick="goDetail(\''+c.id+'\')">' +
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:.5px solid #f0f0ec;cursor:pointer;gap:8px;" onclick="closeDashModal();goDetail(\''+c.id+'\')">' +
       '<div style="min-width:0;flex:1;"><div style="font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+c.name+'</div>'+
       '<div style="font-size:11px;color:#888;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(nutriStr?nutriStr+' · ':'')+(c.resp||'')+'</div></div>'+
       '<div style="text-align:right;flex-shrink:0;">'+
@@ -1252,6 +1249,24 @@ window.toggleDashCard=function(el,filter) {
         '<div style="font-size:11px;font-weight:500;color:'+col+'">'+dDayLabel(d)+'</div>'+
       '</div></div>';
   }).join(''):'<div class="empty-state"><i class="ti ti-check"></i>해당 없음</div>';
+
+  var existing=document.getElementById('dash-modal'); if(existing) existing.remove();
+  var modal=document.createElement('div');
+  modal.id='dash-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:300;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML='<div style="background:#fff;border-radius:14px;width:480px;max-width:95vw;max-height:80vh;display:flex;flex-direction:column;">'+
+    '<div style="padding:14px 18px;border-bottom:.5px solid #e8e8e4;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">'+
+      '<span style="font-size:14px;font-weight:600;">'+labels[filter]+' · '+list.length+'개소</span>'+
+      '<button class="btn sm" onclick="closeDashModal()"><i class="ti ti-x"></i></button>'+
+    '</div>'+
+    '<div style="overflow-y:auto;">'+html+'</div>'+
+  '</div>';
+  modal.addEventListener('click',function(e){ if(e.target===modal) closeDashModal(); });
+  document.body.appendChild(modal);
+};
+window.closeDashModal=function(){
+  var m=document.getElementById('dash-modal'); if(m) m.remove();
+  document.querySelectorAll('.stat-card').forEach(function(c){ c.classList.remove('active-card'); });
 };
 
 // ── 사업장 상세 ──────────────────────────
