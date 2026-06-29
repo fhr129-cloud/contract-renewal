@@ -1275,8 +1275,9 @@ function renderDetail(c) {
   var s=calcStatus(c),d=dDiff(c.endDate),col=s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':s==='near'?'#854F0B':'#3B6D11';
   document.getElementById('detail-title').textContent=c.name;
   var contactHtml='';
-  if(c.contacts&&c.contacts.length) contactHtml=c.contacts.map(function(ct){ return '<div>'+(ct.name||'')+(ct.phone?' · '+ct.phone:'')+(ct.tel?' · '+ct.tel:'')+'</div>'; }).join('');
-  else contactHtml=(c.contactName||'-')+(c.contactPhone?' · '+c.contactPhone:'')+(c.tel?' · '+c.tel:'');
+  function fmtPhone(p){ return p?'<a href="tel:'+p.replace(/[^0-9]/g,'')+'" style="color:inherit;text-decoration:none;">'+p+'</a>':''; }
+  if(c.contacts&&c.contacts.length) contactHtml=c.contacts.map(function(ct){ return '<div>'+(ct.name||'')+(ct.phone?' · '+fmtPhone(ct.phone):'')+(ct.tel?' · '+fmtPhone(ct.tel):'')+'</div>'; }).join('');
+  else contactHtml=(c.contactName||'-')+(c.contactPhone?' · '+fmtPhone(c.contactPhone):'')+(c.tel?' · '+fmtPhone(c.tel):'');
   var h=historyData.find(function(x){ return x.contractId===c.id; });
   var histHtml=h&&h.records&&h.records.length?h.records.map(function(r,i){
     var isCurrent=i===h.records.length-1,label=i===0?'최초':i+'차';
@@ -1305,7 +1306,7 @@ function renderDetail(c) {
     '<div class="detail-row"><span class="detail-label">계약 상태</span><div class="detail-val" style="display:flex;align-items:center;gap:8px;">'+(c.terminated?'<span class="badge urgent">해지</span>':'<span class="badge '+s+'">'+STATUS_META[s].label+'</span><span style="color:'+col+';font-weight:500;">'+dDayLabel(d)+'</span>')+'</div></div>'+
     '<div class="detail-row"><span class="detail-label">소재지</span><span class="detail-val">'+(c.addr||'-')+'</span></div>'+
     '<div class="detail-row"><span class="detail-label">담당자</span><span class="detail-val">'+contactHtml+'</span></div>'+
-    '<div class="detail-row"><span class="detail-label">담당영양사</span><span class="detail-val">'+(c.nutritionists&&c.nutritionists.length?c.nutritionists.map(function(nt){ return (nt.name||'')+(nt.phone?' · '+nt.phone:''); }).join('<br>'):'-')+'</span></div>'+
+    '<div class="detail-row"><span class="detail-label">담당영양사</span><span class="detail-val">'+(c.nutritionists&&c.nutritionists.length?c.nutritionists.map(function(nt){ return (nt.name||'')+(nt.phone?' · '+fmtPhone(nt.phone):''); }).join('<br>'):'-')+'</span></div>'+
     '<div class="detail-row"><span class="detail-label">팀/책임</span><span class="detail-val">'+(c.team?c.team+'팀':'-')+' / '+(c.resp||'-')+'</span></div>'+
     '</div>'+
     '<div class="detail-section"><div class="detail-section-title">계약 정보</div>'+
@@ -1477,8 +1478,7 @@ function renderWeekView(){
     var borderCol=getStaffBorderColor(staff);
     var bgMap2={'박주형':'#E6F1FB','김재희':'#EAF3DE','손도란':'#FAEEDA','이소영':'#F3E6FB','김상준':'#FCEBEB','안은재':'#E6FBF8','견병록':'#FBF6E6','임성창':'#F0F0EC','김동현':'#FBE6F0'};
     var staffBg='#f0f0ec'; for(var sk in bgMap2){ if(staff.includes(sk)){ staffBg=bgMap2[sk]; break; } }
-    // 이 담당자의 이번 주 연차/반차 여부 체크 (오늘 기준 아닌 주간 전체)
-    // dead code 제거
+    
    html+='<div class="week-staff-label"><span style="font-size:10px;font-weight:600;color:#555;padding:2px 8px;background:'+staffBg+';border-radius:4px;display:inline-block;">'+staff.split(' ')[0]+'</span></div>';
     days.forEach(function(d){
       var dStr=localDateStr(d),isToday=dStr===todayStr;
