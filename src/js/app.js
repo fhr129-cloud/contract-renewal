@@ -816,7 +816,7 @@ window.addEventListener('popstate',function(e){
   if(document.getElementById('hist-form-popup')){ closeHistForm(); return; }
   if(document.getElementById('ym-picker')){ document.getElementById('ym-picker').remove(); return; }
   var tsModal=document.getElementById('type-select-modal');
-  if(tsModal&&tsModal.classList.contains('open')&&tsModal.getAttribute('data-pushed')==='1'){ closeTypeSelect(); return; }
+  if(tsModal&&tsModal.classList.contains('open')){ closeTypeSelect(); return; }
   var calPopup=document.getElementById('cal-popup');
   if(calPopup&&calPopup.classList.contains('open')){ calPopup.classList.remove('open'); return; }
   if(document.getElementById('modal-overlay').classList.contains('open')){ closeModal(); return; }
