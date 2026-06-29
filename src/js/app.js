@@ -1,4 +1,4 @@
-import { listenContracts, listenHistory, listenSupports, addContract, updateContract, deleteContract, addHistory, addSupport, updateSupport, updateSupportBizName, deleteSupport, seedIfEmpty, saveHistoryRecords } from './db.js';
+import { listenContracts, listenHistory, listenSupports, addContract, updateContract, deleteContract, addHistory, addSupport, updateSupport, updateSupportBizName, deleteSupport, seedIfEmpty, saveHistoryRecords, updateHistoryName } from './db.js';
 import { calcStatus, STATUS_META, fmtDate, toInputDate, dDiff, dDayLabel, priceLabel } from './utils.js';
 import { COORDS } from './coords.js';
 
@@ -1985,9 +1985,7 @@ window.saveContract=async function(){
       if(oldName&&oldName!==name){
         var supsToUpdate=supports.filter(function(s){ return s.bizName===oldName; });
         for(var i=0;i<supsToUpdate.length;i++) await updateSupportBizName(supsToUpdate[i].id,name);
-        var {db}=await import('./db.js');
-        var {doc,updateDoc}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-        await updateDoc(doc(db,'history',editingId),{name:name});
+        await updateHistoryName(editingId,name);
       }
       showToast('수정되었습니다.');
     } else {
