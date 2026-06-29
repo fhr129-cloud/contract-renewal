@@ -1143,9 +1143,7 @@ function renderSupStat(tab){
   var todayStr=localDateStr(now);
   var curQ=Math.floor(thisM/3);
 
-  // 오른쪽: 긴급/임박 미방문 (탭에 따라 변경)
-  var noVisitEl=document.getElementById('sup-novisit');
-  if(noVisitEl) noVisitEl.innerHTML=tab==='year'?renderNoVisit(0,11,thisY,'올해'):renderNoVisit(curQ*3,curQ*3+2,thisY,'이번 분기');
+
 
   if(tab==='quarter'){
     var quarters=['1분기','2분기','3분기','4분기'];
