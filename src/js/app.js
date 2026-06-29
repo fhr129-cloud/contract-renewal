@@ -575,7 +575,9 @@ document.addEventListener('DOMContentLoaded',function(){
 window.openTypeSelect=function(date){
   window._typeSelectDate=date||null;
   window._typeSelectStaff=null;
-  document.getElementById('type-select-modal').classList.add('open');
+  var modal=document.getElementById('type-select-modal');
+  modal.classList.add('open');
+  modal.setAttribute('data-pushed','1');
   pushModalState();
 };
 window.openYearMonthPicker=function(){
@@ -628,10 +630,14 @@ window.ymConfirm=function(){
   renderCalendar();
 };
 window.closeTypeSelect=function(){
-  document.getElementById('type-select-modal').classList.remove('open');
+  var modal=document.getElementById('type-select-modal');
+  modal.classList.remove('open');
+  modal.removeAttribute('data-pushed');
 };
 window._closeTypeSelectSilent=function(){
-  document.getElementById('type-select-modal').classList.remove('open');
+  var modal=document.getElementById('type-select-modal');
+  modal.classList.remove('open');
+  modal.removeAttribute('data-pushed');
 };
 window.selectScheduleType=function(type){
   window._closeTypeSelectSilent();
@@ -805,7 +811,8 @@ window.addEventListener('popstate',function(e){
   if(dashModal){ dashModal.remove(); document.querySelectorAll('.stat-card').forEach(function(c){ c.classList.remove('active-card'); }); return; }
   if(document.getElementById('hist-form-popup')){ closeHistForm(); return; }
   if(document.getElementById('ym-picker')){ document.getElementById('ym-picker').remove(); return; }
-  if(document.getElementById('type-select-modal')&&document.getElementById('type-select-modal').classList.contains('open')){ closeTypeSelect(); return; }
+  var tsModal=document.getElementById('type-select-modal');
+  if(tsModal&&tsModal.classList.contains('open')&&tsModal.getAttribute('data-pushed')==='1'){ closeTypeSelect(); return; }
   var calPopup=document.getElementById('cal-popup');
   if(calPopup&&calPopup.classList.contains('open')){ calPopup.classList.remove('open'); return; }
   if(document.getElementById('modal-overlay').classList.contains('open')){ closeModal(); return; }
