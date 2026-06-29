@@ -576,7 +576,6 @@ window.openTypeSelect=function(date){
   window._typeSelectDate=date||null;
   window._typeSelectStaff=null;
   document.getElementById('type-select-modal').classList.add('open');
-  pushModalState();
 };
 window.openYearMonthPicker=function(){
   var existing=document.getElementById('ym-picker'); if(existing) existing.remove();
@@ -809,7 +808,7 @@ window.addEventListener('popstate',function(e){
   if(calPopup&&calPopup.classList.contains('open')){ calPopup.classList.remove('open'); return; }
   if(document.getElementById('modal-overlay').classList.contains('open')){ closeModal(); return; }
   if(document.getElementById('sup-modal').classList.contains('open')){ closeSupportModal(); return; }
-  if(document.getElementById('type-select-modal').classList.contains('open')){ closeTypeSelect(); return; }
+  
   if(document.getElementById('personal-modal').classList.contains('open')){ closePersonalModal(); return; }
   if(document.getElementById('team-modal').classList.contains('open')){ closeTeamModal(); return; }
   if(state.modal) return;
@@ -1683,7 +1682,6 @@ window.openTypeSelectWithStaff=function(date,staffName){
   window._typeSelectDate=date||null;
   window._typeSelectStaff=staffName||null;
   document.getElementById('type-select-modal').classList.add('open');
-  pushModalState();
 };
 
 // ── 검색 드롭다운 ──────────────────────────
