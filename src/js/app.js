@@ -806,6 +806,7 @@ window.addEventListener('popstate',function(e){
   if(document.getElementById('ym-picker')){ document.getElementById('ym-picker').remove(); return; }
   var calPopup=document.getElementById('cal-popup');
   if(calPopup&&calPopup.classList.contains('open')){ calPopup.classList.remove('open'); return; }
+  if(document.getElementById('type-select-modal')&&document.getElementById('type-select-modal').classList.contains('open')){ closeTypeSelect(); return; }
   if(document.getElementById('modal-overlay').classList.contains('open')){ closeModal(); return; }
   if(document.getElementById('sup-modal').classList.contains('open')){ closeSupportModal(); return; }
   
