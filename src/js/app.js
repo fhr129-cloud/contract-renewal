@@ -1011,6 +1011,16 @@ function renderDashboard() {
 }
 
 var supStatTab='quarter';
+window.toggleSupStat=function(){
+  var card=document.getElementById('sup-stat-card');
+  var icon=document.getElementById('sup-stat-icon');
+  var body=card?card.querySelector('.card-body'):null;
+  if(!body) return;
+  var isHidden=body.style.display==='none';
+  body.style.display=isHidden?'block':'none';
+  if(icon) icon.style.transform=isHidden?'rotate(180deg)':'';
+  if(isHidden&&!document.getElementById('dash-sup-stat').innerHTML) renderSupStat(supStatTab);
+};
 window.setSupStatTab=function(tab){
   supStatTab=tab;
   ['quarter','year'].forEach(function(t){
