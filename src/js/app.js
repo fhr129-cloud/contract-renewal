@@ -1,4 +1,4 @@
-import { listenContracts, listenHistory, listenSupports, addContract, updateContract, deleteContract, addHistory, addSupport, updateSupport, updateSupportBizName, deleteSupport, seedIfEmpty } from './db.js';
+import { listenContracts, listenHistory, listenSupports, addContract, updateContract, deleteContract, addHistory, addSupport, updateSupport, updateSupportBizName, deleteSupport, seedIfEmpty, saveHistoryRecords } from './db.js';
 import { calcStatus, STATUS_META, fmtDate, toInputDate, dDiff, dDayLabel, priceLabel } from './utils.js';
 import { COORDS } from './coords.js';
 
@@ -551,9 +551,7 @@ window.saveHistForm=async function(idx){
   if(c&&document.getElementById('detail-screen').style.display==='flex') renderDetail(c);
 };
 async function saveHistRecords(records,name) {
-  var {db}=await import('./db.js');
-  var {doc,setDoc,serverTimestamp}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-  await setDoc(doc(db,'history',editingId),{contractId:editingId,name:name||'',records:records,updatedAt:serverTimestamp()});
+  await saveHistoryRecords(editingId,name,records);
 }
 
 // ── 시간 드롭다운 ──────────────────────────
