@@ -1295,7 +1295,6 @@ window.closeDashModal=function(){
 window._closeDashModalFromPop=function(){
   var m=document.getElementById('dash-modal'); if(m) m.remove();
   document.querySelectorAll('.stat-card').forEach(function(c){ c.classList.remove('active-card'); });
-  history.pushState(history.state||{screen:'home'},'','');
 };
 
 // ── 사업장 상세 ──────────────────────────
