@@ -1361,7 +1361,6 @@ function syncSearchWidth(){
   var oBtnRight=oBtn.getBoundingClientRect().right;
   if(oBtnRight>searchLeft) search.style.width=(oBtnRight-searchLeft)+'px';
 }
-}
 function renderCalendar(){
   var el=document.getElementById('cal-title');
   if(calView==='week'){
