@@ -13,6 +13,7 @@ var calYear = new Date().getFullYear();
 var calMonth = new Date().getMonth();
 var calView = 'week';
 var staffFilter = null;
+var supportBizFilter = '';
 var ssOptions = [];
 var currentModalTab = 'basic';
 var weekOffset = 0;
@@ -1255,13 +1256,21 @@ window.changeMonth=function(dir){
   renderCalendar();
 };
 function filterSupports(){
-  if(!staffFilter) return supports;
   return supports.filter(function(s){
-    if(s.type==='team') return true; // 팀공지는 항상 표시
+    if(supportBizFilter){
+      var isTeamOrPersonal=s.type==='team'||s.type==='personal';
+      if(!isTeamOrPersonal&&!(s.bizName&&s.bizName.includes(supportBizFilter))) return false;
+    }
+    if(!staffFilter) return true;
+    if(s.type==='team') return true;
     var names=s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]);
     return names.some(function(n){ return n&&n.includes(staffFilter.split(' ')[0]); });
   });
 }
+window.setSupportBizFilter=function(val){
+  supportBizFilter=val.trim();
+  renderCalendar();
+};
 function renderCalendar(){
   var el=document.getElementById('cal-title');
   if(calView==='week'){
