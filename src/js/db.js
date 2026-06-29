@@ -98,6 +98,15 @@ export async function seedIfEmpty() {
   await seedHistory();
 }
 
+export function saveHistoryRecords(contractId, name, records) {
+  return setDoc(doc(db,'history',contractId), {
+    contractId: contractId,
+    name: name||'',
+    records: records,
+    updatedAt: serverTimestamp()
+  });
+}
+
 async function seedHistory() {
   // 이미 히스토리가 있으면 스킵
   const histSnap = await getDocs(collection(db,'history'));
