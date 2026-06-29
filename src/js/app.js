@@ -27,6 +27,7 @@ window.renderSupportSearch=function(val){
     if(countEl){ countEl.style.display='none'; countEl.textContent=''; }
     if(calCard) calCard.style.display='';
     if(calToolbar) calToolbar.style.display='flex';
+    if(calToolbar) calToolbar.style.flexDirection='column';
     if(supStatCard) supStatCard.style.display='';
     var calBtns=document.getElementById('cal-toolbar-btns');
     var calViewBtns=document.getElementById('cal-view-btns');
