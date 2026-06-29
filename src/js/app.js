@@ -789,7 +789,13 @@ function updateHomeBadge() {
 }
 
 // ── 네비게이션 ──────────────────────────
-window.addEventListener('popstate',function(e){ applyState(e.state||{screen:'home'}); });
+window.addEventListener('popstate',function(e){
+  if(document.getElementById('dash-modal')){
+    window._closeDashModalFromPop();
+    return;
+  }
+  applyState(e.state||{screen:'home'});
+});
 function applyState(state) {
   document.getElementById('home-screen').style.display='none';
   document.getElementById('app').style.display='none';
@@ -1227,7 +1233,13 @@ function renderSupStat(tab){
     },50);
   }
 }
-
+window.addEventListener('popstate',function(e){
+  if(document.getElementById('dash-modal')){
+    closeDashModal();
+    history.pushState(null,'','');
+    return;
+  }
+});
 window.toggleDashCard=function(el,filter) {
   document.querySelectorAll('.stat-card').forEach(function(c){ c.classList.remove('active-card'); });
   el.classList.add('active-card');
@@ -1263,8 +1275,13 @@ window.toggleDashCard=function(el,filter) {
   '</div>';
   modal.addEventListener('click',function(e){ if(e.target===modal) closeDashModal(); });
   document.body.appendChild(modal);
+  history.pushState({screen:'dash-modal'},'','');
 };
 window.closeDashModal=function(){
+  var m=document.getElementById('dash-modal'); if(m) m.remove();
+  document.querySelectorAll('.stat-card').forEach(function(c){ c.classList.remove('active-card'); });
+};
+window._closeDashModalFromPop=function(){
   var m=document.getElementById('dash-modal'); if(m) m.remove();
   document.querySelectorAll('.stat-card').forEach(function(c){ c.classList.remove('active-card'); });
 };
