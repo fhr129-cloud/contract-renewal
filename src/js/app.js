@@ -1374,14 +1374,7 @@ function renderCalendar(){
     if(el) el.textContent=String(baseM).padStart(2,'0')+'월 '+String(base.getDate()).padStart(2,'0')+'일 ~ '+String(endM).padStart(2,'0')+'월 '+String(end.getDate()).padStart(2,'0')+'일';
     renderWeekView();
     syncSearchWidth();
-    setTimeout(function(){
-      var calWrap=document.querySelector('#calendar').parentElement;
-      var todayCol=document.querySelector('.week-header.today-col');
-      if(calWrap&&todayCol){
-        var offset=todayCol.offsetLeft-60;
-        calWrap.scrollLeft=Math.max(0,offset);
-      }
-    },50);
+    // 자동 가로 스크롤 제거
     return;
   }
   if(el) el.textContent=calYear+'년 '+(calMonth+1)+'월';
