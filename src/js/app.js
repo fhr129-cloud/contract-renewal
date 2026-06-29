@@ -1249,6 +1249,7 @@ window.toggleDashCard=function(el,filter) {
         '<div style="font-size:11px;color:#aaa;margin-top:2px;">최근3달 '+recentCount+'회</div>'+
         '<div style="font-size:11px;font-weight:500;color:'+col+'">'+dDayLabel(d)+'</div>'+
       '</div></div>';
+  }).join(''):'<div class="empty-state"><i class="ti ti-check"></i>해당 없음</div>';
 };
 
 // ── 사업장 상세 ──────────────────────────
