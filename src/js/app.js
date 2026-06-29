@@ -1355,19 +1355,7 @@ window.setSupportBizFilter=function(val){
   renderCalendar();
 };
 function syncSearchWidth(){
-  var search=document.getElementById('support-biz-search');
-  var oBtn=document.getElementById('cal-today-btn');
-  var viewBtns=document.getElementById('cal-view-btns');
-  var regBtn=document.querySelector('#cal-toolbar-wrap .btn.primary');
-  if(!search||!oBtn||!viewBtns||!regBtn) return;
-  var searchLeft=search.getBoundingClientRect().left;
-  var oBtnRight=oBtn.getBoundingClientRect().right;
-  // 검색창: 오늘버튼 끝까지
-  if(oBtnRight>searchLeft) search.style.width=(oBtnRight-searchLeft)+'px';
-  // 일정등록 버튼: 주간+월간 합친 너비에 맞춤
-  var viewWidth=viewBtns.getBoundingClientRect().width;
-  regBtn.style.width=viewWidth+'px';
-  regBtn.style.flexShrink='0';
+  // CSS로 고정 처리
 }
 function renderCalendar(){
   var el=document.getElementById('cal-title');
