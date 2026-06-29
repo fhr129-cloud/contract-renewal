@@ -1591,6 +1591,7 @@ function supItemHtml(s,dateKey){
 }
 
 window.openCalPopup=function(dateKey){
+  console.log('openCalPopup called', dateKey);
   var items=[],ids={};
   supports.forEach(function(s){
     if(!s.date||ids[s.id]) return;
