@@ -98,6 +98,10 @@ export async function seedIfEmpty() {
   await seedHistory();
 }
 
+export function updateHistoryName(contractId, name) {
+  return updateDoc(doc(db,'history',contractId), { name: name, updatedAt: serverTimestamp() });
+}
+
 export function saveHistoryRecords(contractId, name, records) {
   return setDoc(doc(db,'history',contractId), {
     contractId: contractId,
