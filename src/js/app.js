@@ -516,6 +516,7 @@ function showHistForm(idx,r) {
   popup.setAttribute('data-addtype', addType);
   popup.addEventListener('click',function(e){ if(e.target===popup) closeHistForm(); });
   document.body.appendChild(popup);
+  pushModalState();
 }
 window.closeHistForm=function(){ var p=document.getElementById('hist-form-popup'); if(p) p.remove(); };
 window.saveHistForm=async function(idx){
@@ -575,6 +576,7 @@ window.openTypeSelect=function(date){
   window._typeSelectDate=date||null;
   window._typeSelectStaff=null;
   document.getElementById('type-select-modal').classList.add('open');
+  pushModalState();
 };
 window.openYearMonthPicker=function(){
   var existing=document.getElementById('ym-picker'); if(existing) existing.remove();
@@ -605,6 +607,7 @@ window.openYearMonthPicker=function(){
   '</div>';
   popup.addEventListener('click',function(e){ if(e.target===popup) popup.remove(); });
   document.body.appendChild(popup);
+  pushModalState();
 };
 window.ymPickYear=function(y,el){
   document.querySelectorAll('#ym-picker [data-year]').forEach(function(e){ e.style.background=''; e.style.color=''; e.style.borderColor='#ccc'; });
@@ -677,6 +680,7 @@ window.openPersonalModal=function(){
   document.querySelectorAll('#personal-type-wrap .staff-chip').forEach(function(c){ c.classList.remove('selected'); });
   document.querySelectorAll('#personal-staff-wrap .staff-chip').forEach(function(c){ c.classList.remove('selected'); });
   document.getElementById('personal-modal').classList.add('open');
+  pushModalState();
 };
 window.closePersonalModal=function(){
   document.getElementById('personal-modal').classList.remove('open');
@@ -717,6 +721,7 @@ window.openTeamModal=function(){
   document.getElementById('team-date-end').value='';
   document.getElementById('team-content').value='';
   document.getElementById('team-modal').classList.add('open');
+  pushModalState();
 };
 window.closeTeamModal=function(){
   document.getElementById('team-modal').classList.remove('open');
@@ -789,50 +794,22 @@ function updateHomeBadge() {
 }
 
 // ── 네비게이션 ──────────────────────────
+function pushModalState(){ history.pushState({modal:true},'',''); }
 window.addEventListener('popstate',function(e){
   var state=e.state||{screen:'home'};
-  // 열려있는 모달 순서대로 체크 — 닫고 state 복구 후 return
-  if(document.getElementById('dash-modal')){
-    window._closeDashModalFromPop();
-    history.pushState(state,'',''); return;
-  }
-  if(document.getElementById('hist-form-popup')){
-    closeHistForm();
-    history.pushState(state,'',''); return;
-  }
-  if(document.getElementById('ym-picker')){
-    document.getElementById('ym-picker').remove();
-    history.pushState(state,'',''); return;
-  }
-  var calPopup=document.getElementById('cal-popup');
-  if(calPopup&&calPopup.classList.contains('open')){
-    calPopup.classList.remove('open');
-    history.pushState(state,'',''); return;
-  }
-  var modalOverlay=document.getElementById('modal-overlay');
-  if(modalOverlay&&modalOverlay.classList.contains('open')){
-    closeModal();
-    history.pushState(state,'',''); return;
-  }
-  var supModal=document.getElementById('sup-modal');
-  if(supModal&&supModal.classList.contains('open')){
-    closeSupportModal();
-    history.pushState(state,'',''); return;
-  }
-  var typeModal=document.getElementById('type-select-modal');
-  if(typeModal&&typeModal.classList.contains('open')){
-    closeTypeSelect();
-    history.pushState(state,'',''); return;
-  }
-  var personalModal=document.getElementById('personal-modal');
-  if(personalModal&&personalModal.classList.contains('open')){
-    closePersonalModal();
-    history.pushState(state,'',''); return;
-  }
-  var teamModal=document.getElementById('team-modal');
-  if(teamModal&&teamModal.classList.contains('open')){
-    closeTeamModal();
-    history.pushState(state,'',''); return;
+  if(state.modal){
+    // 더미 modal state — 열려있는 모달 닫기만
+    if(document.getElementById('dash-modal')){ window._closeDashModalFromPop(); return; }
+    if(document.getElementById('hist-form-popup')){ closeHistForm(); return; }
+    if(document.getElementById('ym-picker')){ document.getElementById('ym-picker').remove(); return; }
+    var calPopup=document.getElementById('cal-popup');
+    if(calPopup&&calPopup.classList.contains('open')){ calPopup.classList.remove('open'); return; }
+    if(document.getElementById('modal-overlay').classList.contains('open')){ closeModal(); return; }
+    if(document.getElementById('sup-modal').classList.contains('open')){ closeSupportModal(); return; }
+    if(document.getElementById('type-select-modal').classList.contains('open')){ closeTypeSelect(); return; }
+    if(document.getElementById('personal-modal').classList.contains('open')){ closePersonalModal(); return; }
+    if(document.getElementById('team-modal').classList.contains('open')){ closeTeamModal(); return; }
+    return;
   }
   applyState(state);
 });
@@ -1273,13 +1250,7 @@ function renderSupStat(tab){
     },50);
   }
 }
-window.addEventListener('popstate',function(e){
-  if(document.getElementById('dash-modal')){
-    closeDashModal();
-    history.pushState(null,'','');
-    return;
-  }
-});
+
 window.toggleDashCard=function(el,filter) {
   document.querySelectorAll('.stat-card').forEach(function(c){ c.classList.remove('active-card'); });
   el.classList.add('active-card');
@@ -1315,6 +1286,7 @@ window.toggleDashCard=function(el,filter) {
   '</div>';
   modal.addEventListener('click',function(e){ if(e.target===modal) closeDashModal(); });
   document.body.appendChild(modal);
+  pushModalState();
 };
 window.closeDashModal=function(){
   var m=document.getElementById('dash-modal'); if(m) m.remove();
@@ -1624,6 +1596,7 @@ window.openCalPopup=function(dateKey){
     '</div>'+
     items.map(function(s){ return supItemHtml(s,dateKey); }).join('');
   popup.classList.add('open');
+  pushModalState();
 };
 
 window.openCalPopupSingle=function(supportId){
@@ -1633,6 +1606,7 @@ window.openCalPopupSingle=function(supportId){
   document.getElementById('cal-popup-title').textContent=s.bizName+' 일정';
   document.getElementById('cal-popup-body').innerHTML=supItemHtml(s,s.date);
   popup.classList.add('open');
+  pushModalState();
 };
 
 window.closeCalPopup=function(){ var p=document.getElementById('cal-popup'); if(p) p.classList.remove('open'); };
@@ -1750,6 +1724,7 @@ window.openSupportModal=function(){
   resetMealChips(); resetStaffChips();
   document.getElementById('sup-submit-btn').innerHTML='<i class="ti ti-check"></i> 등록';
   document.getElementById('sup-modal').classList.add('open');
+  pushModalState();
 };
 window.closeSupportModal=function(){
   document.getElementById('sup-modal').classList.remove('open');
@@ -1794,6 +1769,7 @@ window.editSupport=function(id){
   document.getElementById('sup-modal-title').textContent='운영지원 수정';
   document.getElementById('sup-submit-btn').innerHTML='<i class="ti ti-check"></i> 수정 저장';
   document.getElementById('sup-modal').classList.add('open');
+  pushModalState();
   showToast('내용 수정 후 저장하세요.');
 };
 window.delSupport=async function(id){
@@ -2019,6 +1995,7 @@ window.openAddModal=function(){
   switchModalTab('basic');
   document.getElementById('tab-hist-btn').style.display='none';
   document.getElementById('modal-overlay').classList.add('open');
+  pushModalState();
 };
 window.openEditModal=function(id){
   if(!id||id==='undefined') return;
@@ -2041,6 +2018,7 @@ window.openEditModal=function(id){
   switchModalTab('basic');
   document.getElementById('tab-hist-btn').style.display='inline-block';
   document.getElementById('modal-overlay').classList.add('open');
+  pushModalState();
 };
 window.closeModal=function(){ document.getElementById('modal-overlay').classList.remove('open'); };
 window.saveContract=async function(){
