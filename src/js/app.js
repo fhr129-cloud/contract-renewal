@@ -28,6 +28,10 @@ window.renderSupportSearch=function(val){
     if(calCard) calCard.style.display='';
     if(calToolbar) calToolbar.style.display='flex';
     if(supStatCard) supStatCard.style.display='';
+    var calBtns=document.getElementById('cal-toolbar-btns');
+    var calViewBtns=document.getElementById('cal-view-btns');
+    if(calBtns) calBtns.style.display='flex';
+    if(calViewBtns) calViewBtns.style.display='flex';
     supportBizFilter='';
     renderCalendar();
     return;
@@ -35,7 +39,10 @@ window.renderSupportSearch=function(val){
   supportBizFilter=q;
   if(calCard) calCard.style.display='none';
   if(supStatCard) supStatCard.style.display='none';
-  // 툴바는 유지 (검색창 포함되어 있어서)
+  var calBtns=document.getElementById('cal-toolbar-btns');
+  var calViewBtns=document.getElementById('cal-view-btns');
+  if(calBtns) calBtns.style.display='none';
+  if(calViewBtns) calViewBtns.style.display='none';
   var filtered=supports.filter(function(s){
     if(!s.type||s.type==='support'){
       if(s.bizName&&s.bizName.includes(q)) return true;
@@ -1352,7 +1359,8 @@ function syncSearchWidth(){
   if(!toolbar||!search) return;
   // < 날짜 > 오늘 버튼들의 끝 위치 계산
   var oBtn=document.getElementById('cal-today-btn');
-  if(oBtn){
+  var calBtns=document.getElementById('cal-toolbar-btns');
+  if(oBtn&&calBtns&&calBtns.style.display!=='none'){
     var toolbarLeft=toolbar.getBoundingClientRect().left;
     var oBtnRight=oBtn.getBoundingClientRect().right;
     search.style.width=(oBtnRight-toolbarLeft)+'px';
