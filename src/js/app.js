@@ -1696,6 +1696,7 @@ window.openTypeSelectWithStaff=function(date,staffName){
   window._typeSelectDate=date||null;
   window._typeSelectStaff=staffName||null;
   document.getElementById('type-select-modal').classList.add('open');
+  pushModalState();
 };
 
 // ── 검색 드롭다운 ──────────────────────────
