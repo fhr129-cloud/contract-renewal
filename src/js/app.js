@@ -1355,8 +1355,10 @@ window.setSupportBizFilter=function(val){
 };
 function syncSearchWidth(){
   var search=document.getElementById('support-biz-search');
+  var toolbar=document.getElementById('cal-toolbar-wrap');
+  if(!search||!toolbar) return;
   var oBtn=document.getElementById('cal-today-btn');
-  if(!search||!oBtn) return;
+  if(!oBtn) return;
   var searchLeft=search.getBoundingClientRect().left;
   var oBtnRight=oBtn.getBoundingClientRect().right;
   if(oBtnRight>searchLeft) search.style.width=(oBtnRight-searchLeft)+'px';
