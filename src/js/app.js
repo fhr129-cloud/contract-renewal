@@ -1403,7 +1403,7 @@ function renderMonthView(){
   });
   var firstDay=new Date(calYear,calMonth,1).getDay(),lastDate=new Date(calYear,calMonth+1,0).getDate();
   var today=localDateStr();
-  var html='<div class="cal-grid" style="min-width:900px;">';
+  var html='<div class="cal-grid" style="min-width:900px;width:100%;">';
   ['일','월','화','수','목','금','토'].forEach(function(d,i){ html+='<div class="cal-header" style="'+(i===0?'color:#C0392B;font-weight:700;':i===6?'color:#1A5276;font-weight:700;':'')+'">'+d+'</div>'; });
   for(var i=0;i<firstDay;i++) html+='<div class="cal-day empty"></div>';
   for(var d=1;d<=lastDate;d++){
@@ -1452,7 +1452,7 @@ function renderWeekView(){
   var dayLabels=['월','화','수','목','금','토','일'];
 
   // 팀 공지 행
-  var html='<div class="week-grid" style="min-width:900px;">';
+  var html='<div class="week-grid" style="min-width:900px;width:100%;">';
   // 헤더 행
   html+='<div class="week-header"></div>';
   days.forEach(function(d,i){
