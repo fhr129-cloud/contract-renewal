@@ -1434,10 +1434,7 @@ function renderMonthView(){
   }
   html+='</div>';
   var calEl=document.getElementById('calendar'); if(calEl) calEl.innerHTML=html;
-  setTimeout(function(){
-    var todayEl=document.querySelector('.cal-day.today');
-    if(todayEl){ todayEl.scrollIntoView({block:'center',behavior:'smooth'}); }
-  },50);
+  // 자동 스크롤 제거
 }
 function renderWeekView(){
   var today=new Date(),startOfWeek=new Date(today);
