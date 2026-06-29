@@ -576,6 +576,7 @@ window.openTypeSelect=function(date){
   window._typeSelectDate=date||null;
   window._typeSelectStaff=null;
   document.getElementById('type-select-modal').classList.add('open');
+  pushModalState();
 };
 window.openYearMonthPicker=function(){
   var existing=document.getElementById('ym-picker'); if(existing) existing.remove();
