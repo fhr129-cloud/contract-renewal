@@ -573,15 +573,10 @@ document.addEventListener('DOMContentLoaded',function(){
 
 // ── 일정 타입 선택 ──────────────────────────
 window.openTypeSelect=function(date){
-  console.log('openTypeSelect called', date);
   window._typeSelectDate=date||null;
   window._typeSelectStaff=null;
   var modal=document.getElementById('type-select-modal');
   modal.classList.add('open');
-  modal.setAttribute('data-pushed','1');
-  console.log('pushModalState calling');
-  pushModalState();
-  console.log('pushModalState done, history length:', history.length);
 };
 window.openYearMonthPicker=function(){
   var existing=document.getElementById('ym-picker'); if(existing) existing.remove();
@@ -1599,6 +1594,7 @@ window.openCalPopup=function(dateKey){
     if(dateKey>=start&&dateKey<=end){ ids[s.id]=true; items.push(s); }
   });
   if(!items.length){
+    pushModalState();
     openTypeSelect(dateKey);
     return;
   }
