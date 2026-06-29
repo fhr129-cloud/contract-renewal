@@ -1017,7 +1017,7 @@ window.toggleSupStat=function(){
   var body=card?card.querySelector('.card-body'):null;
   if(!body) return;
   var isHidden=body.style.display==='none';
-  body.style.display=isHidden?'block':'none';
+  body.style.display=isHidden?'':'none';
   if(icon) icon.style.transform=isHidden?'rotate(180deg)':'';
   if(isHidden&&!document.getElementById('dash-sup-stat').innerHTML) renderSupStat(supStatTab);
 };
