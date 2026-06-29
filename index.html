@@ -284,6 +284,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
   @media(max-width:700px){
   .dash-two-col{grid-template-columns:1fr !important;}
   .dash-expire-grid{grid-template-columns:1fr !important;}
+  #sup-stat-card .card-body>div{grid-template-columns:1fr !important;}
   .stat-grid{grid-template-columns:repeat(2,1fr);}
   .sup-stat-grid{grid-template-columns:repeat(2,1fr);}
 }
@@ -441,12 +442,16 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
       <div class="card-header">
         <span class="card-title"><i class="ti ti-chart-bar" style="color:#185FA5;"></i> 지원 현황</span>
         <div style="display:flex;gap:4px;">
-          <button class="btn sm active-filter" id="sup-tab-month" onclick="setSupStatTab('month')">이번달</button>
-          <button class="btn sm" id="sup-tab-quarter" onclick="setSupStatTab('quarter')">분기</button>
+          <button class="btn sm active-filter" id="sup-tab-quarter" onclick="setSupStatTab('quarter')">분기</button>
           <button class="btn sm" id="sup-tab-year" onclick="setSupStatTab('year')">연간</button>
         </div>
       </div>
-      <div class="card-body" style="padding:12px 16px;" id="dash-sup-stat"></div>
+      <div class="card-body" style="padding:12px 16px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div id="dash-sup-stat"></div>
+          <div id="sup-novisit"></div>
+        </div>
+      </div>
     </div>
   </div>
 
