@@ -1351,8 +1351,12 @@ function syncSearchWidth(){
   var search=document.getElementById('support-biz-search');
   if(!toolbar||!search) return;
   // < 날짜 > 오늘 버튼들의 끝 위치 계산
-  var oBtn=document.querySelector('#cal-toolbar-wrap .btn.sm:nth-child(4)');
-  if(oBtn) search.style.width=(oBtn.offsetLeft+oBtn.offsetWidth)+'px';
+  var oBtn=document.getElementById('cal-today-btn');
+  if(oBtn){
+    var toolbarLeft=toolbar.getBoundingClientRect().left;
+    var oBtnRight=oBtn.getBoundingClientRect().right;
+    search.style.width=(oBtnRight-toolbarLeft)+'px';
+  }
 }
 function renderCalendar(){
   var el=document.getElementById('cal-title');
