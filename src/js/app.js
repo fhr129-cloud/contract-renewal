@@ -33,6 +33,8 @@ window.renderSupportSearch=function(val){
     var calViewBtns=document.getElementById('cal-view-btns');
     if(calBtns) calBtns.style.display='flex';
     if(calViewBtns) calViewBtns.style.display='flex';
+    var regBtn=document.querySelector('#cal-toolbar-wrap .btn.primary');
+    if(regBtn) regBtn.style.display='';
     supportBizFilter='';
     renderCalendar();
     return;
@@ -42,8 +44,10 @@ window.renderSupportSearch=function(val){
   if(supStatCard) supStatCard.style.display='none';
   var calBtns=document.getElementById('cal-toolbar-btns');
   var calViewBtns=document.getElementById('cal-view-btns');
+  var regBtn=document.querySelector('#cal-toolbar-wrap .btn.primary');
   if(calBtns) calBtns.style.display='none';
   if(calViewBtns) calViewBtns.style.display='none';
+  if(regBtn) regBtn.style.display='none';
   var filtered=supports.filter(function(s){
     if(!s.type||s.type==='support'){
       if(s.bizName&&s.bizName.includes(q)) return true;
