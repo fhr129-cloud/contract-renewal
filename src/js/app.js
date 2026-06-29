@@ -1354,16 +1354,16 @@ window.setSupportBizFilter=function(val){
   renderCalendar();
 };
 function syncSearchWidth(){
-  var toolbar=document.getElementById('cal-toolbar-wrap');
   var search=document.getElementById('support-biz-search');
-  if(!toolbar||!search) return;
-  // < 날짜 > 오늘 버튼들의 끝 위치 계산
   var oBtn=document.getElementById('cal-today-btn');
-  if(oBtn){
-    var searchLeft=search.getBoundingClientRect().left;
-    var oBtnRight=oBtn.getBoundingClientRect().right;
-    search.style.width=(oBtnRight-searchLeft)+'px';
-  }
+  var regBtn=document.querySelector('#cal-toolbar-wrap .btn.primary');
+  if(!search||!oBtn||!regBtn) return;
+  var searchLeft=search.getBoundingClientRect().left;
+  var oBtnRight=oBtn.getBoundingClientRect().right;
+  var regBtnRight=regBtn.getBoundingClientRect().right;
+  // 검색창: 오늘버튼 끝까지, 일정등록버튼: 주간/월간 끝까지 자동
+  if(oBtnRight>searchLeft) search.style.width=(oBtnRight-searchLeft)+'px';
+}
 }
 function renderCalendar(){
   var el=document.getElementById('cal-title');
