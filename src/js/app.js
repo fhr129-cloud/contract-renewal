@@ -790,22 +790,51 @@ function updateHomeBadge() {
 
 // ── 네비게이션 ──────────────────────────
 window.addEventListener('popstate',function(e){
+  var state=e.state||{screen:'home'};
+  // 열려있는 모달 순서대로 체크 — 닫고 state 복구 후 return
   if(document.getElementById('dash-modal')){
     window._closeDashModalFromPop();
-    history.pushState(e.state||{screen:'home'},'','');
-    return;
-  }
-  if(document.getElementById('cal-popup')&&document.getElementById('cal-popup').classList.contains('open')){
-    closeCalPopup();
-    history.pushState(e.state||{screen:'home'},'','');
-    return;
+    history.pushState(state,'',''); return;
   }
   if(document.getElementById('hist-form-popup')){
     closeHistForm();
-    history.pushState(e.state||{screen:'home'},'','');
-    return;
+    history.pushState(state,'',''); return;
   }
-  applyState(e.state||{screen:'home'});
+  if(document.getElementById('ym-picker')){
+    document.getElementById('ym-picker').remove();
+    history.pushState(state,'',''); return;
+  }
+  var calPopup=document.getElementById('cal-popup');
+  if(calPopup&&calPopup.classList.contains('open')){
+    calPopup.classList.remove('open');
+    history.pushState(state,'',''); return;
+  }
+  var modalOverlay=document.getElementById('modal-overlay');
+  if(modalOverlay&&modalOverlay.classList.contains('open')){
+    closeModal();
+    history.pushState(state,'',''); return;
+  }
+  var supModal=document.getElementById('sup-modal');
+  if(supModal&&supModal.classList.contains('open')){
+    closeSupportModal();
+    history.pushState(state,'',''); return;
+  }
+  var typeModal=document.getElementById('type-select-modal');
+  if(typeModal&&typeModal.classList.contains('open')){
+    closeTypeSelect();
+    history.pushState(state,'',''); return;
+  }
+  var personalModal=document.getElementById('personal-modal');
+  if(personalModal&&personalModal.classList.contains('open')){
+    closePersonalModal();
+    history.pushState(state,'',''); return;
+  }
+  var teamModal=document.getElementById('team-modal');
+  if(teamModal&&teamModal.classList.contains('open')){
+    closeTeamModal();
+    history.pushState(state,'',''); return;
+  }
+  applyState(state);
 });
 function applyState(state) {
   document.getElementById('home-screen').style.display='none';
