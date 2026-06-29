@@ -1287,6 +1287,7 @@ window.toggleDashCard=function(el,filter) {
   '</div>';
   modal.addEventListener('click',function(e){ if(e.target===modal) closeDashModal(); });
   document.body.appendChild(modal);
+  console.log('dashModal opened, pushing state');
   pushModalState();
 };
 window.closeDashModal=function(){
