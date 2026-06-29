@@ -1346,6 +1346,14 @@ window.setSupportBizFilter=function(val){
   supportBizFilter=val.trim();
   renderCalendar();
 };
+function syncSearchWidth(){
+  var toolbar=document.getElementById('cal-toolbar-wrap');
+  var search=document.getElementById('support-biz-search');
+  if(!toolbar||!search) return;
+  // < 날짜 > 오늘 버튼들의 끝 위치 계산
+  var oBtn=document.querySelector('#cal-toolbar-wrap .btn.sm:nth-child(4)');
+  if(oBtn) search.style.width=(oBtn.offsetLeft+oBtn.offsetWidth)+'px';
+}
 function renderCalendar(){
   var el=document.getElementById('cal-title');
   if(calView==='week'){
@@ -1358,6 +1366,7 @@ function renderCalendar(){
     var isMobile=window.innerWidth<=600;
     if(el) el.textContent=(baseM===endM?(isMobile?baseM+'/'+base.getDate()+'~'+end.getDate():baseM+'월 '+base.getDate()+'~'+end.getDate()+'일'):(isMobile?baseM+'/'+base.getDate()+'~'+endM+'/'+end.getDate():baseM+'월 '+base.getDate()+'일 ~ '+endM+'월 '+end.getDate()+'일'));
     renderWeekView();
+    syncSearchWidth();
     setTimeout(function(){
       var calWrap=document.querySelector('#calendar').parentElement;
       var todayCol=document.querySelector('.week-header.today-col');
@@ -1370,6 +1379,7 @@ function renderCalendar(){
   }
   if(el) el.textContent=calYear+'년 '+(calMonth+1)+'월';
   renderMonthView();
+  setTimeout(syncSearchWidth,50);
 }
 function renderMonthView(){
   var filtered=filterSupports(),dayMap={};
