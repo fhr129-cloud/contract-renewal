@@ -136,7 +136,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f0ee;color:#1a1a18;min-
 .week-header:first-child{position:sticky;left:0;z-index:3;background:#f5f5f3;min-width:72px;}
 .week-header.today-col{background:#E6F1FB;color:#185FA5;}
 .week-staff-label{background:#fafaf8;font-size:11px;font-weight:600;color:#444;padding:8px 6px;display:flex;align-items:center;justify-content:center;position:sticky;left:0;z-index:2;min-width:72px;text-align:center;}
-.week-cell{background:#fff;min-height:44px;padding:3px;}
+.week-cell{background:#fff;min-height:44px;padding:3px;cursor:pointer;}
 .week-cell.today-col{background:#fafff8;}
 .week-event{font-size:9px;padding:2px 4px;border-radius:3px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.4;}
 
@@ -325,13 +325,14 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 @media(max-width:600px){
   .team-layout,.resp-layout{grid-template-columns:1fr;}
   .form-grid{grid-template-columns:1fr;}
-  .stat-grid{grid-template-columns:repeat(3,1fr);}
+  .stat-grid{grid-template-columns:repeat(2,1fr);}
   .page-body,.detail-body{padding:14px 16px;}
   .cal-day{min-height:52px;padding:2px;}
   .cal-event{display:block;font-size:9px;}
   .cal-more{display:block;}
   .cal-dots{display:none;}
   .contact-row{grid-template-columns:1fr auto;}
+  #support-biz-search{width:100% !important;}
 }
 </style>
 </head>
@@ -413,7 +414,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
     <div id="cal-toolbar-wrap" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">
       <div style="display:flex;align-items:center;gap:6px;">
         <input type="text" id="support-biz-search" placeholder="업장명 · 메뉴명 검색..."
-          style="padding:4px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;height:32px;background:#fff;width:200px;flex-shrink:0;"
+          style="padding:4px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;height:32px;background:#fff;width:200px;flex-shrink:0;max-width:100%;"
           oninput="renderSupportSearch(this.value)">
         <span id="support-search-count" style="font-size:12px;color:#aaa;white-space:nowrap;display:none;flex-shrink:0;"></span>
         <button class="btn sm primary" onclick="openTypeSelect()" style="flex-shrink:0;"><i class="ti ti-plus"></i><span class="btn-register-text"> 일정등록</span></button>
