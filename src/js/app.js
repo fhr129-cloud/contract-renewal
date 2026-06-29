@@ -35,7 +35,7 @@ window.renderSupportSearch=function(val){
   supportBizFilter=q;
   if(calCard) calCard.style.display='none';
   if(supStatCard) supStatCard.style.display='none';
-  if(calToolbar) calToolbar.style.display='none';
+  // 툴바는 유지 (검색창 포함되어 있어서)
   var filtered=supports.filter(function(s){
     if(!s.type||s.type==='support'){
       if(s.bizName&&s.bizName.includes(q)) return true;
