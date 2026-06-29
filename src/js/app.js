@@ -799,7 +799,8 @@ window.addEventListener('popstate',function(e){
   var state=e.state||{screen:'home'};
   if(state.modal){
     // 더미 modal state — 열려있는 모달 닫기만
-    if(document.getElementById('dash-modal')){ window._closeDashModalFromPop(); return; }
+    var dashModal=document.getElementById('dash-modal');
+    if(dashModal){ dashModal.remove(); document.querySelectorAll('.stat-card').forEach(function(c){ c.classList.remove('active-card'); }); return; }
     if(document.getElementById('hist-form-popup')){ closeHistForm(); return; }
     if(document.getElementById('ym-picker')){ document.getElementById('ym-picker').remove(); return; }
     var calPopup=document.getElementById('cal-popup');
