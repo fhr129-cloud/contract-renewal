@@ -1010,10 +1010,10 @@ function renderDashboard() {
   renderSupStat('month');
 }
 
-var supStatTab='month';
+var supStatTab='quarter';
 window.setSupStatTab=function(tab){
   supStatTab=tab;
-  ['month','quarter','year'].forEach(function(t){
+  ['quarter','year'].forEach(function(t){
     var btn=document.getElementById('sup-tab-'+t);
     if(btn) btn.classList.toggle('active-filter',t===tab);
   });
@@ -1131,14 +1131,13 @@ function renderSupStat(tab){
   var now=new Date(),thisY=now.getFullYear(),thisM=now.getMonth();
   var statEl=document.getElementById('dash-sup-stat'); if(!statEl) return;
   var todayStr=localDateStr(now);
+  var curQ=Math.floor(thisM/3);
 
-  if(tab==='month'){
-    var monthStr=thisY+'-'+String(thisM+1).padStart(2,'0');
-    var monthSups=supports.filter(function(s){ return s.date&&s.date.startsWith(monthStr)&&s.date<=todayStr; });
-    if(!monthSups.length){ statEl.innerHTML='<div style="color:#aaa;font-size:12px;padding:12px 0;">이번달 지원 내역이 없어요</div>'; return; }
-    statEl.innerHTML=renderCatStat(monthSups);
+  // 오른쪽: 긴급/임박 미방문 (항상 고정)
+  var noVisitEl=document.getElementById('sup-novisit');
+  if(noVisitEl) noVisitEl.innerHTML=renderNoVisit(curQ*3,curQ*3+2,thisY,'이번 분기');
 
-  } else if(tab==='quarter'){
+  if(tab==='quarter'){
     var curQ=Math.floor(thisM/3);
     var quarters=['1분기','2분기','3분기','4분기'];
     var qSubs=['1~3월','4~6월','7~9월','10~12월'];
