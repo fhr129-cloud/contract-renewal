@@ -407,8 +407,13 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
     </div>
   </div>
 
-  <!-- 운영지원 -->
+ <!-- 운영지원 -->
   <div id="page-support" class="page-body" style="display:none;">
+   <div style="margin-bottom:10px;">
+     <input type="text" id="support-biz-search" placeholder="사업장명으로 필터..." 
+       style="padding:7px 12px;border:.5px solid #ccc;border-radius:8px;font-size:13px;width:100%;max-width:280px;background:#fff;"
+       oninput="setSupportBizFilter(this.value)">
+   </div>
    <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:nowrap;overflow-x:auto;">
       <button class="btn sm" onclick="changeMonth(-1)" style="flex-shrink:0;"><i class="ti ti-chevron-left"></i></button>
       <div class="cal-toolbar-title" id="cal-title" style="min-width:0;text-align:center;white-space:nowrap;flex-shrink:1;font-size:13px;cursor:pointer;text-decoration:underline dotted #aaa;" onclick="openYearMonthPicker()"></div>
