@@ -23,8 +23,8 @@ window.renderSupportSearch=function(val){
   var supStatCard=document.getElementById('sup-stat-card');
   var calToolbar=document.querySelector('#page-support > div:nth-child(2)');
   if(!q){
-    if(resultEl) resultEl.style.display='none';
-    if(countEl) countEl.style.display='none';
+    if(resultEl){ resultEl.style.display='none'; resultEl.innerHTML=''; }
+    if(countEl){ countEl.style.display='none'; countEl.textContent=''; }
     if(calCard) calCard.style.display='';
     if(supStatCard) supStatCard.style.display='';
     if(calToolbar) calToolbar.style.display='';
