@@ -1366,8 +1366,9 @@ function syncSearchWidth(){
   var regLeft=regBtn.getBoundingClientRect().left;
   // 검색창: 오늘버튼 끝까지
   if(oBtnRight>searchLeft) search.style.width=(oBtnRight-searchLeft)+'px';
-  // 일정등록 버튼: 월간버튼 오른쪽 끝에 맞춤
-  if(viewRight>regLeft) regBtn.style.width=(viewRight-regLeft)+'px';
+  // 일정등록 버튼: 월간버튼 오른쪽 끝에 맞춤 (줄이는 경우만)
+  var regRight=regBtn.getBoundingClientRect().right;
+  if(regRight>viewRight) regBtn.style.width=(regBtn.getBoundingClientRect().width-(regRight-viewRight))+'px';
 }
 function renderCalendar(){
   var el=document.getElementById('cal-title');
