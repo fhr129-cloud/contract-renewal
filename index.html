@@ -332,7 +332,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
   .cal-more{display:block;}
   .cal-dots{display:none;}
   .contact-row{grid-template-columns:1fr auto;}
-  #support-biz-search{width:100% !important;}
+  
 }
 </style>
 </head>
@@ -414,7 +414,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
     <div id="cal-toolbar-wrap" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">
       <div style="display:flex;align-items:center;gap:6px;">
         <input type="text" id="support-biz-search" placeholder="업장명 · 메뉴명 검색..."
-          style="padding:4px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;height:32px;background:#fff;width:200px;flex-shrink:0;max-width:100%;"
+          style="padding:4px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;height:32px;background:#fff;width:200px;flex-shrink:0;"
           oninput="renderSupportSearch(this.value)">
         <span id="support-search-count" style="font-size:12px;color:#aaa;white-space:nowrap;display:none;flex-shrink:0;"></span>
         <button class="btn sm primary" onclick="openTypeSelect()" style="flex-shrink:0;"><i class="ti ti-plus"></i><span class="btn-register-text"> 일정등록</span></button>
