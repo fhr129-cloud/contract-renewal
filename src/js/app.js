@@ -1237,12 +1237,18 @@ window.toggleDashCard=function(el,filter) {
   listEl.innerHTML=list.length?list.map(function(c){
     var s=calcStatus(c),d=dDiff(c.endDate),col=s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':s==='near'?'#854F0B':'#3B6D11';
     var nutriStr=c.nutritionists&&c.nutritionists.length?c.nutritionists[0].name:'';
+    var now2=new Date(),todayStr2=localDateStr(now2);
+    var threeMonthsAgo=new Date(now2); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth()-3);
+    var threeStr=localDateStr(threeMonthsAgo);
+    var recentCount=supports.filter(function(sp){ return sp.bizName===c.name&&sp.date&&sp.date>=threeStr&&sp.date<=todayStr2; }).length;
     return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:.5px solid #f0f0ec;cursor:pointer;gap:8px;" onclick="goDetail(\''+c.id+'\')">' +
       '<div style="min-width:0;flex:1;"><div style="font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+c.name+'</div>'+
       '<div style="font-size:11px;color:#888;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(nutriStr?nutriStr+' · ':'')+(c.resp||'')+'</div></div>'+
-      '<div style="text-align:right;flex-shrink:0;"><span class="badge '+s+'">'+STATUS_META[s].label+'</span>'+
-      '<div style="font-size:11px;font-weight:500;margin-top:3px;color:'+col+'">'+dDayLabel(d)+'</div></div></div>';
-  }).join(''):'<div class="empty-state"><i class="ti ti-check"></i>해당 없음</div>';
+      '<div style="text-align:right;flex-shrink:0;">'+
+        '<span class="badge '+s+'">'+STATUS_META[s].label+'</span>'+
+        '<div style="font-size:11px;color:#aaa;margin-top:2px;">최근3달 '+recentCount+'회</div>'+
+        '<div style="font-size:11px;font-weight:500;color:'+col+'">'+dDayLabel(d)+'</div>'+
+      '</div></div>';
 };
 
 // ── 사업장 상세 ──────────────────────────
