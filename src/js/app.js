@@ -17,22 +17,25 @@ var supportBizFilter = '';
 
 window.renderSupportSearch=function(val){
   var q=val.trim();
-  var searchInput=document.getElementById('support-biz-search');
   var resultEl=document.getElementById('support-search-result');
   var countEl=document.getElementById('support-search-count');
-  var calCard=document.querySelector('#page-support .card');
+  var calCard=document.getElementById('calendar') ? document.getElementById('calendar').closest('.card') : null;
+  var supStatCard=document.getElementById('sup-stat-card');
+  var calToolbar=document.querySelector('#page-support > div:nth-child(2)');
   if(!q){
     if(resultEl) resultEl.style.display='none';
     if(countEl) countEl.style.display='none';
     if(calCard) calCard.style.display='';
-    var supStatCard=document.getElementById('sup-stat-card');
     if(supStatCard) supStatCard.style.display='';
+    if(calToolbar) calToolbar.style.display='';
     supportBizFilter='';
     renderCalendar();
     return;
   }
   supportBizFilter=q;
   if(calCard) calCard.style.display='none';
+  if(supStatCard) supStatCard.style.display='none';
+  if(calToolbar) calToolbar.style.display='none';
   var supStatCard=document.getElementById('sup-stat-card');
   if(supStatCard) supStatCard.style.display='none';
   var filtered=supports.filter(function(s){
