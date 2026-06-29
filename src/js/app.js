@@ -804,7 +804,7 @@ function updateHomeBadge() {
 function pushModalState(){ history.pushState({modal:true},'',''); }
 window.addEventListener('popstate',function(e){
   var state=e.state||{screen:'home'};
-  console.log('popstate:', JSON.stringify(state), 'type-select open:', document.getElementById('type-select-modal').classList.contains('open'));
+  
   // state.modal이거나, 모달이 열려있으면 모달 닫기 우선
   var dashModal=document.getElementById('dash-modal');
   if(dashModal){ dashModal.remove(); document.querySelectorAll('.stat-card').forEach(function(c){ c.classList.remove('active-card'); }); return; }
@@ -1586,7 +1586,7 @@ function supItemHtml(s,dateKey){
 }
 
 window.openCalPopup=function(dateKey){
-  console.log('openCalPopup called', dateKey);
+  
   var items=[],ids={};
   supports.forEach(function(s){
     if(!s.date||ids[s.id]) return;
