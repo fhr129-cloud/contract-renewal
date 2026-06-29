@@ -14,6 +14,77 @@ var calMonth = new Date().getMonth();
 var calView = 'week';
 var staffFilter = null;
 var supportBizFilter = '';
+
+window.renderSupportSearch=function(val){
+  var q=val.trim();
+  var searchInput=document.getElementById('support-biz-search');
+  var resultEl=document.getElementById('support-search-result');
+  var countEl=document.getElementById('support-search-count');
+  var calCard=document.querySelector('#page-support .card');
+  if(!q){
+    if(resultEl) resultEl.style.display='none';
+    if(countEl) countEl.style.display='none';
+    if(calCard) calCard.style.display='';
+    supportBizFilter='';
+    renderCalendar();
+    return;
+  }
+  supportBizFilter=q;
+  if(calCard) calCard.style.display='none';
+  var filtered=supports.filter(function(s){
+    if(!s.type||s.type==='support'){
+      if(s.bizName&&s.bizName.includes(q)) return true;
+      if(s.content&&s.content.includes(q)) return true;
+    }
+    return false;
+  }).sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+  if(countEl){ countEl.textContent=filtered.length+'건'; countEl.style.display='inline'; }
+  if(!resultEl) return;
+  if(!filtered.length){
+    resultEl.style.display='block';
+    resultEl.innerHTML='<div class="card"><div class="card-body"><div class="empty-state"><i class="ti ti-search"></i>검색 결과가 없어요</div></div></div>';
+    return;
+  }
+  resultEl.style.display='block';
+  resultEl.innerHTML='<div class="card"><div style="padding:0 16px;">'+
+    filtered.map(function(s){
+      var c=contracts.find(function(x){ return x.name===s.bizName; });
+      var cid=c?c.id:'';
+      var staffStr=s.staffNames&&s.staffNames.length?s.staffNames.map(function(n){ return n.split(' ')[0]; }).join(', '):(s.staffName?s.staffName.split(' ')[0]:'');
+      var dateStr=s.date||'';
+      if(s.dateEnd&&s.dateEnd!==s.date) dateStr+=(' ~ '+s.dateEnd.slice(5));
+      var menuStr=s.content&&(s.category==='특식지원'||s.category==='이벤트')?s.content.split(' / ')[0]:'';
+      return '<div class="dash-mini-item" style="padding:10px 0;align-items:flex-start;gap:10px;" '+(cid?'onclick="goDetail(\''+cid+'\')" ':'')+'>'+
+        '<div style="min-width:0;flex:1;">'+
+          '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:wrap;">'+
+            '<span style="font-size:13px;font-weight:600;'+(cid?'color:#185FA5;':'')+'">'+(s.bizName||'')+'</span>'+
+            '<span class="badge-cat">'+(s.category||'')+'</span>'+
+            (staffStr?'<span class="badge-cat '+(getStaffColor(s.staffNames&&s.staffNames.length?s.staffNames[0]:(s.staffName||'')))+'">'+(staffStr)+'</span>':'')+
+          '</div>'+
+          (menuStr?'<div style="font-size:11px;color:#854F0B;margin-bottom:2px;">'+menuStr+'</div>':'')+
+          (s.content&&!menuStr?'<div style="font-size:11px;color:#888;">'+s.content+'</div>':
+           s.content&&menuStr&&s.content.includes(' / ')?'<div style="font-size:11px;color:#888;">'+s.content.split(' / ').slice(1).join(' / ')+'</div>':'')+
+        '</div>'+
+        '<div style="flex-shrink:0;text-align:right;">'+
+          '<div style="font-size:11px;color:#888;">'+dateStr+'</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:4px;flex-shrink:0;" onclick="event.stopPropagation();">'+
+          '<button class="btn sm" onclick="closeCalPopup();editSupport(\''+s.id+'\')"><i class="ti ti-edit"></i></button>'+
+          '<button class="btn sm danger" onclick="delSupportSearch(\''+s.id+'\')"><i class="ti ti-trash"></i></button>'+
+        '</div>'+
+      '</div>';
+    }).join('')+
+  '</div></div>';
+};
+window.delSupportSearch=async function(id){
+  if(!confirm('삭제할까요?')) return;
+  try{
+    await deleteSupport(id);
+    showToast('삭제되었습니다.');
+    var q=document.getElementById('support-biz-search').value;
+    window.renderSupportSearch(q);
+  } catch(e){ showToast('오류 발생'); }
+};
 var ssOptions = [];
 var currentModalTab = 'basic';
 var weekOffset = 0;
@@ -1256,12 +1327,8 @@ window.changeMonth=function(dir){
   renderCalendar();
 };
 function filterSupports(){
+  if(!staffFilter) return supports;
   return supports.filter(function(s){
-    if(supportBizFilter){
-      var isTeamOrPersonal=s.type==='team'||s.type==='personal';
-      if(!isTeamOrPersonal&&!(s.bizName&&s.bizName.includes(supportBizFilter))) return false;
-    }
-    if(!staffFilter) return true;
     if(s.type==='team') return true;
     var names=s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]);
     return names.some(function(n){ return n&&n.includes(staffFilter.split(' ')[0]); });
