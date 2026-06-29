@@ -27,7 +27,7 @@ window.renderSupportSearch=function(val){
     if(countEl){ countEl.style.display='none'; countEl.textContent=''; }
     if(calCard) calCard.style.display='';
     if(supStatCard) supStatCard.style.display='';
-    if(calToolbar) calToolbar.style.display='';
+    if(calToolbar) calToolbar.style.display='flex';
     supportBizFilter='';
     renderCalendar();
     return;
