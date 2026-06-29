@@ -797,21 +797,19 @@ function updateHomeBadge() {
 function pushModalState(){ history.pushState({modal:true},'',''); }
 window.addEventListener('popstate',function(e){
   var state=e.state||{screen:'home'};
-  if(state.modal){
-    // 더미 modal state — 열려있는 모달 닫기만
-    var dashModal=document.getElementById('dash-modal');
-    if(dashModal){ dashModal.remove(); document.querySelectorAll('.stat-card').forEach(function(c){ c.classList.remove('active-card'); }); return; }
-    if(document.getElementById('hist-form-popup')){ closeHistForm(); return; }
-    if(document.getElementById('ym-picker')){ document.getElementById('ym-picker').remove(); return; }
-    var calPopup=document.getElementById('cal-popup');
-    if(calPopup&&calPopup.classList.contains('open')){ calPopup.classList.remove('open'); return; }
-    if(document.getElementById('modal-overlay').classList.contains('open')){ closeModal(); return; }
-    if(document.getElementById('sup-modal').classList.contains('open')){ closeSupportModal(); return; }
-    if(document.getElementById('type-select-modal').classList.contains('open')){ closeTypeSelect(); return; }
-    if(document.getElementById('personal-modal').classList.contains('open')){ closePersonalModal(); return; }
-    if(document.getElementById('team-modal').classList.contains('open')){ closeTeamModal(); return; }
-    return;
-  }
+  // state.modal이거나, 모달이 열려있으면 모달 닫기 우선
+  var dashModal=document.getElementById('dash-modal');
+  if(dashModal){ dashModal.remove(); document.querySelectorAll('.stat-card').forEach(function(c){ c.classList.remove('active-card'); }); return; }
+  if(document.getElementById('hist-form-popup')){ closeHistForm(); return; }
+  if(document.getElementById('ym-picker')){ document.getElementById('ym-picker').remove(); return; }
+  var calPopup=document.getElementById('cal-popup');
+  if(calPopup&&calPopup.classList.contains('open')){ calPopup.classList.remove('open'); return; }
+  if(document.getElementById('modal-overlay').classList.contains('open')){ closeModal(); return; }
+  if(document.getElementById('sup-modal').classList.contains('open')){ closeSupportModal(); return; }
+  if(document.getElementById('type-select-modal').classList.contains('open')){ closeTypeSelect(); return; }
+  if(document.getElementById('personal-modal').classList.contains('open')){ closePersonalModal(); return; }
+  if(document.getElementById('team-modal').classList.contains('open')){ closeTeamModal(); return; }
+  if(state.modal) return;
   applyState(state);
 });
 function applyState(state) {
