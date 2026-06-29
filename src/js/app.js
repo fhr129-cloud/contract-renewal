@@ -1360,6 +1360,14 @@ function syncSearchWidth(){
   var searchLeft=search.getBoundingClientRect().left;
   var oBtnRight=oBtn.getBoundingClientRect().right;
   if(oBtnRight>searchLeft) search.style.width=(oBtnRight-searchLeft)+'px';
+  // 일정등록 버튼을 주간/월간 버튼 끝에 맞춤
+  var regWrap=search.parentElement.querySelector('div[style*="margin-left:auto"]');
+  var viewBtns=document.getElementById('cal-view-btns');
+  if(regWrap&&viewBtns){
+    var viewRight=viewBtns.getBoundingClientRect().right;
+    var regLeft=regWrap.getBoundingClientRect().left;
+    if(viewRight>regLeft) regWrap.style.marginLeft='auto';
+  }
 }
 function renderCalendar(){
   var el=document.getElementById('cal-title');
