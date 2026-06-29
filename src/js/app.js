@@ -25,7 +25,7 @@ window.renderSupportSearch=function(val){
     if(resultEl) resultEl.style.display='none';
     if(countEl) countEl.style.display='none';
     if(calCard) calCard.style.display='';
-    var supStatCard=document.querySelector('#page-support .card:last-child');
+    var supStatCard=document.getElementById('sup-stat-card');
     if(supStatCard) supStatCard.style.display='';
     supportBizFilter='';
     renderCalendar();
@@ -33,7 +33,7 @@ window.renderSupportSearch=function(val){
   }
   supportBizFilter=q;
   if(calCard) calCard.style.display='none';
-  var supStatCard=document.querySelector('#page-support .card:last-child');
+  var supStatCard=document.getElementById('sup-stat-card');
   if(supStatCard) supStatCard.style.display='none';
   var filtered=supports.filter(function(s){
     if(!s.type||s.type==='support'){
