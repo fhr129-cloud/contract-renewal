@@ -882,7 +882,7 @@ function renderDashboard() {
   });
   var schedEl=document.getElementById('dash-today-schedule');
   if(schedEl){
-    var staffOrderDash=['박주형','김재희','손도란','이소영','김상준','견병록','안은재','임성창','김동현'];
+    var staffOrderDash=Object.keys(STAFF_MAP);
     var sortedItems=todayItems.slice().sort(function(a,b){
       var an=a.staffNames&&a.staffNames.length?a.staffNames[0]:(a.staffName||'');
       var bn=b.staffNames&&b.staffNames.length?b.staffNames[0]:(b.staffName||'');
