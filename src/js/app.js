@@ -1295,6 +1295,7 @@ window.closeDashModal=function(){
 window._closeDashModalFromPop=function(){
   var m=document.getElementById('dash-modal'); if(m) m.remove();
   document.querySelectorAll('.stat-card').forEach(function(c){ c.classList.remove('active-card'); });
+  history.pushState(history.state||{screen:'home'},'','');
 };
 
 // ── 사업장 상세 ──────────────────────────
@@ -1623,6 +1624,7 @@ window.editPersonal=function(id){
   });
   setPersonalStaff(s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]));
   document.getElementById('personal-modal').classList.add('open');
+  pushModalState();
   // 저장 버튼을 수정으로 교체
   var footer=document.querySelector('#personal-modal .sup-modal-footer');
   footer.innerHTML='<button class="btn" onclick="closePersonalModal()">취소</button>'+
@@ -1651,6 +1653,7 @@ window.editTeam=function(id){
   document.getElementById('team-date-end').value=s.dateEnd||'';
   document.getElementById('team-content').value=s.content||'';
   document.getElementById('team-modal').classList.add('open');
+  pushModalState();
   var footer=document.querySelector('#team-modal .sup-modal-footer');
   footer.innerHTML='<button class="btn" onclick="closeTeamModal()">취소</button>'+
     '<button class="btn primary" onclick="submitTeamEdit(\''+id+'\')"><i class="ti ti-check"></i> 수정 저장</button>';
@@ -1678,6 +1681,7 @@ window.openTypeSelectWithStaff=function(date,staffName){
   window._typeSelectDate=date||null;
   window._typeSelectStaff=staffName||null;
   document.getElementById('type-select-modal').classList.add('open');
+  pushModalState();
 };
 
 // ── 검색 드롭다운 ──────────────────────────
