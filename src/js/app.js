@@ -1359,11 +1359,10 @@ function syncSearchWidth(){
   if(!toolbar||!search) return;
   // < 날짜 > 오늘 버튼들의 끝 위치 계산
   var oBtn=document.getElementById('cal-today-btn');
-  var calBtns=document.getElementById('cal-toolbar-btns');
-  if(oBtn&&calBtns&&calBtns.style.display!=='none'){
-    var toolbarLeft=toolbar.getBoundingClientRect().left;
+  if(oBtn){
+    var searchLeft=search.getBoundingClientRect().left;
     var oBtnRight=oBtn.getBoundingClientRect().right;
-    search.style.width=(oBtnRight-toolbarLeft)+'px';
+    search.style.width=(oBtnRight-searchLeft)+'px';
   }
 }
 function renderCalendar(){
