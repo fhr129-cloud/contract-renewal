@@ -21,7 +21,7 @@ window.renderSupportSearch=function(val){
   var countEl=document.getElementById('support-search-count');
   var calCard=document.getElementById('calendar') ? document.getElementById('calendar').closest('.card') : null;
   var supStatCard=document.getElementById('sup-stat-card');
-  var calToolbar=document.querySelector('#page-support > div:nth-child(2)');
+  var calToolbar=document.getElementById('cal-toolbar-wrap');
   if(!q){
     if(resultEl){ resultEl.style.display='none'; resultEl.innerHTML=''; }
     if(countEl){ countEl.style.display='none'; countEl.textContent=''; }
