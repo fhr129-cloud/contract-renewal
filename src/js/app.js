@@ -22,7 +22,6 @@ window.renderSupportSearch=function(val){
   var calCard=document.getElementById('calendar') ? document.getElementById('calendar').closest('.card') : null;
   var supStatCard=document.getElementById('sup-stat-card');
   var calToolbar=document.getElementById('cal-toolbar-wrap');
-  var searchWrap=document.getElementById('support-biz-search').parentElement;
   if(!q){
     if(resultEl){ resultEl.style.display='none'; resultEl.innerHTML=''; }
     if(countEl){ countEl.style.display='none'; countEl.textContent=''; }
@@ -37,7 +36,6 @@ window.renderSupportSearch=function(val){
   if(calCard) calCard.style.display='none';
   if(supStatCard) supStatCard.style.display='none';
   if(calToolbar) calToolbar.style.display='none';
-  if(supStatCard) supStatCard.style.display='none';
   var filtered=supports.filter(function(s){
     if(!s.type||s.type==='support'){
       if(s.bizName&&s.bizName.includes(q)) return true;
