@@ -1253,8 +1253,8 @@ window.toggleDashCard=function(el,filter) {
   var existing=document.getElementById('dash-modal'); if(existing) existing.remove();
   var modal=document.createElement('div');
   modal.id='dash-modal';
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:300;display:flex;align-items:center;justify-content:center;';
-  modal.innerHTML='<div style="background:#fff;border-radius:14px;width:480px;max-width:95vw;max-height:80vh;display:flex;flex-direction:column;">'+
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding-top:80px;';
+  modal.innerHTML='<div style="background:#fff;border-radius:14px;width:480px;max-width:95vw;max-height:75vh;display:flex;flex-direction:column;">'+
     '<div style="padding:14px 18px;border-bottom:.5px solid #e8e8e4;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">'+
       '<span style="font-size:14px;font-weight:600;">'+labels[filter]+' · '+list.length+'개소</span>'+
       '<button class="btn sm" onclick="closeDashModal()"><i class="ti ti-x"></i></button>'+
