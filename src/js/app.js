@@ -823,7 +823,7 @@ window.goDetailByName=function(name){ var c=contracts.find(function(x){ return x
 window.goBackFromDetail=function(){ history.back(); };
 function renderPage(page) {
   if(page==='dashboard') renderDashboard();
-  if(page==='support'){ renderCalendar(); initSS(); renderSupStat('month'); }
+  if(page==='support'){ renderCalendar(); initSS(); renderSupStat('quarter'); }
   if(page==='businesses') renderBizTab();
   if(page==='admin') renderAdmin();
 }
