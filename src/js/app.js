@@ -792,6 +792,17 @@ function updateHomeBadge() {
 window.addEventListener('popstate',function(e){
   if(document.getElementById('dash-modal')){
     window._closeDashModalFromPop();
+    history.pushState(e.state||{screen:'home'},'','');
+    return;
+  }
+  if(document.getElementById('cal-popup')&&document.getElementById('cal-popup').classList.contains('open')){
+    closeCalPopup();
+    history.pushState(e.state||{screen:'home'},'','');
+    return;
+  }
+  if(document.getElementById('hist-form-popup')){
+    closeHistForm();
+    history.pushState(e.state||{screen:'home'},'','');
     return;
   }
   applyState(e.state||{screen:'home'});
@@ -1275,7 +1286,6 @@ window.toggleDashCard=function(el,filter) {
   '</div>';
   modal.addEventListener('click',function(e){ if(e.target===modal) closeDashModal(); });
   document.body.appendChild(modal);
-  history.pushState({screen:'dash-modal'},'','');
 };
 window.closeDashModal=function(){
   var m=document.getElementById('dash-modal'); if(m) m.remove();
