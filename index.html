@@ -410,21 +410,21 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
  <!-- 운영지원 -->
   <div id="page-support" class="page-body" style="display:none;">
   <div id="support-search-result" style="display:none;margin-bottom:16px;"></div>
-  <div style="margin-bottom:8px;">
-    <input type="text" id="support-biz-search" placeholder="업장명 · 메뉴명 검색..." 
-      style="padding:4px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;height:32px;background:#fff;width:fit-content;min-width:200px;" id="support-biz-search-wrap"
-      oninput="renderSupportSearch(this.value)">
-    <span id="support-search-count" style="font-size:12px;color:#aaa;white-space:nowrap;display:none;margin-left:6px;"></span>
-  </div>
-   <div id="cal-toolbar-wrap" style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:nowrap;overflow-x:auto;">
-      <button class="btn sm" onclick="changeMonth(-1)" style="flex-shrink:0;"><i class="ti ti-chevron-left"></i></button>
-      <div class="cal-toolbar-title" id="cal-title" style="min-width:0;text-align:center;white-space:nowrap;flex-shrink:1;font-size:13px;cursor:pointer;text-decoration:underline dotted #aaa;" onclick="openYearMonthPicker()"></div>
-      <button class="btn sm" onclick="changeMonth(1)" style="flex-shrink:0;"><i class="ti ti-chevron-right"></i></button>
-      <button class="btn sm" id="cal-today-btn" onclick="changeMonth(0)" style="flex-shrink:0;">오늘</button>
-      <div style="display:flex;gap:6px;flex-shrink:0;margin-left:auto;">
+  <div id="cal-toolbar-wrap" style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:nowrap;overflow-x:auto;">
+      <input type="text" id="support-biz-search" placeholder="업장명 · 메뉴명 검색..." 
+        style="padding:4px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;height:32px;background:#fff;min-width:80px;"
+        oninput="renderSupportSearch(this.value)">
+      <span id="support-search-count" style="font-size:12px;color:#aaa;white-space:nowrap;display:none;flex-shrink:0;"></span>
+      <div id="cal-toolbar-btns" style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+        <button class="btn sm" onclick="changeMonth(-1)"><i class="ti ti-chevron-left"></i></button>
+        <div class="cal-toolbar-title" id="cal-title" style="min-width:0;text-align:center;white-space:nowrap;font-size:13px;cursor:pointer;text-decoration:underline dotted #aaa;" onclick="openYearMonthPicker()"></div>
+        <button class="btn sm" onclick="changeMonth(1)"><i class="ti ti-chevron-right"></i></button>
+        <button class="btn sm" id="cal-today-btn" onclick="changeMonth(0)">오늘</button>
+      </div>
+      <div id="cal-view-btns" style="margin-left:auto;display:flex;gap:6px;flex-shrink:0;">
         <button class="btn sm active-filter" id="view-week-btn" onclick="setCalView('week')">주간</button>
         <button class="btn sm" id="view-month-btn" onclick="setCalView('month')">월간</button>
-        <button class="btn sm primary" onclick="openTypeSelect()" style="flex-shrink:0;"><i class="ti ti-plus"></i> 등록</button>
+        <button class="btn sm primary" onclick="openTypeSelect()"><i class="ti ti-plus"></i> 등록</button>
       </div>
     </div>
    
