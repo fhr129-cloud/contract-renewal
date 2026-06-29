@@ -630,8 +630,11 @@ window.ymConfirm=function(){
 window.closeTypeSelect=function(){
   document.getElementById('type-select-modal').classList.remove('open');
 };
+window._closeTypeSelectSilent=function(){
+  document.getElementById('type-select-modal').classList.remove('open');
+};
 window.selectScheduleType=function(type){
-  closeTypeSelect();
+  window._closeTypeSelectSilent();
   var date=window._typeSelectDate;
   var staff=window._typeSelectStaff;
   window._typeSelectDate=null;
