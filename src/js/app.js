@@ -1356,21 +1356,18 @@ window.setSupportBizFilter=function(val){
 };
 function syncSearchWidth(){
   var search=document.getElementById('support-biz-search');
-  var toolbar=document.getElementById('cal-toolbar-wrap');
-  if(!search||!toolbar) return;
   var oBtn=document.getElementById('cal-today-btn');
-  if(!oBtn) return;
+  var viewBtns=document.getElementById('cal-view-btns');
+  var regBtn=document.querySelector('#cal-toolbar-wrap .btn.primary');
+  if(!search||!oBtn||!viewBtns||!regBtn) return;
   var searchLeft=search.getBoundingClientRect().left;
   var oBtnRight=oBtn.getBoundingClientRect().right;
+  var viewRight=viewBtns.getBoundingClientRect().right;
+  var regLeft=regBtn.getBoundingClientRect().left;
+  // 검색창: 오늘버튼 끝까지
   if(oBtnRight>searchLeft) search.style.width=(oBtnRight-searchLeft)+'px';
-  // 일정등록 버튼을 주간/월간 버튼 끝에 맞춤
-  var regWrap=search.parentElement.querySelector('div[style*="margin-left:auto"]');
-  var viewBtns=document.getElementById('cal-view-btns');
-  if(regWrap&&viewBtns){
-    var viewRight=viewBtns.getBoundingClientRect().right;
-    var regLeft=regWrap.getBoundingClientRect().left;
-    if(viewRight>regLeft) regWrap.style.marginLeft='auto';
-  }
+  // 일정등록 버튼: 월간버튼 오른쪽 끝에 맞춤
+  if(viewRight>regLeft) regBtn.style.width=(viewRight-regLeft)+'px';
 }
 function renderCalendar(){
   var el=document.getElementById('cal-title');
