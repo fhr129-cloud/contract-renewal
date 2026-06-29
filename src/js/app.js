@@ -144,25 +144,32 @@ function localDateStr(d) {
   return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
 }
 
-var STAFF_COLORS = {
-  '박주형':'sc-박주형','김재희':'sc-김재희','손도란':'sc-손도란',
-  '이소영':'sc-이소영','김상준':'sc-김상준','안은재':'sc-안은재',
-  '견병록':'sc-견병록','임성창':'sc-임성창','김동현':'sc-김동현',
+var STAFF_MAP = {
+  '박주형':{ cls:'sc-박주형', border:'#185FA5', bg:'#E6F1FB' },
+  '김재희':{ cls:'sc-김재희', border:'#3B6D11', bg:'#EAF3DE' },
+  '손도란':{ cls:'sc-손도란', border:'#854F0B', bg:'#FAEEDA' },
+  '이소영':{ cls:'sc-이소영', border:'#6B2FA0', bg:'#F3E6FB' },
+  '김상준':{ cls:'sc-김상준', border:'#A32D2D', bg:'#FCEBEB' },
+  '안은재':{ cls:'sc-안은재', border:'#0B6B5A', bg:'#E6FBF8' },
+  '견병록':{ cls:'sc-견병록', border:'#6B5B0B', bg:'#FBF6E6' },
+  '임성창':{ cls:'sc-임성창', border:'#444',    bg:'#F0F0EC' },
+  '김동현':{ cls:'sc-김동현', border:'#A32D6B', bg:'#FBE6F0' },
 };
+var STAFF_ORDER = ['박주형 본부장','김재희 차장','손도란 대리','이소영 주임','김상준 주임','견병록 매니저','안은재 주임','임성창 차장','김동현 대리'];
 function getStaffColor(name) {
   if(!name) return '';
-  for(var k in STAFF_COLORS) { if(name.includes(k)) return STAFF_COLORS[k]; }
+  for(var k in STAFF_MAP) { if(name.includes(k)) return STAFF_MAP[k].cls; }
   return '';
 }
-var STAFF_BORDER_COLORS = {
-  '박주형':'#185FA5','김재희':'#3B6D11','손도란':'#854F0B',
-  '이소영':'#6B2FA0','김상준':'#A32D2D','안은재':'#0B6B5A',
-  '견병록':'#6B5B0B','임성창':'#444','김동현':'#A32D6B',
-};
 function getStaffBorderColor(name) {
   if(!name) return '#ccc';
-  for(var k in STAFF_BORDER_COLORS) { if(name.includes(k)) return STAFF_BORDER_COLORS[k]; }
+  for(var k in STAFF_MAP) { if(name.includes(k)) return STAFF_MAP[k].border; }
   return '#ccc';
+}
+function getStaffBg(name) {
+  if(!name) return '#f0f0ec';
+  for(var k in STAFF_MAP) { if(name.includes(k)) return STAFF_MAP[k].bg; }
+  return '#f0f0ec';
 }
 
 // ── 전화번호 ──────────────────────────
@@ -823,6 +830,33 @@ function renderPage(page) {
   if(page==='admin') renderAdmin();
 }
 
+// ── 대시보드 헬퍼 ──────────────────────────
+function expireList(year,month){
+  return contracts.filter(function(c){
+    if(c.terminated) return false;
+    if(!c.endDate) return false;
+    var d=new Date(c.endDate);
+    return d.getFullYear()===year&&d.getMonth()===month;
+  }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
+}
+function expireHtml(list){
+  var now=new Date(),todayStr=localDateStr(now);
+  if(!list.length) return '<div style="color:#aaa;font-size:12px;padding:12px 0;">없음</div>';
+  var threeMonthsAgo=new Date(now); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth()-3);
+  var threeStr=localDateStr(threeMonthsAgo);
+  return list.map(function(c){
+    var s=calcStatus(c),d=dDiff(c.endDate),col=s==='urgent'?'#A32D2D':s==='near'?'#854F0B':'#185FA5';
+    var recentCount=supports.filter(function(sp){ return sp.bizName===c.name&&sp.date&&sp.date>=threeStr&&sp.date<=todayStr; }).length;
+    return '<div class="dash-mini-item" onclick="goDetail(\''+c.id+'\')">'+
+      '<span class="dash-mini-name">'+c.name+'</span>'+
+      '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'+
+        '<span style="font-size:11px;color:#aaa;">최근3달 '+recentCount+'회</span>'+
+        '<span class="dash-mini-right" style="color:'+col+';font-weight:600;">'+dDayLabel(d)+'</span>'+
+      '</div>'+
+      '</div>';
+  }).join('');
+}
+
 // ── 대시보드 ──────────────────────────
 function renderDashboard() {
   var now=new Date();
@@ -910,23 +944,6 @@ function renderDashboard() {
 
   var thisY=now.getFullYear(),thisM=now.getMonth();
   var nextY=thisM===11?thisY+1:thisY,nextM=thisM===11?0:thisM+1;
-  function expireList(year,month){ return contracts.filter(function(c){ if(c.terminated) return false; if(!c.endDate) return false; var d=new Date(c.endDate); return d.getFullYear()===year&&d.getMonth()===month; }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); }); }
-  function expireHtml(list) {
-    if(!list.length) return '<div style="color:#aaa;font-size:12px;padding:12px 0;">없음</div>';
-    var threeMonthsAgo=new Date(now); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth()-3);
-    var threeStr=localDateStr(threeMonthsAgo);
-    return list.map(function(c){
-      var s=calcStatus(c),d=dDiff(c.endDate),col=s==='urgent'?'#A32D2D':s==='near'?'#854F0B':'#185FA5';
-      var recentCount=supports.filter(function(sp){ return sp.bizName===c.name&&sp.date&&sp.date>=threeStr&&sp.date<=todayStr; }).length;
-      return '<div class="dash-mini-item" onclick="goDetail(\''+c.id+'\')">'+
-        '<span class="dash-mini-name">'+c.name+'</span>'+
-        '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'+
-          '<span style="font-size:11px;color:#aaa;">최근3달 '+recentCount+'회</span>'+
-          '<span class="dash-mini-right" style="color:'+col+';font-weight:600;">'+dDayLabel(d)+'</span>'+
-        '</div>'+
-        '</div>';
-    }).join('');
-  }
   var thisList=expireList(thisY,thisM),nextList=expireList(nextY,nextM);
   var tmEl=document.getElementById('dash-thismonth'); if(tmEl) tmEl.innerHTML=expireHtml(thisList);
   var nmEl=document.getElementById('dash-nextmonth'); if(nmEl) nmEl.innerHTML=expireHtml(nextList);
@@ -1283,15 +1300,7 @@ window.setCalView=function(view){
   document.getElementById('view-week-btn').classList.toggle('active-filter',view==='week');
   renderCalendar();
 };
-window.setStaffFilter=function(name){
-  staffFilter=name;
-  var labelEl=document.getElementById('active-filter-label');
-  if(labelEl){ if(name){labelEl.textContent=name+' 필터 중';labelEl.style.display='inline';}else{labelEl.style.display='none';} }
-  var allBtn=document.getElementById('filter-all'); if(allBtn) allBtn.classList.toggle('active-filter',!name);
-  document.querySelectorAll('#page-support .btn.sm').forEach(function(b){ b.classList.remove('active-filter'); });
-  if(!name&&allBtn) allBtn.classList.add('active-filter');
-  renderCalendar();
-};
+
 window.changeMonth=function(dir){
   if(calView==='week'){
     if(dir===0){ weekOffset=0; }
@@ -1311,13 +1320,8 @@ function filterSupports(){
     return names.some(function(n){ return n&&n.includes(staffFilter.split(' ')[0]); });
   });
 }
-window.setSupportBizFilter=function(val){
-  supportBizFilter=val.trim();
-  renderCalendar();
-};
-function syncSearchWidth(){
-  // CSS로 고정 처리
-}
+
+
 function renderCalendar(){
   var el=document.getElementById('cal-title');
   if(calView==='week'){
@@ -1329,13 +1333,10 @@ function renderCalendar(){
     var baseM=base.getMonth()+1,endM=end.getMonth()+1;
     if(el) el.textContent=String(baseM).padStart(2,'0')+'월 '+String(base.getDate()).padStart(2,'0')+'일 ~ '+String(endM).padStart(2,'0')+'월 '+String(end.getDate()).padStart(2,'0')+'일';
     renderWeekView();
-    syncSearchWidth();
-    // 자동 가로 스크롤 제거
     return;
   }
   if(el) el.textContent=calYear+'년 '+(calMonth+1)+'월';
   renderMonthView();
-  setTimeout(syncSearchWidth,50);
 }
 function renderMonthView(){
   var filtered=filterSupports(),dayMap={};
@@ -1397,7 +1398,7 @@ function renderWeekView(){
   }
   var todayStr=localDateStr(today);
   var filtered=filterSupports();
-  var staffOrder=['박주형 본부장','김재희 차장','손도란 대리','이소영 주임','김상준 주임','견병록 매니저','안은재 주임','임성창 차장','김동현 대리'];
+  var staffOrder=STAFF_ORDER;
   var dayLabels=['월','화','수','목','금','토','일'];
 
   // 팀 공지 행
@@ -1430,10 +1431,7 @@ function renderWeekView(){
 
   // 담당자 행
   staffOrder.forEach(function(staff){
-    var cls=getStaffColor(staff);
-    var borderCol=getStaffBorderColor(staff);
-    var bgMap2={'박주형':'#E6F1FB','김재희':'#EAF3DE','손도란':'#FAEEDA','이소영':'#F3E6FB','김상준':'#FCEBEB','안은재':'#E6FBF8','견병록':'#FBF6E6','임성창':'#F0F0EC','김동현':'#FBE6F0'};
-    var staffBg='#f0f0ec'; for(var sk in bgMap2){ if(staff.includes(sk)){ staffBg=bgMap2[sk]; break; } }
+    var staffBg=getStaffBg(staff);
     
    html+='<div class="week-staff-label"><span style="font-size:10px;font-weight:600;color:#555;padding:2px 8px;background:'+staffBg+';border-radius:4px;display:inline-block;">'+staff.split(' ')[0]+'</span></div>';
     days.forEach(function(d){
@@ -1469,14 +1467,7 @@ function renderWeekView(){
             evStyle=isLeave?'background:transparent;color:#A32D2D;font-weight:600;':'background:#e8e8e8;color:#444;';
             label=s.bizName;
           } else {
-            var bgMap={
-              '박주형':'#E6F1FB','김재희':'#EAF3DE','손도란':'#FAEEDA',
-              '이소영':'#F3E6FB','김상준':'#FCEBEB','안은재':'#E6FBF8',
-              '견병록':'#FBF6E6','임성창':'#F0F0EC','김동현':'#FBE6F0'
-            };
-            var bg='#f5f5f3';
-            for(var k in bgMap){ if(staff.includes(k)){ bg=bgMap[k]; break; } }
-            evStyle='background:'+bg+';color:#1a1a18;border-left:3px solid '+borderColor+';font-weight:600;';
+            evStyle='background:'+getStaffBg(staff)+';color:#1a1a18;border-left:3px solid '+borderColor+';font-weight:600;';
             label=s.bizName;
           }
           return '<div class="week-event" onclick="event.stopPropagation();openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:2px;'+evStyle+'">'+
@@ -1738,6 +1729,20 @@ window.delSupportFromDetail=async function(id,contractId){
 };
 
 // ── FS 사업장 현황 ──────────────────────────
+function bizCard(c){
+  var s=calcStatus(c),d=dDiff(c.endDate),col=s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':s==='near'?'#854F0B':'#3B6D11';
+  var nutriStr=c.nutritionists&&c.nutritionists.length?c.nutritionists.map(function(nt){ return nt.name; }).join(' / '):'';
+  var isUrgent=s==='urgent';
+  return '<div class="biz-card'+(isUrgent?' urgent-card':'')+'" onclick="goDetail(\''+c.id+'\')">' +
+    '<div class="biz-card-top"><span class="biz-name">'+c.name+'</span><span class="badge '+s+'">'+STATUS_META[s].label+'</span></div>'+
+    '<div class="biz-info">'+
+      '<div class="biz-info-row"><i class="ti ti-map-pin"></i><span>'+(c.addr||'-')+'</span></div>'+
+      (currentBizTab==='team'?(nutriStr?'<div class="biz-info-row"><i class="ti ti-user"></i><span>'+nutriStr+'</span></div>':'')+(c.resp?'<div class="biz-info-row"><i class="ti ti-user-check"></i><span>'+c.resp+'</span></div>':''):'')+
+      (currentBizTab==='resp'?(nutriStr?'<div class="biz-info-row"><i class="ti ti-user"></i><span>'+nutriStr+'</span></div>':''):'')+
+    '</div>'+
+    '<div class="biz-bottom"><span>'+fmtDate(c.endDate)+'</span><span style="font-weight:500;color:'+col+'">'+dDayLabel(d)+'</span></div>'+
+    '</div>';
+}
 window.setBizTab=function(tab){
   currentBizTab=tab;
   document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
@@ -1757,20 +1762,6 @@ window.renderBizTab=function(){
   var q=(document.getElementById('biz-search')?document.getElementById('biz-search').value:'').toLowerCase();
   var el=document.getElementById('biz-content'); if(!el) return;
   el.innerHTML='';
-  function bizCard(c){
-    var s=calcStatus(c),d=dDiff(c.endDate),col=s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':s==='near'?'#854F0B':'#3B6D11';
-    var nutriStr=c.nutritionists&&c.nutritionists.length?c.nutritionists.map(function(nt){ return nt.name; }).join(' / '):'';
-    var isUrgent=s==='urgent';
-    return '<div class="biz-card'+(isUrgent?' urgent-card':'')+'" onclick="goDetail(\''+c.id+'\')">' +
-      '<div class="biz-card-top"><span class="biz-name">'+c.name+'</span><span class="badge '+s+'">'+STATUS_META[s].label+'</span></div>'+
-      '<div class="biz-info">'+
-        '<div class="biz-info-row"><i class="ti ti-map-pin"></i><span>'+(c.addr||'-')+'</span></div>'+
-        (currentBizTab==='team'?(nutriStr?'<div class="biz-info-row"><i class="ti ti-user"></i><span>'+nutriStr+'</span></div>':'')+(c.resp?'<div class="biz-info-row"><i class="ti ti-user-check"></i><span>'+c.resp+'</span></div>':''):'')+
-        (currentBizTab==='resp'?(nutriStr?'<div class="biz-info-row"><i class="ti ti-user"></i><span>'+nutriStr+'</span></div>':''):'')+
-      '</div>'+
-      '<div class="biz-bottom"><span>'+fmtDate(c.endDate)+'</span><span style="font-weight:500;color:'+col+'">'+dDayLabel(d)+'</span></div>'+
-      '</div>';
-  }
   var filtered=contracts.filter(function(c){
     if(currentBizTab!=='newterm'&&currentBizTab!=='region'&&c.terminated) return false;
     if(!q) return true;
