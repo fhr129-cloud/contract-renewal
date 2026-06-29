@@ -1138,7 +1138,6 @@ function renderSupStat(tab){
   if(noVisitEl) noVisitEl.innerHTML=renderNoVisit(curQ*3,curQ*3+2,thisY,'이번 분기');
 
   if(tab==='quarter'){
-    var curQ=Math.floor(thisM/3);
     var quarters=['1분기','2분기','3분기','4분기'];
     var qSubs=['1~3월','4~6월','7~9월','10~12월'];
     var qData=quarters.map(function(_,qi){
@@ -1176,7 +1175,6 @@ function renderSupStat(tab){
       }
     });
     html+='</div>';
-    html+=renderNoVisit(curQ*3,curQ*3+2,thisY,'이번 분기');
     statEl.innerHTML=html;
 
   } else if(tab==='year'){
@@ -1214,7 +1212,6 @@ function renderSupStat(tab){
       '</div>';
     });
     html+='</div>';
-    html+=renderNoVisit(0,11,thisY,'올해');
     statEl.innerHTML=html;
     setTimeout(function(){
       var ico=document.getElementById('ico-m-detail-'+thisM);
