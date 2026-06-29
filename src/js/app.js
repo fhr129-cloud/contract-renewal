@@ -1370,7 +1370,6 @@ function renderCalendar(){
     var base=new Date(today2.getFullYear(),today2.getMonth(),today2.getDate()+diff2+(weekOffset*7));
     var end=new Date(base.getFullYear(),base.getMonth(),base.getDate()+6);
     var baseM=base.getMonth()+1,endM=end.getMonth()+1;
-    var isMobile=window.innerWidth<=600;
     if(el) el.textContent=String(baseM).padStart(2,'0')+'월 '+String(base.getDate()).padStart(2,'0')+'일 ~ '+String(endM).padStart(2,'0')+'월 '+String(end.getDate()).padStart(2,'0')+'일';
     renderWeekView();
     syncSearchWidth();
@@ -1479,14 +1478,7 @@ function renderWeekView(){
     var bgMap2={'박주형':'#E6F1FB','김재희':'#EAF3DE','손도란':'#FAEEDA','이소영':'#F3E6FB','김상준':'#FCEBEB','안은재':'#E6FBF8','견병록':'#FBF6E6','임성창':'#F0F0EC','김동현':'#FBE6F0'};
     var staffBg='#f0f0ec'; for(var sk in bgMap2){ if(staff.includes(sk)){ staffBg=bgMap2[sk]; break; } }
     // 이 담당자의 이번 주 연차/반차 여부 체크 (오늘 기준 아닌 주간 전체)
-    var hasLeaveThisWeek=supports.some(function(s){
-      if(s.type!=='personal') return false;
-      if(!s.personalType||!(s.personalType==='연차'||s.personalType==='반차(오전)'||s.personalType==='반차(오후)')) return false;
-      var names=s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]);
-      if(!names.some(function(n){ return n&&n.includes(staff.split(' ')[0]); })) return false;
-      var start=s.date.slice(0,10),end=s.dateEnd?s.dateEnd.slice(0,10):start;
-      return days.some(function(d){ var dStr=localDateStr(d); return dStr>=start&&dStr<=end; });
-    });
+    // dead code 제거
    html+='<div class="week-staff-label"><span style="font-size:10px;font-weight:600;color:#555;padding:2px 8px;background:'+staffBg+';border-radius:4px;display:inline-block;">'+staff.split(' ')[0]+'</span></div>';
     days.forEach(function(d){
       var dStr=localDateStr(d),isToday=dStr===todayStr;
