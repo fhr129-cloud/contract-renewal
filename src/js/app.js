@@ -514,7 +514,9 @@ function showHistForm(idx,r) {
         '<button class="btn primary" onclick="saveHistForm('+idx+')"><i class="ti ti-check"></i> 저장</button>'+
       '</div></div></div>';
   popup.setAttribute('data-addtype', addType);
-  popup.addEventListener('click',function(e){ if(e.target===popup) closeHistForm(); });
+  var _mouseDownTarget=null;
+  popup.addEventListener('mousedown',function(e){ _mouseDownTarget=e.target; });
+  popup.addEventListener('click',function(e){ if(e.target===popup&&_mouseDownTarget===popup) closeHistForm(); });
   document.body.appendChild(popup);
   pushModalState();
 }
