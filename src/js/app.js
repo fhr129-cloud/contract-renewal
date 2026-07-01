@@ -2104,7 +2104,7 @@ window.syncContractsFromHistory=async function(){
     if(!h||!h.records||!h.records.length) continue;
     var last=h.records[h.records.length-1];
     if(last.addType==='terminate') continue;
-    if(!last.endDate) continue;
+    if(!last.endDate||last.endDate.trim()==='') continue;
     await updateContract(c.id,{
       startDate:last.startDate||c.startDate,
       endDate:last.endDate,
@@ -2113,6 +2113,15 @@ window.syncContractsFromHistory=async function(){
     });
     updated++;
   }
+  var skipped=[];
+  contracts.forEach(function(c){
+    var h=historyData.find(function(x){ return x.contractId===c.id; });
+    if(!h||!h.records||!h.records.length){ skipped.push(c.name+' (히스토리없음)'); return; }
+    var last=h.records[h.records.length-1];
+    if(last.addType==='terminate'){ skipped.push(c.name+' (해지)'); return; }
+    if(!last.endDate||last.endDate.trim()==='') skipped.push(c.name+' (종료일없음)');
+  });
+  console.log('동기화 제외:', skipped);
   showToast(updated+'개 사업장 동기화 완료!');
 };
 function showToast(msg){
