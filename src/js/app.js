@@ -834,7 +834,7 @@ function applyState(state) {
     var titles={dashboard:'대시보드',support:'운영지원',businesses:'FS 사업장 현황',admin:'관리자 수정'};
     document.getElementById('page-title').textContent=titles[state.page]||'';
     var actions=document.getElementById('top-actions'); actions.innerHTML='';
-    if(state.page==='admin') actions.innerHTML='<button class="btn primary" onclick="openAddModal()"><i class="ti ti-plus"></i> 추가</button><button class="btn" onclick="exportExcel()"><i class="ti ti-download"></i> 엑셀</button>';
+    if(state.page==='admin') actions.innerHTML='<button class="btn primary" onclick="openAddModal()"><i class="ti ti-plus"></i> 추가</button><button class="btn" onclick="syncContractsFromHistory()"><i class="ti ti-refresh"></i> 동기화</button><button class="btn" onclick="exportExcel()"><i class="ti ti-download"></i> 엑셀</button>';
     ['dashboard','support','businesses','admin'].forEach(function(p){
       var el=document.getElementById('page-'+p); if(el) el.style.display=p===state.page?'block':'none';
     });
