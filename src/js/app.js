@@ -2095,6 +2095,26 @@ window.exportExcel=function(){
   showToast('엑셀 저장되었습니다.');
 };
 
+window.syncContractsFromHistory=async function(){
+  if(!confirm('히스토리 마지막 record 기준으로 전체 계약정보를 업데이트할까요?')) return;
+  var updated=0;
+  for(var i=0;i<contracts.length;i++){
+    var c=contracts[i];
+    var h=historyData.find(function(x){ return x.contractId===c.id; });
+    if(!h||!h.records||!h.records.length) continue;
+    var last=h.records[h.records.length-1];
+    if(last.addType==='terminate') continue;
+    if(!last.endDate) continue;
+    await updateContract(c.id,{
+      startDate:last.startDate||c.startDate,
+      endDate:last.endDate,
+      price:last.price||0,
+      priceType:last.priceType||'per-meal'
+    });
+    updated++;
+  }
+  showToast(updated+'개 사업장 동기화 완료!');
+};
 function showToast(msg){
   var el=document.createElement('div'); el.className='toast'; el.textContent=msg;
   document.body.appendChild(el); setTimeout(function(){ el.remove(); },2800);
