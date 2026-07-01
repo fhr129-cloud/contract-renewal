@@ -1029,7 +1029,7 @@ function renderDashboard() {
               
             '</div>'+
             '<div style="display:flex;align-items:center;flex-wrap:wrap;margin-top:2px;">'+
-              (isNew?priceHtml:'<span style="font-size:11px;color:#555;background:#f0f0ec;padding:1px 6px;border-radius:99px;">갱신</span>'+priceHtml)+
+              (isNew?priceHtml:isTerminate?'<span style="font-size:11px;color:#A32D2D;background:#FCEBEB;padding:1px 6px;border-radius:99px;">해지</span>'+priceHtml:'<span style="font-size:11px;color:#3B6D11;background:#EAF3DE;padding:1px 6px;border-radius:99px;">갱신</span>'+priceHtml)+
             '</div>'+
           '</div>'+
           '<div style="flex-shrink:0;text-align:right;">'+
