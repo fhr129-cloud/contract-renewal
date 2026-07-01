@@ -534,7 +534,7 @@ window.saveHistForm=async function(idx){
     priceType:document.getElementById('hf-priceType').value,
     note:document.getElementById('hf-note').value.trim(),
     updatedAt:new Date().toISOString(),
-    addType:idx===-1?(detectedType==='terminate'?'terminate':h&&h.records&&h.records.length>0?'renewal':'new'):'edit'
+    addType:idx===-1?(detectedType==='terminate'?'terminate':h&&h.records&&h.records.length>0?'renewal':'new'):(records[idx]&&records[idx].addType?records[idx].addType:'edit')
   };
   if(idx===-1){ records.push(newRecord); } else records[idx]=newRecord;
   await saveHistRecords(records,c?c.name:'');
