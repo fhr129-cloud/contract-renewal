@@ -2034,6 +2034,25 @@ window.openEditModal=function(id){
   setMeals(c.meals); setNutritionists(c.nutritionists||[]);
   switchModalTab('basic');
   document.getElementById('tab-hist-btn').style.display='inline-block';
+  // 히스토리 있으면 계약기간/단가 readonly
+  var hasHist=historyData.find(function(x){ return x.contractId===id&&x.records&&x.records.length; });
+  var roFields=['f-startDate','f-endDate','f-price','f-priceType'];
+  roFields.forEach(function(fid){
+    var el=document.getElementById(fid);
+    if(el){ el.readOnly=!!hasHist; el.disabled=!!hasHist; el.style.background=hasHist?'#f5f5f3':''; el.style.color=hasHist?'#aaa':''; }
+  });
+  var hint=document.getElementById('hist-readonly-hint');
+  if(hasHist){
+    if(!hint){
+      var h=document.createElement('div');
+      h.id='hist-readonly-hint';
+      h.style.cssText='font-size:11px;color:#854F0B;background:#FAEEDA;padding:6px 10px;border-radius:6px;margin-bottom:8px;grid-column:1/-1;';
+      h.textContent='⚠️ 계약기간·단가는 계약 히스토리 탭에서 수정해주세요.';
+      document.querySelector('.form-grid').prepend(h);
+    }
+  } else {
+    if(hint) hint.remove();
+  }
   document.getElementById('modal-overlay').classList.add('open');
   pushModalState();
 };
