@@ -1026,7 +1026,13 @@ recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
     var first=h.records[0];
     if(!first.startDate) return false;
     return new Date(first.startDate).getFullYear()>=now.getFullYear();
-  }).map(function(c){ return {c:c,latest:null,diffDays:0,updDate:new Date()}; });
+  }).map(function(c){
+    var h=historyData.find(function(x){ return x.contractId===c.id; });
+    var first=h&&h.records&&h.records.length?h.records[0]:null;
+    var updDate=first&&first.updatedAt?new Date(first.updatedAt):new Date();
+    var diffDays=Math.floor((now-updDate)/(1000*60*60*24));
+    return {c:c,latest:first,prev:null,diffDays:diffDays,updDate:updDate};
+  });
   var renewals=recentUpdates.filter(function(x){ return x.latest.addType==='renewal'; });
   var terminations=recentUpdates.filter(function(x){ return x.latest.addType==='terminate'; });
   window.renderRecentUpdates=function(tab){
@@ -1039,28 +1045,7 @@ recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
       recentEl.innerHTML='<div style="color:#aaa;font-size:12px;padding:12px 0;">내역이 없어요</div>';
       return;
     }
-    if(tab==='new'){
-      recentEl.innerHTML=list.slice(0,20).map(function(item){
-        var c=item.c;
-        var h=historyData.find(function(x){ return x.contractId===c.id; });
-        var first=h&&h.records&&h.records.length?h.records[0]:null;
-        var openDate=first&&first.startDate?fmtDate(first.startDate)+' 오픈':'';
-        var s=calcStatus(c),d=dDiff(c.endDate),col=s==='urgent'?'#A32D2D':s==='near'?'#854F0B':'#185FA5';
-        return '<div class="dash-mini-item" onclick="goDetail(\''+c.id+'\')">'+
-          '<div style="min-width:0;flex:1;">'+
-            '<div style="display:flex;align-items:center;gap:6px;">'+
-              '<span style="font-size:13px;font-weight:600;">'+c.name+'</span>'+
-              '<span style="font-size:11px;color:#3B6D11;background:#EAF3DE;padding:1px 6px;border-radius:99px;">신규</span>'+
-            '</div>'+
-            '<div style="font-size:11px;color:#888;margin-top:2px;">'+openDate+'</div>'+
-          '</div>'+
-          '<div style="flex-shrink:0;text-align:right;">'+
-            '<div style="font-size:11px;font-weight:600;color:'+col+';">'+dDayLabel(d)+'</div>'+
-          '</div>'+
-        '</div>';
-      }).join('');
-      return;
-    }
+    
     recentEl.innerHTML=list.slice(0,20).map(function(item){
         var s=calcStatus(item.c),d=dDiff(item.c.endDate),col=s==='urgent'?'#A32D2D':s==='near'?'#854F0B':'#185FA5';
         var isNew=item.prev===null;
