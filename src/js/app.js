@@ -829,8 +829,10 @@ function applyState(state) {
   document.getElementById('app').style.display='none';
   document.getElementById('detail-screen').style.display='none';
   if(mapInstance&&state.screen!=='page'){ mapInstance.remove(); mapInstance=null; }
+  var tabBar=document.getElementById('bottom-tab-bar');
   if(state.screen==='home'){
     document.getElementById('home-screen').style.display='flex'; currentPage='';
+    if(tabBar) tabBar.style.display='none';
   } else if(state.screen==='page'){
     document.getElementById('app').style.display='flex'; currentPage=state.page;
     var titles={dashboard:'대시보드',support:'운영지원',businesses:'FS 사업장 현황',admin:'관리자 수정'};
@@ -841,7 +843,19 @@ function applyState(state) {
       var el=document.getElementById('page-'+p); if(el) el.style.display=p===state.page?'block':'none';
     });
     renderPage(state.page);
+    if(tabBar){ tabBar.style.display='flex'; }
+    ['dashboard','support','businesses','admin'].forEach(function(p){
+      var tab=document.getElementById('tab-'+p);
+      if(!tab) return;
+      var icon=tab.querySelector('i');
+      var label=tab.querySelector('span');
+      var active=p===state.page;
+      if(icon) icon.style.color=active?'#185FA5':'#aaa';
+      if(label) label.style.color=active?'#185FA5':'#aaa';
+      tab.style.background=active?'#E6F1FB':'';
+    });
   } else if(state.screen==='detail'){
+    if(tabBar) tabBar.style.display='none';
     document.getElementById('detail-screen').style.display='flex';
     window.detailId=state.id;
     var c=contracts.find(function(x){ return x.id===state.id; });
