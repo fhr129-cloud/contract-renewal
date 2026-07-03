@@ -1022,7 +1022,15 @@ function renderDashboard() {
     if(!recentUpdates.length){
       recentEl.innerHTML='<div style="color:#aaa;font-size:12px;padding:12px 0;">최근 30일 계약 변경 내역이 없어요</div>';
     } else {
-      recentEl.innerHTML=recentUpdates.slice(0,10).map(function(item){
+      var renewals=recentUpdates.filter(function(x){ return x.latest.addType!=='terminate'; });
+      var terminations=recentUpdates.filter(function(x){ return x.latest.addType==='terminate'; });
+      var activeTab='renewal';
+      function renderRecentTab(tab){
+        activeTab=tab;
+        var list=tab==='renewal'?renewals:terminations;
+        document.getElementById('recent-tab-renewal').classList.toggle('active-filter',tab==='renewal');
+        document.getElementById('recent-tab-terminate').classList.toggle('active-filter',tab==='terminate');
+        document.getElementById('recent-update-list').innerHTML=list.slice(0,20).map(function(item){
         var s=calcStatus(item.c),d=dDiff(item.c.endDate),col=s==='urgent'?'#A32D2D':s==='near'?'#854F0B':'#185FA5';
         var isNew=item.prev===null;
         var priceChanged=item.prev&&(item.prev.price!==item.latest.price||item.prev.priceType!==item.latest.priceType);
