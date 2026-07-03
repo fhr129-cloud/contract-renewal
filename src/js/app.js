@@ -1052,8 +1052,8 @@ recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
               (isNew?priceHtml:isTerminate?'<span style="font-size:11px;color:#A32D2D;background:#FCEBEB;padding:1px 6px;border-radius:99px;">해지</span>'+priceHtml:'<span style="font-size:11px;color:#3B6D11;background:#EAF3DE;padding:1px 6px;border-radius:99px;">갱신</span>'+priceHtml)+
             '</div>'+
           '</div>'+
-          '<div style="flex-shrink:0;text-align:right;">'+
-            (isTerminate?'':'<div style="font-size:11px;color:#888;white-space:nowrap;">'+(item.latest.startDate?fmtDate(item.latest.startDate):'')+'</div><div style="font-size:11px;color:#888;white-space:nowrap;">~ '+(item.latest.endDate?fmtDate(item.latest.endDate):'')+'</div>')+
+         '<div style="flex-shrink:0;text-align:right;">'+
+            (isTerminate?'<div style="font-size:11px;color:#A32D2D;white-space:nowrap;">'+(item.latest.endDate?fmtDate(item.latest.endDate):'')+' 해지</div>':'<div style="font-size:11px;color:#888;white-space:nowrap;">'+(item.latest.startDate?fmtDate(item.latest.startDate):'')+'</div><div style="font-size:11px;color:#888;white-space:nowrap;">~ '+(item.latest.endDate?fmtDate(item.latest.endDate):'')+'</div>')+
           '</div>'+
         '</div>';
      }).join('');
