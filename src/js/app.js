@@ -1001,18 +1001,20 @@ function renderDashboard() {
   var nmC=document.getElementById('dash-nextmonth-count'); if(nmC) nmC.textContent=nextList.length+'건';
 
   // 최근 계약 업데이트
+  var thisYearStr=now.getFullYear()+'-';
   var recentUpdates=[];
   historyData.forEach(function(h){
     if(!h.records||!h.records.length) return;
     var c=contracts.find(function(x){ return x.id===h.contractId; }); if(!c) return;
-    var latest=h.records[h.records.length-1];
-    if(!latest.updatedAt) return;
-    if(latest.addType==='edit') return;
-    var updDate=new Date(latest.updatedAt);
-    var diffDays=Math.floor((now-updDate)/(1000*60*60*24));
-    if(diffDays>30) return;
-    var prev=h.records.length>1?h.records[h.records.length-2]:null;
-    recentUpdates.push({c:c,latest:latest,prev:prev,diffDays:diffDays,updDate:updDate});
+    h.records.forEach(function(r,i){
+      if(!r.updatedAt) return;
+      if(r.addType==='edit') return;
+      if(!r.updatedAt.startsWith(now.getFullYear()+'')) return;
+      var updDate=new Date(r.updatedAt);
+      var diffDays=Math.floor((now-updDate)/(1000*60*60*24));
+      var prev=i>0?h.records[i-1]:null;
+      recentUpdates.push({c:c,latest:r,prev:prev,diffDays:diffDays,updDate:updDate});
+    });
   });
   recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
   var recentEl=document.getElementById('dash-recent-updates');
