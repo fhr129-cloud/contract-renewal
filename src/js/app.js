@@ -2163,6 +2163,21 @@ window.syncContractsFromHistory=async function(){
   console.log('동기화 제외:', skipped);
   showToast(updated+'개 사업장 동기화 완료!');
 };
+function addRipple(e){
+  var el=e.currentTarget;
+  var r=document.createElement('span');
+  r.className='ripple-el';
+  var rect=el.getBoundingClientRect();
+  var size=Math.max(rect.width,rect.height);
+  r.style.cssText='width:'+size+'px;height:'+size+'px;left:'+(e.clientX-rect.left-size/2)+'px;top:'+(e.clientY-rect.top-size/2)+'px;';
+  el.appendChild(r);
+  setTimeout(function(){ r.remove(); },500);
+}
+document.addEventListener('click',function(e){
+  var btn=e.target.closest('.btn,.stat-card,.biz-card,.dash-mini-item,.home-btn,.tab-btn');
+  if(btn){ btn.classList.add('ripple-wrap'); addRipple({currentTarget:btn,clientX:e.clientX,clientY:e.clientY}); }
+});
+function showToast(msg){
 function showToast(msg){
   var el=document.createElement('div'); el.className='toast'; el.textContent=msg;
   document.body.appendChild(el); setTimeout(function(){ el.remove(); },2800);
