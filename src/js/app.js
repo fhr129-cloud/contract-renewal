@@ -1001,7 +1001,7 @@ function renderDashboard() {
   var nmC=document.getElementById('dash-nextmonth-count'); if(nmC) nmC.textContent=nextList.length+'건';
 
   // 최근 계약 업데이트
-  var thisYearStr=now.getFullYear()+'-';
+  
   var recentUpdates=[];
   historyData.forEach(function(h){
     if(!h.records||!h.records.length) return;
