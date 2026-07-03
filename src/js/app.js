@@ -1020,7 +1020,7 @@ function renderDashboard() {
   var recentEl=document.getElementById('recent-update-list');
   var renewals=recentUpdates.filter(function(x){ return x.latest.addType!=='terminate'; });
   var terminations=recentUpdates.filter(function(x){ return x.latest.addType==='terminate'; });
-  var news=recentUpdates.filter(function(x){ return x.latest.addType==='new'; });
+ var news=recentUpdates.filter(function(x){ return x.latest.addType==='new'&&!x.c.terminated; });
   var renewals=recentUpdates.filter(function(x){ return x.latest.addType==='renewal'; });
   var terminations=recentUpdates.filter(function(x){ return x.latest.addType==='terminate'; });
   window.renderRecentUpdates=function(tab){
