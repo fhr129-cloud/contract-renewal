@@ -415,10 +415,15 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
       </div>
       <div class="card" style="margin-bottom:0;align-self:start;">
         <div class="card-header">
-          <span class="card-title"><i class="ti ti-bell" style="color:#185FA5;"></i> 최근 계약 업데이트</span>
-          <span style="font-size:11px;color:#aaa;">최근 30일</span>
+          <span class="card-title"><i class="ti ti-bell" style="color:#185FA5;"></i> 올해 계약 업데이트</span>
+          <div style="display:flex;gap:4px;">
+            <button class="btn sm active-filter" id="recent-tab-renewal" onclick="renderRecentUpdates('renewal')">재계약</button>
+            <button class="btn sm" id="recent-tab-terminate" onclick="renderRecentUpdates('terminate')">해지</button>
+          </div>
         </div>
-        <div class="card-body" style="padding:0 16px;" id="dash-recent-updates"></div>
+        <div class="card-body" style="padding:0 16px;" id="dash-recent-updates">
+          <div id="recent-update-list"></div>
+        </div>
       </div>
     </div>
     <div class="dash-expire-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
