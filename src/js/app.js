@@ -1020,7 +1020,14 @@ function renderDashboard() {
 recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
   var recentEl=document.getElementById('recent-update-list');
   console.log('recentUpdates 전체:', recentUpdates.length, recentUpdates.map(function(x){ return {name:x.c.name,addType:x.latest.addType}; }));
-  var news=recentUpdates.filter(function(x){ return (x.latest.addType==='new'||!x.latest.addType)&&!x.c.terminated; });
+  var news=contracts.filter(function(c){
+    if(c.terminated) return false;
+    var h=historyData.find(function(x){ return x.contractId===c.id; });
+    if(!h||!h.records||!h.records.length) return false;
+    var first=h.records[0];
+    if(!first.startDate) return false;
+    return new Date(first.startDate).getFullYear()>=now.getFullYear();
+  }).map(function(c){ return {c:c,latest:null,diffDays:0,updDate:new Date()}; });
   var renewals=recentUpdates.filter(function(x){ return x.latest.addType==='renewal'; });
   var terminations=recentUpdates.filter(function(x){ return x.latest.addType==='terminate'; });
   window.renderRecentUpdates=function(tab){
