@@ -1038,14 +1038,8 @@ recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
           priceHtml='<span style="font-size:11px;color:#888;margin-left:4px;">'+(termDateStr?termDateStr+' 해지':'해지')+'</span>';
         } else if(isNew){
           priceHtml='<span style="font-size:11px;color:#3B6D11;background:#EAF3DE;padding:1px 6px;border-radius:99px;margin-left:4px;">신규</span>';
-       } else if(priceChanged){
-          priceHtml='<span style="font-size:11px;color:#888;margin-left:4px;">'+priceHistLabel(item.prev)+'</span>'+
-            '<span style="font-size:11px;color:#888;margin:0 3px;">→</span>'+
-            '<span style="font-size:11px;color:#185FA5;font-weight:600;">'+priceHistLabel(item.latest)+'</span>'+
-            ((item.latest.startDate||item.latest.endDate)?'<span style="font-size:11px;color:#888;margin-left:6px;">'+(item.latest.startDate?fmtDate(item.latest.startDate):'')+'~'+(item.latest.endDate?fmtDate(item.latest.endDate):'')+'</span>':'');
-        } else {
-          priceHtml='<span style="font-size:11px;color:#888;margin-left:4px;">'+priceHistLabel(item.latest)+'</span>'+
-            ((item.latest.startDate||item.latest.endDate)?'<span style="font-size:11px;color:#888;margin-left:6px;">'+(item.latest.startDate?fmtDate(item.latest.startDate):'')+'~'+(item.latest.endDate?fmtDate(item.latest.endDate):'')+'</span>':'');
+       } else {
+          priceHtml='';
         }
         var diffStr=item.diffDays===0?'오늘':item.diffDays===1?'1일 전':item.diffDays+'일 전';
         return '<div class="dash-mini-item" onclick="goDetail(\''+item.c.id+'\')">'+
@@ -1059,8 +1053,7 @@ recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
             '</div>'+
           '</div>'+
           '<div style="flex-shrink:0;text-align:right;">'+
-            
-            (item.c.terminated?'':'<div style="font-size:11px;font-weight:600;color:'+col+';">'+dDayLabel(d)+'</div>')+
+            (isTerminate?'':'<div style="font-size:11px;color:#888;white-space:nowrap;">'+(item.latest.startDate?fmtDate(item.latest.startDate):'')+'</div><div style="font-size:11px;color:#888;white-space:nowrap;">~ '+(item.latest.endDate?fmtDate(item.latest.endDate):'')+'</div>')+
           '</div>'+
         '</div>';
      }).join('');
