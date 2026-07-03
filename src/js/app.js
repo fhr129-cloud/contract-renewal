@@ -1009,8 +1009,9 @@ function renderDashboard() {
     h.records.forEach(function(r,i){
       if(!r.updatedAt) return;
       if(r.addType==='edit') return;
-      var updYear=new Date(r.updatedAt).getFullYear();
-    if(updYear!==now.getFullYear()) return;
+      var updDate2=new Date(r.updatedAt);
+      var diffDays2=Math.floor((now-updDate2)/(1000*60*60*24));
+      if(diffDays2>30) return;
       var updDate=new Date(r.updatedAt);
       var diffDays=Math.floor((now-updDate)/(1000*60*60*24));
       var prev=i>0?h.records[i-1]:null;
@@ -1019,20 +1020,7 @@ function renderDashboard() {
   });
 recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
   var recentEl=document.getElementById('recent-update-list');
-  var news=contracts.filter(function(c){
-    if(c.terminated) return false;
-    var h=historyData.find(function(x){ return x.contractId===c.id; });
-    if(!h||!h.records||!h.records.length) return false;
-    var first=h.records[0];
-    if(!first.startDate) return false;
-    return new Date(first.startDate).getFullYear()>=now.getFullYear();
-  }).map(function(c){
-    var h=historyData.find(function(x){ return x.contractId===c.id; });
-    var first=h&&h.records&&h.records.length?h.records[0]:null;
-    var updDate=first&&first.updatedAt?new Date(first.updatedAt):new Date();
-    var diffDays=Math.floor((now-updDate)/(1000*60*60*24));
-    return {c:c,latest:first,prev:null,diffDays:diffDays,updDate:updDate};
-  });
+  
  var renewals=recentUpdates.filter(function(x){ return x.latest.addType!=='terminate'; });
   var terminations=recentUpdates.filter(function(x){ return x.latest.addType==='terminate'; });
   var sortedList=[].concat(renewals,terminations);
