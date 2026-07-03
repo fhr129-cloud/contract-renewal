@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FS 사업장 관리</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#185FA5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="FS관리">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
@@ -865,6 +870,13 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 <script>
 function goPage(page){ if(window._goPage) window._goPage(page); else setTimeout(function(){ goPage(page); },100); }
 function goHome(){ if(window._goHome) window._goHome(); else setTimeout(function(){ goHome(); },100); }
+</script>
+  <script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('/contract-renewal/sw.js');
+  });
+}
 </script>
 <script type="module" src="./src/js/app.js"></script>
 </body>
