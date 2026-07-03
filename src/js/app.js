@@ -1060,7 +1060,7 @@ recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
             '</div>'+
           '</div>'+
           '<div style="flex-shrink:0;text-align:right;">'+
-            '<div style="font-size:11px;color:#aaa;">'+diffStr+'</div>'+
+            
             (item.c.terminated?'':'<div style="font-size:11px;font-weight:600;color:'+col+';">'+dDayLabel(d)+'</div>')+
           '</div>'+
         '</div>';
