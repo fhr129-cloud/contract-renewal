@@ -1019,7 +1019,6 @@ function renderDashboard() {
   });
 recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
   var recentEl=document.getElementById('recent-update-list');
-  console.log('recentUpdates 전체:', recentUpdates.length, recentUpdates.map(function(x){ return {name:x.c.name,addType:x.latest.addType}; }));
   var news=contracts.filter(function(c){
     if(c.terminated) return false;
     var h=historyData.find(function(x){ return x.contractId===c.id; });
