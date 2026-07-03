@@ -2178,7 +2178,6 @@ document.addEventListener('click',function(e){
   if(btn){ btn.classList.add('ripple-wrap'); addRipple({currentTarget:btn,clientX:e.clientX,clientY:e.clientY}); }
 });
 function showToast(msg){
-function showToast(msg){
   var el=document.createElement('div'); el.className='toast'; el.textContent=msg;
   document.body.appendChild(el); setTimeout(function(){ el.remove(); },2800);
 }
