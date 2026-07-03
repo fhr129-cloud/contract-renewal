@@ -1042,10 +1042,10 @@ recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
           priceHtml='<span style="font-size:11px;color:#888;margin-left:4px;">'+priceHistLabel(item.prev)+'</span>'+
             '<span style="font-size:11px;color:#888;margin:0 3px;">→</span>'+
             '<span style="font-size:11px;color:#185FA5;font-weight:600;">'+priceHistLabel(item.latest)+'</span>'+
-            (item.latest.endDate?'<span style="font-size:11px;color:#888;margin-left:6px;">~'+fmtDate(item.latest.endDate)+'</span>':'');
+            ((item.latest.startDate||item.latest.endDate)?'<span style="font-size:11px;color:#888;margin-left:6px;">'+(item.latest.startDate?fmtDate(item.latest.startDate):'')+'~'+(item.latest.endDate?fmtDate(item.latest.endDate):'')+'</span>':'');
         } else {
           priceHtml='<span style="font-size:11px;color:#888;margin-left:4px;">'+priceHistLabel(item.latest)+'</span>'+
-            (item.latest.endDate?'<span style="font-size:11px;color:#888;margin-left:6px;">~'+fmtDate(item.latest.endDate)+'</span>':'');
+            ((item.latest.startDate||item.latest.endDate)?'<span style="font-size:11px;color:#888;margin-left:6px;">'+(item.latest.startDate?fmtDate(item.latest.startDate):'')+'~'+(item.latest.endDate?fmtDate(item.latest.endDate):'')+'</span>':'');
         }
         var diffStr=item.diffDays===0?'오늘':item.diffDays===1?'1일 전':item.diffDays+'일 전';
         return '<div class="dash-mini-item" onclick="goDetail(\''+item.c.id+'\')">'+
