@@ -1020,7 +1020,7 @@ function renderDashboard() {
 recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
   var recentEl=document.getElementById('recent-update-list');
   console.log('recentUpdates 전체:', recentUpdates.length, recentUpdates.map(function(x){ return {name:x.c.name,addType:x.latest.addType}; }));
-  var news=recentUpdates.filter(function(x){ return x.latest.addType==='new'&&!x.c.terminated; });
+  var news=recentUpdates.filter(function(x){ return (x.latest.addType==='new'||!x.latest.addType)&&!x.c.terminated; });
   var renewals=recentUpdates.filter(function(x){ return x.latest.addType==='renewal'; });
   var terminations=recentUpdates.filter(function(x){ return x.latest.addType==='terminate'; });
   window.renderRecentUpdates=function(tab){
