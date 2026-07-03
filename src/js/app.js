@@ -842,6 +842,8 @@ function applyState(state) {
     ['dashboard','support','businesses','admin'].forEach(function(p){
       var el=document.getElementById('page-'+p); if(el) el.style.display=p===state.page?'block':'none';
     });
+    var pageEl=document.getElementById('page-'+state.page);
+    if(pageEl){ pageEl.classList.remove('page-anim'); void pageEl.offsetWidth; pageEl.classList.add('page-anim'); }
     renderPage(state.page);
     if(tabBar){ tabBar.style.display='flex'; }
     ['dashboard','support','businesses','admin'].forEach(function(p){
@@ -856,7 +858,9 @@ function applyState(state) {
     });
   } else if(state.screen==='detail'){
     if(tabBar) tabBar.style.display='none';
-    document.getElementById('detail-screen').style.display='flex';
+    var detailEl=document.getElementById('detail-screen');
+    detailEl.style.display='flex';
+    detailEl.classList.remove('detail-anim'); void detailEl.offsetWidth; detailEl.classList.add('detail-anim');
     window.detailId=state.id;
     var c=contracts.find(function(x){ return x.id===state.id; });
     if(c) renderDetail(c);
