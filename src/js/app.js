@@ -1009,7 +1009,8 @@ function renderDashboard() {
     h.records.forEach(function(r,i){
       if(!r.updatedAt) return;
       if(r.addType==='edit') return;
-      if(!r.updatedAt.startsWith(now.getFullYear()+'')) return;
+      var updYear=new Date(r.updatedAt).getFullYear();
+    if(updYear!==now.getFullYear()) return;
       var updDate=new Date(r.updatedAt);
       var diffDays=Math.floor((now-updDate)/(1000*60*60*24));
       var prev=i>0?h.records[i-1]:null;
@@ -1020,7 +1021,7 @@ function renderDashboard() {
   var recentEl=document.getElementById('recent-update-list');
   var renewals=recentUpdates.filter(function(x){ return x.latest.addType!=='terminate'; });
   var terminations=recentUpdates.filter(function(x){ return x.latest.addType==='terminate'; });
- var news=recentUpdates.filter(function(x){ return x.latest.addType==='new'&&!x.c.terminated; });
+ console.log('recentUpdates:', recentUpdates.map(function(x){ return {name:x.c.name, addType:x.latest.addType, terminated:x.c.terminated}; }));
   var renewals=recentUpdates.filter(function(x){ return x.latest.addType==='renewal'; });
   var terminations=recentUpdates.filter(function(x){ return x.latest.addType==='terminate'; });
   window.renderRecentUpdates=function(tab){
