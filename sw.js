@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fs-app-v2';
+const CACHE_NAME = 'fs-app-v3';
 const urlsToCache = ['/contract-renewal/'];
 
 self.addEventListener('install', function(e){
