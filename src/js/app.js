@@ -1020,12 +1020,14 @@ function renderDashboard() {
   var recentEl=document.getElementById('recent-update-list');
   var renewals=recentUpdates.filter(function(x){ return x.latest.addType!=='terminate'; });
   var terminations=recentUpdates.filter(function(x){ return x.latest.addType==='terminate'; });
-  var renewals=recentUpdates.filter(function(x){ return x.latest.addType!=='terminate'; });
+  var news=recentUpdates.filter(function(x){ return x.latest.addType==='new'; });
+  var renewals=recentUpdates.filter(function(x){ return x.latest.addType==='renewal'; });
   var terminations=recentUpdates.filter(function(x){ return x.latest.addType==='terminate'; });
   window.renderRecentUpdates=function(tab){
+    document.getElementById('recent-tab-new').classList.toggle('active-filter',tab==='new');
     document.getElementById('recent-tab-renewal').classList.toggle('active-filter',tab==='renewal');
     document.getElementById('recent-tab-terminate').classList.toggle('active-filter',tab==='terminate');
-    var list=tab==='renewal'?renewals:terminations;
+    var list=tab==='new'?news:tab==='renewal'?renewals:terminations;
     if(!recentEl) return;
     if(!list.length){
       recentEl.innerHTML='<div style="color:#aaa;font-size:12px;padding:12px 0;">내역이 없어요</div>';
@@ -1068,7 +1070,7 @@ function renderDashboard() {
         '</div>';
      }).join('');
   };
-  window.renderRecentUpdates('renewal');
+  window.renderRecentUpdates('new');
   renderSupStat('month');
 }
 
