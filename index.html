@@ -309,7 +309,9 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 .empty-state i{font-size:28px;display:block;margin-bottom:8px;}
 .toast{position:fixed;bottom:24px;right:24px;background:#1a1a18;color:#fff;padding:11px 16px;border-radius:8px;font-size:13px;z-index:999;animation:fadeUp .2s ease;white-space:nowrap;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-
+@keyframes ripple{from{transform:scale(0);opacity:.4}to{transform:scale(4);opacity:0}}
+.ripple-wrap{position:relative;overflow:hidden;}
+.ripple-el{position:absolute;border-radius:50%;background:rgba(0,0,0,.12);animation:ripple .5s ease-out forwards;pointer-events:none;}
 .sup-stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
 .sup-stat-card{background:#f5f5f3;border-radius:8px;padding:10px 12px;cursor:pointer;transition:box-shadow .1s;border:.5px solid #e8e8e4;}
 .sup-stat-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);}
