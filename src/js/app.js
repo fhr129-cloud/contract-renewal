@@ -2193,5 +2193,5 @@ if(splash){
   setTimeout(function(){
     splash.style.opacity='0';
     setTimeout(function(){ splash.remove(); },400);
-  },1800);
+  },1000);
 }
