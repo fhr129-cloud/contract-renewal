@@ -844,7 +844,24 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
     </div>
   </div>
 </div>
-
+<div id="bottom-tab-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;height:56px;background:#fff;border-top:.5px solid #e8e8e4;display:flex;align-items:center;justify-content:space-around;z-index:250;max-width:1280px;margin:0 auto;">
+  <div onclick="goPage('dashboard')" id="tab-dashboard" style="display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:6px 16px;border-radius:10px;transition:background .1s;">
+    <i class="ti ti-dashboard" style="font-size:22px;color:#aaa;"></i>
+    <span style="font-size:10px;color:#aaa;font-weight:500;">대시보드</span>
+  </div>
+  <div onclick="goPage('support')" id="tab-support" style="display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:6px 16px;border-radius:10px;transition:background .1s;">
+    <i class="ti ti-calendar-event" style="font-size:22px;color:#aaa;"></i>
+    <span style="font-size:10px;color:#aaa;font-weight:500;">운영지원</span>
+  </div>
+  <div onclick="goPage('businesses')" id="tab-businesses" style="display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:6px 16px;border-radius:10px;transition:background .1s;">
+    <i class="ti ti-building" style="font-size:22px;color:#aaa;"></i>
+    <span style="font-size:10px;color:#aaa;font-weight:500;">사업장</span>
+  </div>
+  <div onclick="goPage('admin')" id="tab-admin" style="display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:6px 16px;border-radius:10px;transition:background .1s;">
+    <i class="ti ti-settings" style="font-size:22px;color:#aaa;"></i>
+    <span style="font-size:10px;color:#aaa;font-weight:500;">관리</span>
+  </div>
+</div>
 <script>
 function goPage(page){ if(window._goPage) window._goPage(page); else setTimeout(function(){ goPage(page); },100); }
 function goHome(){ if(window._goHome) window._goHome(); else setTimeout(function(){ goHome(); },100); }
