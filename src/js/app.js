@@ -1034,12 +1034,15 @@ recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
         var priceHtml='';
         var isTerminate=item.latest.addType==='terminate';
         if(isTerminate){
-          var termDateStr=item.latest.endDate?fmtDate(item.latest.endDate):'';
-          priceHtml='<span style="font-size:11px;color:#888;margin-left:4px;">'+(termDateStr?termDateStr+' 해지':'해지')+'</span>';
+          priceHtml='';
         } else if(isNew){
           priceHtml='<span style="font-size:11px;color:#3B6D11;background:#EAF3DE;padding:1px 6px;border-radius:99px;margin-left:4px;">신규</span>';
-       } else {
-          priceHtml='';
+       } else if(priceChanged){
+          priceHtml='<span style="font-size:11px;color:#888;margin-left:4px;">'+priceHistLabel(item.prev)+'</span>'+
+            '<span style="font-size:11px;color:#888;margin:0 3px;">→</span>'+
+            '<span style="font-size:11px;color:#185FA5;font-weight:600;">'+priceHistLabel(item.latest)+'</span>';
+        } else {
+          priceHtml='<span style="font-size:11px;color:#888;margin-left:4px;">'+priceHistLabel(item.latest)+'</span>';
         }
         var diffStr=item.diffDays===0?'오늘':item.diffDays===1?'1일 전':item.diffDays+'일 전';
         return '<div class="dash-mini-item" onclick="goDetail(\''+item.c.id+'\')">'+
