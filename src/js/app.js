@@ -1066,10 +1066,9 @@ function renderDashboard() {
             (item.c.terminated?'':'<div style="font-size:11px;font-weight:600;color:'+col+';">'+dDayLabel(d)+'</div>')+
           '</div>'+
         '</div>';
-      }).join('');
-    }
-  }
-
+     }).join('');
+  };
+  window.renderRecentUpdates('renewal');
   renderSupStat('month');
 }
 
