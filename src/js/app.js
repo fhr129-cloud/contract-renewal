@@ -1126,7 +1126,8 @@ function buildStaffSubHtml(cat,items){
   }).join('');
 }
 
-function renderCatStat(list){
+function renderCatStat(list,prefix){
+  prefix=prefix||'';
   var filtered=list.filter(function(s){ return !s.type||s.type==='support'; });
   if(!filtered.length) return '<div style="color:#aaa;font-size:12px;padding:8px 0;">내역이 없어요</div>';
   var CATS=['운영점검','위생점검','환경개선','특식지원','이벤트','배식지원','고객미팅','기타지원'];
@@ -1145,7 +1146,7 @@ function renderCatStat(list){
   return '<div style="display:flex;flex-direction:column;gap:4px;">'+
     cats.map(function(cat){
       var data=catMap[cat],barW=Math.round((data.count/maxCat)*100);
-      var id='cat-'+cat.replace(/\s/g,'');
+      var id='cat-'+prefix+'-'+cat.replace(/\s/g,'');
       return '<div style="border:.5px solid #e8e8e4;border-radius:8px;overflow:hidden;">'+
         '<div onclick="toggleCatGroup(\''+id+'\')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;background:#fafaf8;">'+
           '<span style="font-size:13px;font-weight:600;min-width:60px;">'+cat+'</span>'+
@@ -1156,7 +1157,7 @@ function renderCatStat(list){
           '<i class="ti ti-chevron-down" id="ico-'+id+'" style="font-size:13px;color:#aaa;transition:transform .2s;"></i>'+
         '</div>'+
         '<div id="'+id+'" style="display:none;border-top:.5px solid #f0f0ec;">'+
-          buildStaffSubHtml(cat,data.items)+
+          buildStaffSubHtml(prefix+'-'+cat,data.items)+
         '</div>'+
       '</div>';
     }).join('')+
@@ -1230,7 +1231,7 @@ function renderSupStat(tab){
           '</div>'+
         '</div>'+
         '<div id="'+id+'" style="display:'+(q.current?'block':'none')+';">'+
-          '<div style="padding:8px;">'+renderCatStat(q.items)+'</div>'+
+          '<div style="padding:8px;">'+renderCatStat(q.items,'q'+qi)+'</div>'+
         '</div>'+
       '</div>';
       if(q.current){
@@ -1273,7 +1274,7 @@ function renderSupStat(tab){
           '</div>'+
         '</div>'+
         (mItems.length?'<div id="'+id+'" style="display:'+(isCur?'block':'none')+';">'+
-          '<div style="padding:8px;">'+renderCatStat(mItems)+'</div>'+
+          '<div style="padding:8px;">'+renderCatStat(mItems,'m'+mi)+'</div>'+
         '</div>':'')+
       '</div>';
     });
