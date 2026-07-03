@@ -2188,3 +2188,11 @@ document.getElementById('type-select-modal').addEventListener('mousedown',functi
 document.getElementById('personal-modal').addEventListener('mousedown',function(e){ if(e.target===e.currentTarget) closePersonalModal(); });
 document.getElementById('team-modal').addEventListener('mousedown',function(e){ if(e.target===e.currentTarget) closeTeamModal(); });
 history.replaceState({screen:'home'},'','');
+// 스플래시 화면
+var splash=document.getElementById('splash-screen');
+if(splash){
+  setTimeout(function(){
+    splash.style.opacity='0';
+    setTimeout(function(){ splash.style.display='none'; },400);
+  },1500);
+}
