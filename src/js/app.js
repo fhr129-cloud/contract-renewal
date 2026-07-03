@@ -1009,11 +1009,9 @@ function renderDashboard() {
     h.records.forEach(function(r,i){
       if(!r.updatedAt) return;
       if(r.addType==='edit') return;
-      var updDate2=new Date(r.updatedAt);
-      var diffDays2=Math.floor((now-updDate2)/(1000*60*60*24));
-      if(diffDays2>30) return;
       var updDate=new Date(r.updatedAt);
       var diffDays=Math.floor((now-updDate)/(1000*60*60*24));
+      if(diffDays>30) return;
       var prev=i>0?h.records[i-1]:null;
       recentUpdates.push({c:c,latest:r,prev:prev,diffDays:diffDays,updDate:updDate});
     });
@@ -1453,6 +1451,13 @@ function renderMonthView(){
     var items=dayMap[key]||[],isToday=key===today;
     var seen={},uniqueItems=[];
     items.forEach(function(s){ if(!seen[s.id]){seen[s.id]=true;uniqueItems.push(s);} });
+    var mealOrder=['조식','오전','중식','오후','석식','야식'];
+    uniqueItems.sort(function(a,b){
+      var am=a.meals&&a.meals.length?mealOrder.indexOf(a.meals[0]):-1;
+      var bm=b.meals&&b.meals.length?mealOrder.indexOf(b.meals[0]):-1;
+      if(am===-1) am=99; if(bm===-1) bm=99;
+      return am-bm;
+    });
     var holiday=getHoliday(key);
     var dayOfWeek=new Date(key).getDay();
     var dayColor=dayOfWeek===0?'color:#C0392B;':dayOfWeek===6?'color:#1A5276;':'';
