@@ -1017,11 +1017,9 @@ function renderDashboard() {
       recentUpdates.push({c:c,latest:r,prev:prev,diffDays:diffDays,updDate:updDate});
     });
   });
-  recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
+recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
   var recentEl=document.getElementById('recent-update-list');
-  var renewals=recentUpdates.filter(function(x){ return x.latest.addType!=='terminate'; });
-  var terminations=recentUpdates.filter(function(x){ return x.latest.addType==='terminate'; });
- console.log('recentUpdates:', recentUpdates.map(function(x){ return {name:x.c.name, addType:x.latest.addType, terminated:x.c.terminated}; }));
+  var news=recentUpdates.filter(function(x){ return x.latest.addType==='new'&&!x.c.terminated; });
   var renewals=recentUpdates.filter(function(x){ return x.latest.addType==='renewal'; });
   var terminations=recentUpdates.filter(function(x){ return x.latest.addType==='terminate'; });
   window.renderRecentUpdates=function(tab){
