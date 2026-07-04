@@ -235,11 +235,11 @@ function setMeals(meals) {
     row.querySelector('.meal-time-end').value='';
   });
   if(!meals) return;
-  if(typeof meals==='string'){ meals.split('/').forEach(function(v){ var cb=document.querySelector('.meal-cb[data-day="weekday"][value="'+v.trim()+'"]'); if(cb){cb.checked=true;cb.closest('.meal-chip')&&cb.closest('.meal-chip').classList.add('checked');} }); return; }
+  if(typeof meals==='string'){ meals.split('/').forEach(function(v){ var cb=document.querySelector('.meal-cb[data-day="weekday"][value="'+v.trim()+'"]'); if(cb){cb.checked=true;cb.closest('.meal-chip')&&cb.closest('.meal-chip').classList.add('checked');var tr=document.querySelector('.meal-time-row[data-meal="'+v.trim()+'"]');if(tr)tr.style.display='flex';} }); return; }
   ['weekday','sat','sun'].forEach(function(day){
     if(!meals[day]||!meals[day].length) return;
     if(day!=='weekday'){ var cb=document.getElementById('meal-'+day),sub=document.getElementById('meal-'+day+'-sub'); if(cb)cb.checked=true; if(sub)sub.style.display='flex'; }
-    meals[day].forEach(function(v){ var cb=document.querySelector('.meal-cb[data-day="'+day+'"][value="'+v+'"]'); if(cb){cb.checked=true;cb.closest('.meal-chip')&&cb.closest('.meal-chip').classList.add('checked');} });
+    meals[day].forEach(function(v){ var cb=document.querySelector('.meal-cb[data-day="'+day+'"][value="'+v+'"]'); if(cb){cb.checked=true;cb.closest('.meal-chip')&&cb.closest('.meal-chip').classList.add('checked');if(day==='weekday'){var tr=document.querySelector('.meal-time-row[data-meal="'+v+'"]');if(tr)tr.style.display='flex';}} });
   });
   if(meals.times){
     Object.keys(meals.times).forEach(function(meal){
