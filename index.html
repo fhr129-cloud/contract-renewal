@@ -896,10 +896,10 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 function goPage(page){ if(window._goPage) window._goPage(page); else setTimeout(function(){ goPage(page); },100); }
 function goHome(){ if(window._goHome) window._goHome(); else setTimeout(function(){ goHome(); },100); }
 </script>
-  <script>
+ <script>
 if('serviceWorker' in navigator){
-  window.addEventListener('load',function(){
-    navigator.serviceWorker.register('/contract-renewal/sw.js');
+  navigator.serviceWorker.getRegistrations().then(function(regs){
+    regs.forEach(function(r){ r.unregister(); });
   });
 }
 </script>
