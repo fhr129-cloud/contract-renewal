@@ -1008,13 +1008,14 @@ function renderDashboard() {
     if(!h.records||!h.records.length) return;
     var c=contracts.find(function(x){ return x.id===h.contractId; }); if(!c) return;
     h.records.forEach(function(r,i){
-      if(!r.updatedAt&&!r.createdAt) return;
       if(r.addType==='edit'&&i!==h.records.length-1) return;
-      var updDate=new Date(r.createdAt||r.updatedAt);
-      var diffDays=Math.floor((now-updDate)/(1000*60*60*24));
-      if(diffDays>30) return;
+      var baseDate=r.addType==='terminate'?r.endDate:r.startDate;
+      if(!baseDate) return;
+      var bd=new Date(baseDate);
+      var diffDays=Math.floor((now-bd)/(1000*60*60*24));
+      if(Math.abs(diffDays)>30) return;
       var prev=i>0?h.records[i-1]:null;
-      recentUpdates.push({c:c,latest:r,prev:prev,diffDays:diffDays,updDate:updDate});
+      recentUpdates.push({c:c,latest:r,prev:prev,diffDays:diffDays,updDate:bd});
     });
   });
 recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
