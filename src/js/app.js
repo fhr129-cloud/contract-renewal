@@ -1008,7 +1008,7 @@ function renderDashboard() {
     var c=contracts.find(function(x){ return x.id===h.contractId; }); if(!c) return;
     h.records.forEach(function(r,i){
       if(!r.updatedAt) return;
-      if(r.addType==='edit') return;
+  if(r.addType==='edit'&&i!==h.records.length-1) return;
       var updDate=new Date(r.updatedAt);
       var diffDays=Math.floor((now-updDate)/(1000*60*60*24));
       if(diffDays>30) return;
@@ -1037,7 +1037,7 @@ recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
         if(isTerminate){
           priceHtml='';
         } else if(isNew){
-          priceHtml='<span style="font-size:11px;color:#3B6D11;background:#EAF3DE;padding:1px 6px;border-radius:99px;margin-left:4px;">신규</span>';
+          priceHtml='<span style="font-size:11px;color:#888;margin-left:4px;">'+priceHistLabel(item.latest)+'</span>'+(item.latest.note?'<span style="font-size:11px;color:#aaa;margin-left:6px;">'+item.latest.note+'</span>':'');
        } else if(priceChanged){
           priceHtml='<span style="font-size:11px;color:#888;margin-left:4px;">'+priceHistLabel(item.prev)+'</span>'+
             '<span style="font-size:11px;color:#888;margin:0 3px;">→</span>'+
@@ -1053,7 +1053,7 @@ recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
               
             '</div>'+
             '<div style="display:flex;align-items:center;flex-wrap:wrap;margin-top:2px;">'+
-              (isNew?priceHtml:isTerminate?'<span style="font-size:11px;color:#A32D2D;background:#FCEBEB;padding:1px 6px;border-radius:99px;">해지</span>'+priceHtml:'<span style="font-size:11px;color:#3B6D11;background:#EAF3DE;padding:1px 6px;border-radius:99px;">갱신</span>'+priceHtml)+
+             (isTerminate?'<span style="font-size:11px;color:#A32D2D;background:#FCEBEB;padding:1px 6px;border-radius:99px;">해지</span>'+priceHtml:isNew?'<span style="font-size:11px;color:#185FA5;background:#E6F1FB;padding:1px 6px;border-radius:99px;">신규</span>'+priceHtml:'<span style="font-size:11px;color:#3B6D11;background:#EAF3DE;padding:1px 6px;border-radius:99px;">갱신</span>'+priceHtml)+
             '</div>'+
           '</div>'+
          '<div style="flex-shrink:0;text-align:right;">'+
