@@ -1109,7 +1109,7 @@ function buildStaffSubHtml(cat,items){
         sd.items.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); }).map(function(s){
           var c=contracts.find(function(x){ return x.name===s.bizName; }),cid=c?c.id:'';
           var dateStr=s.date||''; if(s.dateEnd&&s.dateEnd!==s.date) dateStr+='~'+s.dateEnd.slice(5);
-          var menuStr=(cat==='특식지원'||cat==='이벤트')&&s.content?s.content.split(' / ')[0]:'';
+          var menuStr=(cat.indexOf('특식지원')!==-1||cat.indexOf('이벤트')!==-1)&&s.content?s.content.split(' / ')[0]:'';
           return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 14px 7px 28px;border-top:.5px solid #f0f0ec;gap:8px;'+(cid?'cursor:pointer;':'')+'"'+(cid?' onclick="goDetail(\''+cid+'\')"':'')+'>'+
             '<div style="flex:1;min-width:0;">'+
               '<span style="font-size:12px;font-weight:500;'+(cid?'color:#185FA5;':'')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;">'+s.bizName+'</span>'+
@@ -1539,7 +1539,7 @@ function renderWeekView(){
         var names=s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]);
         return names.some(function(n){ return n&&n.includes(staff.split(' ')[0]); });
       });
-      var mealOrder=['조식','중식','석식','야식'];
+      var mealOrder=['조식','오전','중식','오후','석식','야식'];
       items.sort(function(a,b){
         var am=a.meals&&a.meals.length?mealOrder.indexOf(a.meals[0]):-1;
         var bm=b.meals&&b.meals.length?mealOrder.indexOf(b.meals[0]):-1;
