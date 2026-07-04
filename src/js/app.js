@@ -1019,9 +1019,10 @@ function renderDashboard() {
 recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
   var recentEl=document.getElementById('recent-update-list');
   
- var renewals=recentUpdates.filter(function(x){ return x.latest.addType!=='terminate'; });
+ var news=recentUpdates.filter(function(x){ return x.latest.addType==='new'; });
+  var renewals=recentUpdates.filter(function(x){ return x.latest.addType!=='terminate'&&x.latest.addType!=='new'; });
   var terminations=recentUpdates.filter(function(x){ return x.latest.addType==='terminate'; });
-  var sortedList=[].concat(renewals,terminations);
+  var sortedList=[].concat(news,renewals,terminations);
   if(recentEl){
     if(!sortedList.length){
       recentEl.innerHTML='<div style="color:#aaa;font-size:12px;padding:12px 0;">최근 30일 계약 변경 내역이 없어요</div>';
