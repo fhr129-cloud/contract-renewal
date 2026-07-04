@@ -534,7 +534,8 @@ window.saveHistForm=async function(idx){
     priceType:document.getElementById('hf-priceType').value,
     note:document.getElementById('hf-note').value.trim(),
     updatedAt:new Date().toISOString(),
-    addType:idx===-1?(detectedType==='terminate'?'terminate':h&&h.records&&h.records.length>0?'renewal':'new'):(records[idx]&&records[idx].addType?records[idx].addType:'edit')
+    addType:idx===-1?(detectedType==='terminate'?'terminate':h&&h.records&&h.records.length>0?'renewal':'new'):(records[idx]&&records[idx].addType?records[idx].addType:'edit'),
+    createdAt:idx===-1?new Date().toISOString():(records[idx]&&records[idx].createdAt?records[idx].createdAt:records[idx]&&records[idx].updatedAt?records[idx].updatedAt:new Date().toISOString())
   };
   if(idx===-1){ records.push(newRecord); } else records[idx]=newRecord;
   await saveHistRecords(records,c?c.name:'');
@@ -1007,9 +1008,9 @@ function renderDashboard() {
     if(!h.records||!h.records.length) return;
     var c=contracts.find(function(x){ return x.id===h.contractId; }); if(!c) return;
     h.records.forEach(function(r,i){
-      if(!r.updatedAt) return;
-  if(r.addType==='edit'&&i!==h.records.length-1) return;
-      var updDate=new Date(r.updatedAt);
+      if(!r.updatedAt&&!r.createdAt) return;
+      if(r.addType==='edit'&&i!==h.records.length-1) return;
+      var updDate=new Date(r.createdAt||r.updatedAt);
       var diffDays=Math.floor((now-updDate)/(1000*60*60*24));
       if(diffDays>30) return;
       var prev=i>0?h.records[i-1]:null;
