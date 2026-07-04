@@ -1013,7 +1013,7 @@ function renderDashboard() {
       if(!baseDate) return;
       var bd=new Date(baseDate);
       var diffDays=Math.floor((now-bd)/(1000*60*60*24));
-      if(Math.abs(diffDays)>30) return;
+      if(Math.abs(diffDays)>90) return;
       var prev=i>0?h.records[i-1]:null;
       recentUpdates.push({c:c,latest:r,prev:prev,diffDays:diffDays,updDate:bd});
     });
