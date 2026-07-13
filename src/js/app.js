@@ -1755,7 +1755,13 @@ function renderSSOptions(q){
 window.filterSS=function(){ renderSSOptions(document.getElementById('ss-input').value); document.getElementById('sup-biz').value=''; };
 window.openSS=function(){ document.getElementById('ss-dropdown').classList.add('open'); renderSSOptions(document.getElementById('ss-input').value); };
 window.closeSS=function(){ document.getElementById('ss-dropdown').classList.remove('open'); };
-window.revealSupStep=function(id){ var el=document.getElementById(id); if(el) el.style.display=''; };
+window.revealSupStep=function(id){ var el=document.getElementById(id); if(el&&el.style.display==='none'){ el.style.display=''; el.classList.remove('sup-step-anim'); void el.offsetWidth; el.classList.add('sup-step-anim'); } };
+window.setSupToday=function(){
+  var d=new Date();
+  var v=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  document.getElementById('sup-date').value=v;
+  revealSupStep('sup-step-cat');
+};
 window.supStepsReset=function(showAll){
   ['sup-step-date','sup-step-cat','sup-step-meal','sup-step-staff','sup-step-content'].forEach(function(id){
     var el=document.getElementById(id); if(el) el.style.display=showAll?'':'none';
