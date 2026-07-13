@@ -877,6 +877,13 @@ watchAuth(function(user){
   if(user){
     loginEl.style.display='none';
     if(!_appStarted){ _appStarted=true; init(); }
+    var phone=(user.email||'').split('@')[0];
+    if(phone){
+      checkAllowedUser(phone).then(function(info){
+        var el=document.getElementById('home-welcome');
+        if(el&&info&&info.name) el.innerHTML='<span style="font-weight:600;color:#185FA5;">'+info.name+'</span>님, 반갑습니다 👋';
+      }).catch(function(){});
+    }
   } else {
     var splash=document.getElementById('splash-screen');
     if(splash) splash.remove();
