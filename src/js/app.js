@@ -359,12 +359,13 @@ function setNutritionists(list) {
 
 // ── 운영지원 칩 ──────────────────────────
 window.toggleStaffChip = function(el, name) {
+  revealSupStep('sup-step-content');
   el.classList.toggle('selected');
   var cls=getStaffColor(name);
   if(el.classList.contains('selected')){ if(cls){ el.className='staff-chip '+cls; el.classList.add('selected'); } }
   else el.className='staff-chip';
 };
-window.toggleMealChip = function(el) { el.classList.toggle('selected'); };
+window.toggleMealChip = function(el) { el.classList.toggle('selected'); revealSupStep('sup-step-staff'); };
 window.toggleTeamDropdown = function(id) {
   closeDropdowns();
   var el=document.getElementById(id); if(el) el.style.display=el.style.display==='none'?'block':'none';
@@ -1754,9 +1755,16 @@ function renderSSOptions(q){
 window.filterSS=function(){ renderSSOptions(document.getElementById('ss-input').value); document.getElementById('sup-biz').value=''; };
 window.openSS=function(){ document.getElementById('ss-dropdown').classList.add('open'); renderSSOptions(document.getElementById('ss-input').value); };
 window.closeSS=function(){ document.getElementById('ss-dropdown').classList.remove('open'); };
+window.revealSupStep=function(id){ var el=document.getElementById(id); if(el) el.style.display=''; };
+window.supStepsReset=function(showAll){
+  ['sup-step-date','sup-step-cat','sup-step-meal','sup-step-staff','sup-step-content'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.style.display=showAll?'':'none';
+  });
+};
 window.selectSS=function(name){
   document.getElementById('ss-input').value=name;
   document.getElementById('sup-biz').value=name;
+  if(name) revealSupStep('sup-step-date');
   document.getElementById('ss-dropdown').classList.remove('open');
   var c=contracts.find(function(x){ return x.name===name; });
   var nutriEl=document.getElementById('sup-nutri-info');
@@ -1780,6 +1788,7 @@ window.openSupportModal=function(){
   var smInput=document.getElementById('sup-special-menu'); if(smInput) smInput.value='';
   var nutriEl=document.getElementById('sup-nutri-info'); if(nutriEl) nutriEl.style.display='none';
   resetMealChips(); resetStaffChips();
+  supStepsReset(false);
   document.getElementById('sup-submit-btn').innerHTML='<i class="ti ti-check"></i> 등록';
   document.getElementById('sup-modal').classList.add('open');
   pushModalState();
@@ -1808,6 +1817,7 @@ window.submitSupport=async function(){
 window.editSupport=function(id){
   var s=supports.find(function(x){ return x.id===id; }); if(!s) return;
   editingSupportId=id;
+  supStepsReset(true);
   window.selectSS(s.bizName||'');
   document.getElementById('sup-date').value=s.date||'';
   if(document.getElementById('sup-date-end')) document.getElementById('sup-date-end').value=s.dateEnd||'';
