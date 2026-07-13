@@ -1,4 +1,4 @@
-import { listenContracts, listenHistory, listenSupports, addContract, updateContract, deleteContract, addHistory, addSupport, updateSupport, updateSupportBizName, deleteSupport, seedIfEmpty, saveHistoryRecords, updateHistoryName } from './db.js';
+import { listenContracts, listenHistory, listenSupports, addContract, updateContract, deleteContract, addHistory, addSupport, updateSupport, updateSupportBizName, deleteSupport, seedIfEmpty, saveHistoryRecords, updateHistoryName, checkAllowedUser, loginUser, registerUser, watchAuth, logoutUser } from './db.js';
 import { calcStatus, STATUS_META, fmtDate, toInputDate, dDiff, dDayLabel, priceLabel } from './utils.js';
 import { COORDS } from './coords.js';
 
@@ -805,7 +805,85 @@ async function init() {
     if(currentPage==='dashboard') renderDashboard();
   });
 }
-init();
+// ── 로그인 ──────────────────────────
+var _loginPhone='',_isNewUser=false,_appStarted=false;
+window.checkPhone=async function(){
+  var phone=document.getElementById('login-phone').value.replace(/[^0-9]/g,'');
+  if(phone.length<10){ showLoginError('올바른 전화번호를 입력해주세요.'); return; }
+  try{
+    var allowed=await checkAllowedUser(phone);
+    if(!allowed){ showLoginError('등록되지 않은 번호예요. 관리자에게 문의하세요.'); return; }
+    _loginPhone=phone;
+    hideLoginError();
+    document.getElementById('login-step-phone').style.display='none';
+    document.getElementById('login-step-pw').style.display='block';
+    // 가입 여부는 로그인 시도로 판별하므로 일단 로그인 모드로 표시
+    _isNewUser=false;
+    document.getElementById('login-hello').textContent=(allowed.name||'')+'님, 안녕하세요!';
+    document.getElementById('login-pw-label').textContent='비밀번호';
+    document.getElementById('login-pw2-wrap').style.display='none';
+    document.getElementById('login-submit-btn').textContent='로그인';
+    document.getElementById('login-pw').focus();
+  } catch(e){ showLoginError('확인 중 오류가 발생했어요.'); }
+};
+window.doLogin=async function(){
+  var pw=document.getElementById('login-pw').value;
+  if(pw.length<6){ showLoginError('비밀번호는 6자 이상이에요.'); return; }
+  hideLoginError();
+  if(_isNewUser){
+    var pw2=document.getElementById('login-pw2').value;
+    if(pw!==pw2){ showLoginError('비밀번호가 일치하지 않아요.'); return; }
+    try{ await registerUser(_loginPhone,pw); }
+    catch(e){ showLoginError('가입 중 오류: '+(e.code||'')); }
+    return;
+  }
+  try{ await loginUser(_loginPhone,pw); }
+  catch(e){
+    if(e.code==='auth/user-not-found'||e.code==='auth/invalid-credential'){
+      // 계정 없으면 최초 가입 모드로 전환
+      try{
+        var allowed=await checkAllowedUser(_loginPhone);
+        if(allowed){
+          // 진짜 미가입인지 확인 불가하니 가입 시도
+          try{ await registerUser(_loginPhone,pw); return; }
+          catch(e2){
+            if(e2.code==='auth/email-already-in-use'){ showLoginError('비밀번호가 틀렸어요.'); return; }
+            showLoginError('오류: '+(e2.code||''));
+            return;
+          }
+        }
+      } catch(e3){}
+      showLoginError('비밀번호가 틀렸어요.');
+    }
+    else if(e.code==='auth/wrong-password'){ showLoginError('비밀번호가 틀렸어요.'); }
+    else{ showLoginError('로그인 오류: '+(e.code||'')); }
+  }
+};
+window.backToPhone=function(){
+  document.getElementById('login-step-pw').style.display='none';
+  document.getElementById('login-step-phone').style.display='block';
+  document.getElementById('login-pw').value='';
+  document.getElementById('login-pw2').value='';
+  hideLoginError();
+};
+function showLoginError(msg){ var el=document.getElementById('login-error'); el.textContent=msg; el.style.display='block'; }
+function hideLoginError(){ document.getElementById('login-error').style.display='none'; }
+window.doLogout=async function(){
+  if(!confirm('로그아웃할까요?')) return;
+  await logoutUser();
+  location.reload();
+};
+watchAuth(function(user){
+  var loginEl=document.getElementById('login-screen');
+  if(user){
+    loginEl.style.display='none';
+    if(!_appStarted){ _appStarted=true; init(); }
+  } else {
+    var splash=document.getElementById('splash-screen');
+    if(splash) splash.remove();
+    loginEl.style.display='flex';
+  }
+});
 
 function updateHomeBadge() {
   var urgent=contracts.filter(function(c){ return !c.terminated&&calcStatus(c)==='urgent'; }).length;
