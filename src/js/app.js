@@ -280,6 +280,14 @@ function isTerminatedNow(c){
 function isTerminatePending(c){
   return c.terminated&&c.endDate&&dDiff(c.endDate)>=0;
 }
+function isTerminatedNow(c){
+  if(!c.terminated) return false;
+  if(!c.endDate) return true;
+  return dDiff(c.endDate)<0;
+}
+function isTerminatePending(c){
+  return c.terminated&&!!c.endDate&&dDiff(c.endDate)>=0;
+}
 function priceHistLabel(r) {
   if(r.priceType==='management') return '관리비제';
   if(r.priceType==='fixed') return (r.price?Number(r.price).toLocaleString()+'원':'0원')+' (고정)';
@@ -1375,7 +1383,7 @@ function renderDetail(c) {
   }).join(''):'<div style="color:#aaa;font-size:13px;padding:12px 0;">지원 이력 없음</div>';
   document.getElementById('detail-body').innerHTML=
     '<div class="detail-section">'+
-    '<div class="detail-row"><span class="detail-label">계약 상태</span><div class="detail-val" style="display:flex;align-items:center;gap:8px;">'+(c.terminated?'<span class="badge urgent">해지</span>':'<span class="badge '+s+'">'+STATUS_META[s].label+'</span><span style="color:'+col+';font-weight:500;">'+dDayLabel(d)+'</span>')+'</div></div>'+
+    '<div class="detail-row"><span class="detail-label">계약 상태</span><div class="detail-val" style="display:flex;align-items:center;gap:8px;">'+(isTerminatePending(c)?'<span class="badge urgent">해지 예정</span><span style="color:#A32D2D;font-weight:500;">'+fmtDate(c.endDate)+' 해지</span>':c.terminated?'<span class="badge urgent">해지</span>':'<span class="badge '+s+'">'+STATUS_META[s].label+'</span><span style="color:'+col+';font-weight:500;">'+dDayLabel(d)+'</span>')+'</div></div>'+
     '<div class="detail-row"><span class="detail-label">소재지</span><span class="detail-val">'+(c.addr||'-')+'</span></div>'+
     '<div class="detail-row"><span class="detail-label">담당자</span><span class="detail-val">'+contactHtml+'</span></div>'+
     '<div class="detail-row"><span class="detail-label">담당영양사</span><span class="detail-val">'+(c.nutritionists&&c.nutritionists.length?c.nutritionists.map(function(nt){ return (nt.name||'')+(nt.phone?' · '+fmtPhone(nt.phone):''); }).join('<br>'):'-')+'</span></div>'+
@@ -1849,7 +1857,7 @@ function bizCard(c){
   var nutriStr=c.nutritionists&&c.nutritionists.length?c.nutritionists.map(function(nt){ return nt.name; }).join(' / '):'';
   var isUrgent=s==='urgent';
   return '<div class="biz-card'+(isUrgent?' urgent-card':'')+'" onclick="goDetail(\''+c.id+'\')">' +
-    '<div class="biz-card-top"><span class="biz-name">'+c.name+'</span><span class="badge '+s+'">'+STATUS_META[s].label+'</span></div>'+
+    '<div class="biz-card-top"><span class="biz-name">'+c.name+'</span>'+(isTerminatePending(c)?'<span class="badge urgent">해지 예정</span>':'<span class="badge '+s+'">'+STATUS_META[s].label+'</span>')+'</div>'+
     '<div class="biz-info">'+
       '<div class="biz-info-row"><i class="ti ti-map-pin"></i><span>'+(c.addr||'-')+'</span></div>'+
       (currentBizTab==='team'?(nutriStr?'<div class="biz-info-row"><i class="ti ti-user"></i><span>'+nutriStr+'</span></div>':'')+(c.resp?'<div class="biz-info-row"><i class="ti ti-user-check"></i><span>'+c.resp+'</span></div>':''):'')+
@@ -2034,7 +2042,7 @@ window.renderAdmin=function(){
   tbody.innerHTML=rows.map(function(c){
     var s=calcStatus(c),d=dDiff(c.endDate);
     return '<tr onclick="openEditModal(\''+c.id+'\')" style="'+(c.terminated?'opacity:0.5;':'')+'">' +
-      '<td>'+(c.terminated?'<span class="badge urgent">해지</span>':'<span class="badge '+s+'">'+STATUS_META[s].label+'</span>')+'</td>'+
+      '<td>'+(isTerminatePending(c)?'<span class="badge urgent">해지 예정</span>':c.terminated?'<span class="badge urgent">해지</span>':'<span class="badge '+s+'">'+STATUS_META[s].label+'</span>')+'</td>'+
       '<td style="font-weight:500;">'+c.name+'</td>'+
       '<td>'+fmtDate(c.endDate)+'</td>'+
       '<td style="font-size:12px;font-weight:500;color:'+(s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':'#888')+';">'+(c.terminated?'-':dDayLabel(d))+'</td>'+
