@@ -272,6 +272,14 @@ function mealsDisplay(meals) {
   if(meals.sun&&meals.sun.length) p.push('일: '+meals.sun.join('/'));
   return p.join(' | ')||'-';
 }
+function isTerminatedNow(c){
+  if(!c.terminated) return false;
+  if(!c.endDate) return true;
+  return dDiff(c.endDate)<0;
+}
+function isTerminatePending(c){
+  return c.terminated&&c.endDate&&dDiff(c.endDate)>=0;
+}
 function priceHistLabel(r) {
   if(r.priceType==='management') return '관리비제';
   if(r.priceType==='fixed') return (r.price?Number(r.price).toLocaleString()+'원':'0원')+' (고정)';
@@ -1911,14 +1919,14 @@ window.renderBizTab=function(){
     } else if(currentBizTab==='newterm'){
     var thisYear=new Date().getFullYear();
     var newBiz=filtered.filter(function(c){
-      if(c.terminated) return false;
+      if(isTerminatedNow(c)) return false;
       var h=historyData.find(function(x){ return x.contractId===c.id; });
       if(!h||!h.records||!h.records.length) return false;
       var first=h.records[0];
       if(!first.startDate) return false;
       return new Date(first.startDate).getFullYear()>=thisYear;
     });
-    var termBiz=contracts.filter(function(c){ return c.terminated; });
+    var termBiz=contracts.filter(function(c){ return isTerminatedNow(c); });
    var html='<div class="team-layout">';
     // 신규
     html+='<div>'+
