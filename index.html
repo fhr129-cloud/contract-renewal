@@ -669,18 +669,23 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
         </div>
         <div id="sup-nutri-info" style="display:none;font-size:11px;color:#185FA5;margin-top:6px;padding:5px 10px;background:#E6F1FB;border-radius:6px;"></div>
       </div>
+      <div id="sup-step-date" style="display:none;">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="sup-form-group">
           <label>시작일 *</label>
-          <input type="date" id="sup-date">
+          <input type="date" id="sup-date" onchange="revealSupStep('sup-step-cat')">
         </div>
         <div class="sup-form-group">
           <label>종료일 <span style="font-size:10px;color:#aaa;">(기간 지원 시)</span></label>
           <input type="date" id="sup-date-end">
         </div>
+      </div>
+      </div>
+      <div id="sup-step-cat" style="display:none;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="sup-form-group">
           <label>카테고리 *</label>
-          <select id="sup-cat" onchange="toggleSpecialMenu(this.value)">
+          <select id="sup-cat" onchange="toggleSpecialMenu(this.value);revealSupStep('sup-step-meal')">
             <option value="">선택...</option>
             <option>운영점검</option><option>위생점검</option>
             <option>환경개선</option><option>특식지원</option>
@@ -692,7 +697,10 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
           <label>제공 메뉴</label>
           <input type="text" id="sup-special-menu" placeholder="예: 삼겹살, 냉면, 케이크 등">
         </div>
-        <div class="sup-form-group" style="grid-column:1/-1;">
+        </div>
+      </div>
+      <div id="sup-step-meal" style="display:none;">
+        <div class="sup-form-group">
           <label>끼니</label>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;" id="meal-chip-wrap">
             <div class="staff-chip" onclick="toggleMealChip(this,'조식')">조식</div>
@@ -706,6 +714,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
           </div>
         </div>
       </div>
+      <div id="sup-step-staff" style="display:none;">
       <div class="sup-form-group">
         <label>지원자</label>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;" id="staff-chip-wrap">
@@ -722,9 +731,12 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
           <div class="staff-chip" onclick="toggleStaffChip(this,'김동현 대리')">김동현 대리</div>
         </div>
       </div>
+      </div>
+      <div id="sup-step-content" style="display:none;">
       <div class="sup-form-group">
         <label>상세 내용</label>
         <textarea id="sup-content" placeholder="지원 내용 간략히" style="padding:8px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;font-family:inherit;width:100%;min-height:72px;resize:vertical;"></textarea>
+      </div>
       </div>
     </div>
     <div class="sup-modal-footer">
