@@ -1878,7 +1878,7 @@ window.renderBizTab=function(){
   var el=document.getElementById('biz-content'); if(!el) return;
   el.innerHTML='';
   var filtered=contracts.filter(function(c){
-    if(currentBizTab!=='newterm'&&currentBizTab!=='region'&&c.terminated) return false;
+    if(currentBizTab!=='newterm'&&currentBizTab!=='region'&&isTerminatedNow(c)) return false;
     if(!q) return true;
     if(c.name.toLowerCase().includes(q)) return true;
     if(c.nutritionists&&c.nutritionists.some(function(nt){ return (nt.name||'').toLowerCase().includes(q); })) return true;
