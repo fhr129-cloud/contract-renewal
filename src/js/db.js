@@ -27,7 +27,10 @@ export async function loginUser(phone,password){
 }
 export async function registerUser(phone,password){
   await setPersistence(auth,browserLocalPersistence);
-  return createUserWithEmailAndPassword(auth,phoneToEmail(phone),password);
+  var cred=await createUserWithEmailAndPassword(auth,phoneToEmail(phone),password);
+  var p=phone.replace(/[^0-9]/g,'');
+  try{ await updateDoc(doc(db,'allowedUsers',p),{registered:true}); }catch(e){}
+  return cred;
 }
 export function watchAuth(callback){ return onAuthStateChanged(auth,callback); }
 export function logoutUser(){ return signOut(auth); }
