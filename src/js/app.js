@@ -818,11 +818,18 @@ window.checkPhone=async function(){
     document.getElementById('login-step-phone').style.display='none';
     document.getElementById('login-step-pw').style.display='block';
     // 가입 여부는 로그인 시도로 판별하므로 일단 로그인 모드로 표시
-    _isNewUser=false;
-    document.getElementById('login-hello').textContent=(allowed.name||'')+'님, 안녕하세요!';
-    document.getElementById('login-pw-label').textContent='비밀번호';
-    document.getElementById('login-pw2-wrap').style.display='none';
-    document.getElementById('login-submit-btn').textContent='로그인';
+    _isNewUser=!allowed.registered;
+    if(_isNewUser){
+      document.getElementById('login-hello').textContent=(allowed.name||'')+'님, 처음 오셨네요! 사용하실 비밀번호를 만들어주세요.';
+      document.getElementById('login-pw-label').textContent='새 비밀번호 (6자 이상)';
+      document.getElementById('login-pw2-wrap').style.display='block';
+      document.getElementById('login-submit-btn').textContent='비밀번호 만들고 시작하기';
+    } else {
+      document.getElementById('login-hello').textContent=(allowed.name||'')+'님, 안녕하세요!';
+      document.getElementById('login-pw-label').textContent='비밀번호';
+      document.getElementById('login-pw2-wrap').style.display='none';
+      document.getElementById('login-submit-btn').textContent='로그인';
+    }
     document.getElementById('login-pw').focus();
   } catch(e){ showLoginError('확인 중 오류가 발생했어요.'); }
 };
