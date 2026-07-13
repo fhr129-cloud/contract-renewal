@@ -1753,7 +1753,11 @@ function renderSSOptions(q){
   dd.innerHTML=(fixedHtml+listHtml)||'<div class="ss-option" style="color:#aaa;">없음</div>';
 }
 window.filterSS=function(){ renderSSOptions(document.getElementById('ss-input').value); document.getElementById('sup-biz').value=''; };
-window.openSS=function(){ document.getElementById('ss-dropdown').classList.add('open'); renderSSOptions(document.getElementById('ss-input').value); };
+window.openSS=function(){
+  document.getElementById('ss-dropdown').classList.add('open');
+  var alreadySelected=document.getElementById('sup-biz').value;
+  renderSSOptions(alreadySelected?'':document.getElementById('ss-input').value);
+};
 window.closeSS=function(){ document.getElementById('ss-dropdown').classList.remove('open'); };
 window.revealSupStep=function(id){ var el=document.getElementById(id); if(el&&el.style.display==='none'){ el.style.display=''; el.classList.remove('sup-step-anim'); void el.offsetWidth; el.classList.add('sup-step-anim'); } };
 window.setSupToday=function(){
