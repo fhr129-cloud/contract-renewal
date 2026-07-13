@@ -841,23 +841,15 @@ window.doLogin=async function(){
     var pw2=document.getElementById('login-pw2').value;
     if(pw!==pw2){ showLoginError('비밀번호가 일치하지 않아요.'); return; }
     try{ await registerUser(_loginPhone,pw); }
-    catch(e){ showLoginError('가입 중 오류: '+(e.code||'')); }
+    catch(e){
+      if(e.code==='auth/email-already-in-use'){
+        // 이미 계정 있음 → 입력한 비번으로 로그인 시도
+        try{ await loginUser(_loginPhone,pw); }
+        catch(e2){ showLoginError('이미 가입된 번호예요. 기존 비밀번호로 로그인해주세요.'); }
+      } else showLoginError('가입 중 오류: '+(e.code||''));
+    }
     return;
   }
-  try{ await loginUser(_loginPhone,pw); }
-  catch(e){
-    if(e.code==='auth/user-not-found'||e.code==='auth/invalid-credential'){
-      // 계정 없으면 최초 가입 모드로 전환
-      try{
-        var allowed=await checkAllowedUser(_loginPhone);
-        if(allowed){
-          // 진짜 미가입인지 확인 불가하니 가입 시도
-          try{ await registerUser(_loginPhone,pw); return; }
-          catch(e2){
-            if(e2.code==='auth/email-already-in-use'){ showLoginError('비밀번호가 틀렸어요.'); return; }
-            showLoginError('오류: '+(e2.code||''));
-            return;
-          }
         }
       } catch(e3){}
       showLoginError('비밀번호가 틀렸어요.');
