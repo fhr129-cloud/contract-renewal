@@ -159,3 +159,12 @@ async function seedHistory() {
   });
   await batch.commit();
 }
+export async function fetchAllForBackup(){
+  var result={};
+  var cols=['contracts','history','supports','allowedUsers'];
+  for(var i=0;i<cols.length;i++){
+    var snap=await getDocs(collection(db,cols[i]));
+    result[cols[i]]=snap.docs.map(function(d){ return {_id:d.id,data:d.data()}; });
+  }
+  return result;
+}
