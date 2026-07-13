@@ -2210,6 +2210,40 @@ document.getElementById('type-select-modal').addEventListener('mousedown',functi
 document.getElementById('personal-modal').addEventListener('mousedown',function(e){ if(e.target===e.currentTarget) closePersonalModal(); });
 document.getElementById('team-modal').addEventListener('mousedown',function(e){ if(e.target===e.currentTarget) closeTeamModal(); });
 history.replaceState({screen:'home'},'','');
+// 당겨서 새로고침 (모바일)
+(function(){
+  var startY=0,pulling=false,threshold=70;
+  var indicator=document.createElement('div');
+  indicator.id='ptr-indicator';
+  indicator.style.cssText='position:fixed;top:-50px;left:50%;transform:translateX(-50%);width:36px;height:36px;background:#fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;z-index:9998;transition:top .2s;';
+  indicator.innerHTML='<i class="ti ti-refresh" style="font-size:18px;color:#185FA5;"></i>';
+  document.body.appendChild(indicator);
+  document.addEventListener('touchstart',function(e){
+    if(window.scrollY===0&&!document.querySelector('#modal-overlay.open,#sup-modal.open,#personal-modal.open,#team-modal.open,#cal-popup.open,#dash-modal,#hist-form-popup')){
+      startY=e.touches[0].clientY; pulling=true;
+    }
+  },{passive:true});
+  document.addEventListener('touchmove',function(e){
+    if(!pulling) return;
+    var diff=e.touches[0].clientY-startY;
+    if(diff>0&&window.scrollY===0){
+      indicator.style.top=Math.min(diff*0.4-50,30)+'px';
+      indicator.querySelector('i').style.transform='rotate('+diff*2+'deg)';
+    }
+  },{passive:true});
+  document.addEventListener('touchend',function(e){
+    if(!pulling) return;
+    pulling=false;
+    var diff=e.changedTouches[0].clientY-startY;
+    if(diff>threshold*2.5&&window.scrollY===0){
+      indicator.style.top='20px';
+      indicator.querySelector('i').style.animation='spin .6s linear infinite';
+      location.reload();
+    } else {
+      indicator.style.top='-50px';
+    }
+  },{passive:true});
+})();
 // 스플래시 화면
 var splash=document.getElementById('splash-screen');
 if(splash){
