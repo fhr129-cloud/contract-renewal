@@ -365,6 +365,35 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 </style>
 </head>
 <body>
+  <div id="login-screen" style="display:none;position:fixed;inset:0;background:#f0f0ee;z-index:9000;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:16px;padding:32px 28px;width:360px;max-width:100%;box-shadow:0 4px 24px rgba(0,0,0,.08);">
+    <div style="text-align:center;margin-bottom:24px;">
+      <img src="./logo.jpg" style="width:150px;object-fit:contain;" onerror="this.style.display='none'">
+      <div style="font-size:13px;color:#888;margin-top:8px;">FS 사업장 관리 시스템</div>
+    </div>
+    <div id="login-step-phone">
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;color:#666;font-weight:500;display:block;margin-bottom:4px;">전화번호</label>
+        <input type="tel" id="login-phone" placeholder="01012345678" style="width:100%;padding:11px 12px;border:.5px solid #ccc;border-radius:8px;font-size:14px;font-family:inherit;" maxlength="11">
+      </div>
+      <button class="btn primary" style="width:100%;justify-content:center;padding:11px;" onclick="checkPhone()">다음</button>
+    </div>
+    <div id="login-step-pw" style="display:none;">
+      <div style="font-size:13px;color:#185FA5;margin-bottom:12px;" id="login-hello"></div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;color:#666;font-weight:500;display:block;margin-bottom:4px;" id="login-pw-label">비밀번호</label>
+        <input type="password" id="login-pw" placeholder="비밀번호" style="width:100%;padding:11px 12px;border:.5px solid #ccc;border-radius:8px;font-size:14px;font-family:inherit;">
+      </div>
+      <div style="margin-bottom:12px;display:none;" id="login-pw2-wrap">
+        <label style="font-size:12px;color:#666;font-weight:500;display:block;margin-bottom:4px;">비밀번호 확인</label>
+        <input type="password" id="login-pw2" placeholder="비밀번호 다시 입력" style="width:100%;padding:11px 12px;border:.5px solid #ccc;border-radius:8px;font-size:14px;font-family:inherit;">
+      </div>
+      <button class="btn primary" style="width:100%;justify-content:center;padding:11px;" id="login-submit-btn" onclick="doLogin()">로그인</button>
+      <div style="text-align:center;margin-top:10px;"><span onclick="backToPhone()" style="font-size:12px;color:#888;cursor:pointer;">← 전화번호 다시 입력</span></div>
+    </div>
+    <div id="login-error" style="display:none;font-size:12px;color:#A32D2D;background:#FCEBEB;padding:8px 12px;border-radius:8px;margin-top:12px;"></div>
+  </div>
+</div>
 <div id="splash-screen" style="position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .4s ease;">
   <div style="display:flex;flex-direction:column;align-items:center;gap:16px;animation:fadeSlideUp .6s cubic-bezier(.22,1,.36,1) forwards;">
     <img src="./logo.jpg" style="width:220px;object-fit:contain;" onerror="this.style.display='none'">
