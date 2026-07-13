@@ -272,14 +272,7 @@ function mealsDisplay(meals) {
   if(meals.sun&&meals.sun.length) p.push('일: '+meals.sun.join('/'));
   return p.join(' | ')||'-';
 }
-function isTerminatedNow(c){
-  if(!c.terminated) return false;
-  if(!c.endDate) return true;
-  return dDiff(c.endDate)<0;
-}
-function isTerminatePending(c){
-  return c.terminated&&c.endDate&&dDiff(c.endDate)>=0;
-}
+
 function isTerminatedNow(c){
   if(!c.terminated) return false;
   if(!c.endDate) return true;
