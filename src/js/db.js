@@ -4,11 +4,33 @@ import {
   updateDoc, deleteDoc, query, orderBy, onSnapshot,
   serverTimestamp, writeBatch, getDocs
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import {
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  onAuthStateChanged, signOut, setPersistence, browserLocalPersistence
+} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import firebaseConfig from './firebase-config.js';
 import { SEED_CONTRACTS, SEED_HISTORY } from './seed-data.js';
-
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
+export const auth = getAuth(app);
+
+// ── 인증 ──────────────────────────
+function phoneToEmail(phone){ return phone.replace(/[^0-9]/g,'')+'@onjeong.app'; }
+export async function checkAllowedUser(phone){
+  var p=phone.replace(/[^0-9]/g,'');
+  var snap=await getDoc(doc(db,'allowedUsers',p));
+  return snap.exists()?snap.data():null;
+}
+export async function loginUser(phone,password){
+  await setPersistence(auth,browserLocalPersistence);
+  return signInWithEmailAndPassword(auth,phoneToEmail(phone),password);
+}
+export async function registerUser(phone,password){
+  await setPersistence(auth,browserLocalPersistence);
+  return createUserWithEmailAndPassword(auth,phoneToEmail(phone),password);
+}
+export function watchAuth(callback){ return onAuthStateChanged(auth,callback); }
+export function logoutUser(){ return signOut(auth); }
 
 export function listenContracts(cb) {
   var q = query(collection(db,'contracts'), orderBy('endDate','asc'));
