@@ -1509,15 +1509,33 @@ function renderWeekView(){
   var staffOrder=STAFF_ORDER;
   var dayLabels=['월','화','수','목','금','토','일'];
 
+  // 토/일 일정 유무 체크 (없으면 열 접기)
+  function dayHasItems(d){
+    var dStr=localDateStr(d);
+    return filtered.some(function(s){
+      if(!s.date) return false;
+      var start=s.date.slice(0,10),end=s.dateEnd?s.dateEnd.slice(0,10):start;
+      return dStr>=start&&dStr<=end;
+    });
+  }
+  var satCollapsed=!dayHasItems(days[5]);
+  var sunCollapsed=!dayHasItems(days[6]);
+  function isCollapsed(i){ return (i===5&&satCollapsed)||(i===6&&sunCollapsed); }
+  var colTemplate='72px repeat(5,1fr) '+(satCollapsed?'34px':'1fr')+' '+(sunCollapsed?'34px':'1fr');
+
   // 팀 공지 행
-  var html='<div class="week-grid" style="min-width:900px;width:100%;">';
+  var html='<div class="week-grid" style="min-width:900px;width:100%;grid-template-columns:'+colTemplate+';">';
   // 헤더 행
   html+='<div class="week-header"></div>';
   days.forEach(function(d,i){
     var dStr=localDateStr(d),isToday=dStr===todayStr;
     var hday=getHoliday(dStr);
     var wdColor=i===5?'color:#1A5276;':i===6?'color:#C0392B;':'';
-    html+='<div class="week-header'+(isToday?' today-col':'')+(hday?' holiday':'')+'" style="'+(hday?'color:#E24B4A;':wdColor)+'">' +dayLabels[i]+'<br><div style="display:flex;align-items:center;justify-content:center;gap:3px;"><span style="font-weight:600;">'+d.getDate()+'</span>'+(hday?'<span style="font-size:8px;font-weight:400;color:#E24B4A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:36px;">'+hday+'</span>':'')+' </div></div>';
+    if(isCollapsed(i)){
+      html+='<div class="week-header" style="'+wdColor+'padding:6px 2px;font-size:10px;">'+dayLabels[i]+'<br><span style="font-weight:600;">'+d.getDate()+'</span></div>';
+    } else {
+      html+='<div class="week-header'+(isToday?' today-col':'')+(hday?' holiday':'')+'" style="'+(hday?'color:#E24B4A;':wdColor)+'">' +dayLabels[i]+'<br><div style="display:flex;align-items:center;justify-content:center;gap:3px;"><span style="font-weight:600;">'+d.getDate()+'</span>'+(hday?'<span style="font-size:8px;font-weight:400;color:#E24B4A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:36px;">'+hday+'</span>':'')+' </div></div>';
+    }
   });
 
   // 팀공지 행
@@ -1529,6 +1547,8 @@ function renderWeekView(){
       var start=s.date.slice(0,10),end=s.dateEnd?s.dateEnd.slice(0,10):start;
       return dStr>=start&&dStr<=end;
     });
+    var tIdx=days.findIndex(function(x){ return localDateStr(x)===dStr; });
+    if(isCollapsed(tIdx)){ html+='<div class="week-cell" style="background:#fafaf8;"></div>'; return; }
     html+='<div class="week-cell'+(isToday?' today-col':'')+'" style="background:'+(isToday?'#fffdf0':'#FFFDF5')+';" onclick="openTypeSelectWithStaff(\''+dStr+'\',\'\')">'+
       teamItems.map(function(s){
         return '<div class="week-event" onclick="event.stopPropagation();openCalPopupSingle(\''+s.id+'\')" style="cursor:pointer;background:#FFECEC;color:#A32D2D;font-weight:700;font-size:11px;display:flex;align-items:center;gap:2px;">'+
@@ -1542,8 +1562,9 @@ function renderWeekView(){
     var staffBg=getStaffBg(staff);
     
    html+='<div class="week-staff-label"><span style="font-size:10px;font-weight:600;color:#555;padding:2px 8px;background:'+staffBg+';border-radius:4px;display:inline-block;">'+staff.split(' ')[0]+'</span></div>';
-    days.forEach(function(d){
+    days.forEach(function(d,di){
       var dStr=localDateStr(d),isToday=dStr===todayStr;
+      if(isCollapsed(di)){ html+='<div class="week-cell" style="background:#fafaf8;"></div>'; return; }
       var items=filtered.filter(function(s){
         if(s.type==='team') return false;
         if(!s.date) return false;
