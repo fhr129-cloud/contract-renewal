@@ -1068,7 +1068,7 @@ recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
             '</div>'+
           '</div>'+
          '<div style="flex-shrink:0;text-align:right;">'+
-            (isTerminate?'<div style="font-size:11px;color:#A32D2D;white-space:nowrap;">'+(item.latest.endDate?fmtDate(item.latest.endDate)+(dDiff(item.latest.endDate)>=0?' 해지 예정':' 해지'):'')+'</div>':
+            (isTerminate?'<div style="font-size:11px;color:#A32D2D;white-space:nowrap;">'+(item.latest.endDate?fmtDate(item.latest.endDate)+(dDiff(item.latest.endDate)>=0?' 해지 예정':' 해지'):'')+'</div>':'<div style="font-size:11px;color:#888;white-space:nowrap;">'+(item.latest.startDate?fmtDate(item.latest.startDate):'')+'</div><div style="font-size:11px;color:#888;white-space:nowrap;">~ '+(item.latest.endDate?fmtDate(item.latest.endDate):'')+'</div>')+
           '</div>'+
         '</div>';
      }).join('');
