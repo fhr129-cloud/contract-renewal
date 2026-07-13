@@ -843,19 +843,19 @@ window.doLogin=async function(){
     try{ await registerUser(_loginPhone,pw); }
     catch(e){
       if(e.code==='auth/email-already-in-use'){
-        // 이미 계정 있음 → 입력한 비번으로 로그인 시도
         try{ await loginUser(_loginPhone,pw); }
         catch(e2){ showLoginError('이미 가입된 번호예요. 기존 비밀번호로 로그인해주세요.'); }
       } else showLoginError('가입 중 오류: '+(e.code||''));
     }
     return;
   }
-        }
-      } catch(e3){}
+  try{ await loginUser(_loginPhone,pw); }
+  catch(e){
+    if(e.code==='auth/user-not-found'||e.code==='auth/invalid-credential'||e.code==='auth/wrong-password'){
       showLoginError('비밀번호가 틀렸어요.');
+    } else {
+      showLoginError('로그인 오류: '+(e.code||''));
     }
-    else if(e.code==='auth/wrong-password'){ showLoginError('비밀번호가 틀렸어요.'); }
-    else{ showLoginError('로그인 오류: '+(e.code||'')); }
   }
 };
 window.backToPhone=function(){
