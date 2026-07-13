@@ -2246,8 +2246,11 @@ if(ptrPage){
     if(diff>threshold*2.5&&window.scrollY===0){
       indicator.style.top='20px';
       indicator.querySelector('i').style.animation='spin .6s linear infinite';
-      if(currentPage) sessionStorage.setItem('ptr-page',currentPage);
-      location.reload();
+      setTimeout(function(){
+        if(currentPage) renderPage(currentPage);
+        indicator.style.top='-50px';
+        indicator.querySelector('i').style.animation='';
+      },600);
     } else {
       indicator.style.top='-50px';
     }
