@@ -2210,6 +2210,12 @@ document.getElementById('type-select-modal').addEventListener('mousedown',functi
 document.getElementById('personal-modal').addEventListener('mousedown',function(e){ if(e.target===e.currentTarget) closePersonalModal(); });
 document.getElementById('team-modal').addEventListener('mousedown',function(e){ if(e.target===e.currentTarget) closeTeamModal(); });
 history.replaceState({screen:'home'},'','');
+// 당겨서 새로고침 후 페이지 복원
+var ptrPage=sessionStorage.getItem('ptr-page');
+if(ptrPage){
+  sessionStorage.removeItem('ptr-page');
+  setTimeout(function(){ if(window.goPage) goPage(ptrPage); },100);
+}
 // 당겨서 새로고침 (모바일)
 (function(){
   var startY=0,pulling=false,threshold=70;
@@ -2238,6 +2244,7 @@ history.replaceState({screen:'home'},'','');
     if(diff>threshold*2.5&&window.scrollY===0){
       indicator.style.top='20px';
       indicator.querySelector('i').style.animation='spin .6s linear infinite';
+      if(currentPage) sessionStorage.setItem('ptr-page',currentPage);
       location.reload();
     } else {
       indicator.style.top='-50px';
