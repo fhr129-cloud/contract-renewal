@@ -1,4 +1,4 @@
-import { listenContracts, listenHistory, listenSupports, addContract, updateContract, deleteContract, addHistory, addSupport, updateSupport, updateSupportBizName, deleteSupport, seedIfEmpty, saveHistoryRecords, updateHistoryName, checkAllowedUser, loginUser, registerUser, watchAuth, logoutUser } from './db.js';
+import { listenContracts, listenHistory, listenSupports, addContract, updateContract, deleteContract, addHistory, addSupport, updateSupport, updateSupportBizName, deleteSupport, seedIfEmpty, saveHistoryRecords, updateHistoryName, checkAllowedUser, loginUser, registerUser, watchAuth, logoutUser, fetchAllForBackup } from './db.js';
 import { calcStatus, STATUS_META, fmtDate, toInputDate, dDiff, dDayLabel, priceLabel } from './utils.js';
 import { COORDS } from './coords.js';
 
@@ -933,7 +933,7 @@ function applyState(state) {
     var titles={dashboard:'대시보드',support:'운영지원',businesses:'FS 사업장 현황',admin:'관리자 수정'};
     document.getElementById('page-title').textContent=titles[state.page]||'';
     var actions=document.getElementById('top-actions'); actions.innerHTML='';
-    if(state.page==='admin') actions.innerHTML='<button class="btn primary" onclick="openAddModal()"><i class="ti ti-plus"></i> 추가</button><button class="btn" onclick="syncContractsFromHistory()"><i class="ti ti-refresh"></i> 동기화</button><button class="btn" onclick="exportExcel()"><i class="ti ti-download"></i> 엑셀</button>';
+    if(state.page==='admin') actions.innerHTML='<button class="btn primary" onclick="openAddModal()"><i class="ti ti-plus"></i> 추가</button><button class="btn" onclick="syncContractsFromHistory()"><i class="ti ti-refresh"></i> 동기화</button><button class="btn" onclick="exportExcel()"><i class="ti ti-download"></i> 엑셀</button><button class="btn" onclick="downloadBackup()"><i class="ti ti-database-export"></i> 백업</button>';
     ['dashboard','support','businesses','admin'].forEach(function(p){
       var el=document.getElementById('page-'+p); if(el) el.style.display=p===state.page?'block':'none';
     });
@@ -2263,6 +2263,22 @@ window.exportExcel=function(){
   showToast('엑셀 저장되었습니다.');
 };
 
+window.downloadBackup=async function(){
+  showToast('백업 데이터 수집 중...');
+  try{
+    var data=await fetchAllForBackup();
+    data._exportedAt=new Date().toISOString();
+    var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    var d=new Date();
+    a.href=url;
+    a.download='FS백업_'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('백업 파일이 다운로드됐어요!');
+  } catch(e){ showToast('백업 실패: '+(e.message||'')); }
+};
 window.syncContractsFromHistory=async function(){
   if(!confirm('히스토리 마지막 record 기준으로 전체 계약정보를 업데이트할까요?')) return;
   var updated=0;
