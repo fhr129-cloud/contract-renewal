@@ -172,6 +172,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f0ee;color:#1a1a18;min-
 .sup-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:300;align-items:center;justify-content:center;}
 .sup-modal.open{display:flex;}
 .sup-modal-inner{background:#fff;border-radius:14px;width:560px;max-width:95vw;max-height:92vh;overflow-y:auto;}
+#sup-modal .sup-modal-inner{height:min(680px,92vh);display:flex;flex-direction:column;}
+#sup-modal .sup-modal-body{flex:1;overflow-y:auto;}
 .sup-modal-header{padding:14px 18px;border-bottom:.5px solid #e8e8e4;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:10;}
 .sup-modal-header h3{font-size:15px;font-weight:600;}
 .sup-modal-body{padding:18px;}
