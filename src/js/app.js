@@ -1759,7 +1759,7 @@ window.openSS=function(){
   renderSSOptions(alreadySelected?'':document.getElementById('ss-input').value);
 };
 window.closeSS=function(){ document.getElementById('ss-dropdown').classList.remove('open'); };
-window.revealSupStep=function(id){ var el=document.getElementById(id); if(el&&el.style.display==='none'){ el.style.display=''; el.classList.remove('sup-step-anim'); void el.offsetWidth; el.classList.add('sup-step-anim'); } };
+window.revealSupStep=function(id){ var el=document.getElementById(id); if(el&&el.style.display==='none'){ el.style.display=''; el.classList.remove('sup-step-anim'); void el.offsetWidth; el.classList.add('sup-step-anim'); setTimeout(function(){ el.scrollIntoView({behavior:'smooth',block:'nearest'}); },100); } };
 window.setSupToday=function(){
   var d=new Date();
   var v=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -1815,6 +1815,8 @@ window.submitSupport=async function(){
   var specialMenu=document.getElementById('sup-special-menu')?document.getElementById('sup-special-menu').value.trim():'';
   if((cat==='특식지원'||cat==='이벤트')&&specialMenu) content=(specialMenu+(content?' / '+content:''));
   if(!biz||!date||!cat){ showToast('업장, 일자, 카테고리는 필수예요.'); return; }
+  if(!meals.length){ showToast('끼니를 선택해주세요.'); return; }
+  if(!staffNames.length){ showToast('지원자를 선택해주세요.'); return; }
   var data={type:'support',bizName:biz,date:date,dateEnd:dateEnd,timeStart:'',timeEnd:'',meals:meals,staffName:staffNames.join(', '),staffNames:staffNames,category:cat,content:content};
   try{
     if(editingSupportId){ await updateSupport(editingSupportId,data); editingSupportId=null; showToast('수정되었습니다.'); }
