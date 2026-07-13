@@ -2214,7 +2214,9 @@ history.replaceState({screen:'home'},'','');
 var ptrPage=sessionStorage.getItem('ptr-page');
 if(ptrPage){
   sessionStorage.removeItem('ptr-page');
-  setTimeout(function(){ if(window.goPage) goPage(ptrPage); },100);
+  var s={screen:'page',page:ptrPage};
+  history.replaceState(s,'','');
+  applyState(s);
 }
 // 당겨서 새로고침 (모바일)
 (function(){
