@@ -871,6 +871,11 @@ function showLoginError(msg){ var el=document.getElementById('login-error'); el.
 function hideLoginError(){ document.getElementById('login-error').style.display='none'; }
 window.currentUserRole='staff';
 function isAdmin(){ return window.currentUserRole==='admin'; }
+window.guardSupportEdit=function(id){
+  var s=supports.find(function(x){ return x.id===id; });
+  if(!canEditSupport(s)){ showToast('본인 일정만 수정/삭제할 수 있어요.'); return false; }
+  return true;
+};
 function canEditSupport(s){
   if(isAdmin()) return true;
   if(!s) return false;
@@ -1808,7 +1813,6 @@ window.submitPersonalEdit=async function(id){
   } catch(e){ showToast('오류가 발생했습니다.'); }
 };
 window.editTeam=function(id){
-  if(!isAdmin()){ showToast('팀 공지는 관리자만 수정할 수 있어요.'); return; }
   var s=supports.find(function(x){ return x.id===id; }); if(!s) return;
   closeCalPopup();
   document.getElementById('team-modal-title').textContent='팀 공지 수정';
