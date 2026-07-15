@@ -1031,13 +1031,18 @@ function renderDashboard() {
   var schedEl=document.getElementById('dash-today-schedule');
   if(schedEl){
     var staffOrderDash=Object.keys(STAFF_MAP);
+    var mealOrderDash=['조식','오전','중식','오후','석식','야식'];
     var sortedItems=todayItems.slice().sort(function(a,b){
       var an=a.staffNames&&a.staffNames.length?a.staffNames[0]:(a.staffName||'');
       var bn=b.staffNames&&b.staffNames.length?b.staffNames[0]:(b.staffName||'');
       var ai=staffOrderDash.findIndex(function(n){ return an.includes(n); });
       var bi=staffOrderDash.findIndex(function(n){ return bn.includes(n); });
       if(ai===-1) ai=99; if(bi===-1) bi=99;
-      return ai-bi;
+      if(ai!==bi) return ai-bi;
+      var am=a.meals&&a.meals.length?mealOrderDash.indexOf(a.meals[0]):-1;
+      var bm=b.meals&&b.meals.length?mealOrderDash.indexOf(b.meals[0]):-1;
+      if(am===-1) am=99; if(bm===-1) bm=99;
+      return am-bm;
     });
     if(!sortedItems.length){
       schedEl.innerHTML='<div class="today-schedule-empty">오늘 등록된 일정이 없어요</div>';
