@@ -874,7 +874,7 @@ function isAdmin(){ return window.currentUserRole==='admin'; }
 function canEditSupport(s){
   if(isAdmin()) return true;
   if(!s) return false;
-  if(s.type==='team') return false;
+  if(s.type==='team') return true;
   var myName=window.currentUserName||'';
   if(!myName) return false;
   var names=s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]);
@@ -1775,6 +1775,7 @@ window.openCalPopupSingle=function(supportId){
 window.closeCalPopup=function(){ var p=document.getElementById('cal-popup'); if(p) p.classList.remove('open'); };
 window.editPersonal=function(id){
   var s=supports.find(function(x){ return x.id===id; }); if(!s) return;
+  if(!canEditSupport(s)){ showToast('본인 일정만 수정할 수 있어요.'); return; }
   closeCalPopup();
   document.getElementById('personal-modal-title').textContent='개인 일정 수정';
   document.getElementById('personal-type-val').value=s.personalType||'';
@@ -1807,6 +1808,7 @@ window.submitPersonalEdit=async function(id){
   } catch(e){ showToast('오류가 발생했습니다.'); }
 };
 window.editTeam=function(id){
+  if(!isAdmin()){ showToast('팀 공지는 관리자만 수정할 수 있어요.'); return; }
   var s=supports.find(function(x){ return x.id===id; }); if(!s) return;
   closeCalPopup();
   document.getElementById('team-modal-title').textContent='팀 공지 수정';
