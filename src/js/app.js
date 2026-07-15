@@ -148,6 +148,7 @@ var STAFF_MAP = {
   '박주형':{ cls:'sc-박주형', border:'#185FA5', bg:'#E6F1FB' },
   '김재희':{ cls:'sc-김재희', border:'#3B6D11', bg:'#EAF3DE' },
   '손도란':{ cls:'sc-손도란', border:'#854F0B', bg:'#FAEEDA' },
+  '권은진':{ cls:'sc-권은진', border:'#854F0B', bg:'#FAEEDA' },
   '이소영':{ cls:'sc-이소영', border:'#6B2FA0', bg:'#F3E6FB' },
   '김상준':{ cls:'sc-김상준', border:'#A32D2D', bg:'#FCEBEB' },
   '안은재':{ cls:'sc-안은재', border:'#0B6B5A', bg:'#E6FBF8' },
@@ -155,7 +156,7 @@ var STAFF_MAP = {
   '임성창':{ cls:'sc-임성창', border:'#444',    bg:'#F0F0EC' },
   '김동현':{ cls:'sc-김동현', border:'#A32D6B', bg:'#FBE6F0' },
 };
-var STAFF_ORDER = ['박주형 본부장','김재희 차장','손도란 대리','이소영 주임','김상준 주임','견병록 매니저','안은재 주임','임성창 차장','김동현 대리'];
+var STAFF_ORDER = ['박주형 본부장','김재희 차장','권은진 과장','이소영 주임','김상준 주임','견병록 매니저','안은재 주임','임성창 차장','김동현 대리'];
 function getStaffColor(name) {
   if(!name) return '';
   for(var k in STAFF_MAP) { if(name.includes(k)) return STAFF_MAP[k].cls; }
@@ -1994,9 +1995,11 @@ window.renderBizTab=function(){
   if(currentBizTab==='team'){
     var t1=filtered.filter(function(c){ return c.team===1; }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
     var t2=filtered.filter(function(c){ return c.team===2; }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
+    var t3=filtered.filter(function(c){ return c.team===3; }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
     el.innerHTML='<div class="team-layout">'+
       '<div><div class="team-header blue" onclick="toggleTeam(\'t1\')"><i class="ti ti-users"></i> 1팀 — 박주형 본부장 <span>'+t1.length+'개소</span><i class="ti ti-chevron-down toggle-icon"></i></div><div class="team-body'+(q&&t1.length?' open':'')+'" id="t1">'+t1.map(bizCard).join('')+'</div></div>'+
-      '<div><div class="team-header green" onclick="toggleTeam(\'t2\')"><i class="ti ti-users"></i> 2팀 — 김재희 차장 <span>'+t2.length+'개소</span><i class="ti ti-chevron-down toggle-icon"></i></div><div class="team-body'+(q&&t2.length?' open':'')+'" id="t2">'+t2.map(bizCard).join('')+'</div></div>'+
+     '<div><div class="team-header green" onclick="toggleTeam(\'t2\')"><i class="ti ti-users"></i> 2팀 — 김재희 차장 <span>'+t2.length+'개소</span><i class="ti ti-chevron-down toggle-icon"></i></div><div class="team-body'+(q&&t2.length?' open':'')+'" id="t2">'+t2.map(bizCard).join('')+'</div></div>'+
+      '<div><div class="team-header amber" onclick="toggleTeam(\'t3\')"><i class="ti ti-users"></i> 3팀 — 권은진 과장 <span>'+t3.length+'개소</span><i class="ti ti-chevron-down toggle-icon"></i></div><div class="team-body'+(q&&t3.length?' open':'')+'" id="t3">'+t3.map(bizCard).join('')+'</div></div>'+
       '</div>';
     if(q){
       setTimeout(function(){
