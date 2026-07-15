@@ -98,6 +98,7 @@ window.renderSupportSearch=function(val){
   '</div></div>';
 };
 window.delSupportSearch=async function(id){
+  if(!window.guardSupportEdit(id)) return;
   if(!confirm('삭제할까요?')) return;
   try{
     await deleteSupport(id);
@@ -870,6 +871,15 @@ function showLoginError(msg){ var el=document.getElementById('login-error'); el.
 function hideLoginError(){ document.getElementById('login-error').style.display='none'; }
 window.currentUserRole='staff';
 function isAdmin(){ return window.currentUserRole==='admin'; }
+function canEditSupport(s){
+  if(isAdmin()) return true;
+  if(!s) return false;
+  if(s.type==='team') return false;
+  var myName=window.currentUserName||'';
+  if(!myName) return false;
+  var names=s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]);
+  return names.some(function(n){ return n===myName||n.split(' ')[0]===myName.split(' ')[0]; });
+}
 window.applyRoleUI=function(){};
 window.doLogout=async function(){
   if(!confirm('로그아웃할까요?')) return;
@@ -885,6 +895,7 @@ watchAuth(function(user){
     if(phone){
       checkAllowedUser(phone).then(function(info){
         window.currentUserRole=(info&&info.role)||'staff';
+        window.currentUserName=(info&&info.name)||'';
         var el=document.getElementById('home-welcome');
         if(el&&info&&info.name) el.innerHTML='<span style="font-weight:600;color:#185FA5;">'+info.name+'</span>님, 반갑습니다 👋';
         applyRoleUI();
@@ -1824,6 +1835,7 @@ window.submitTeamEdit=async function(id){
 };
 window.editSupportFromPopup=function(id){ closeCalPopup(); window.editSupport(id); };
 window.delSupportFromPopup=async function(id){
+  if(!window.guardSupportEdit(id)) return;
   if(!confirm('삭제할까요?')) return;
   try{ await deleteSupport(id); showToast('삭제되었습니다.'); closeCalPopup(); } catch(e){ showToast('오류 발생'); }
 };
@@ -1924,6 +1936,7 @@ window.submitSupport=async function(){
 };
 window.editSupport=function(id){
   var s=supports.find(function(x){ return x.id===id; }); if(!s) return;
+  if(!canEditSupport(s)){ showToast('본인 일정만 수정할 수 있어요.'); return; }
   editingSupportId=id;
   supStepsReset(true);
   window.selectSS(s.bizName||'');
@@ -1949,10 +1962,12 @@ window.editSupport=function(id){
   showToast('내용 수정 후 저장하세요.');
 };
 window.delSupport=async function(id){
+  if(!window.guardSupportEdit(id)) return;
   if(!confirm('삭제할까요?')) return;
   try{ await deleteSupport(id); showToast('삭제되었습니다.'); } catch(e){ showToast('오류 발생'); }
 };
 window.delSupportFromDetail=async function(id,contractId){
+  if(!window.guardSupportEdit(id)) return;
   if(!confirm('삭제할까요?')) return;
   try{
     await deleteSupport(id);
