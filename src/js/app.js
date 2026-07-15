@@ -868,6 +868,17 @@ window.backToPhone=function(){
 };
 function showLoginError(msg){ var el=document.getElementById('login-error'); el.textContent=msg; el.style.display='block'; }
 function hideLoginError(){ document.getElementById('login-error').style.display='none'; }
+window.currentUserRole='staff';
+function isAdmin(){ return window.currentUserRole==='admin'; }
+window.applyRoleUI=function(){
+  // 홈 화면 관리자 수정 버튼
+  document.querySelectorAll('.home-btn').forEach(function(btn){
+    if(btn.getAttribute('onclick')&&btn.getAttribute('onclick').includes("'admin'")) btn.style.display=isAdmin()?'':'none';
+  });
+  // 하단 탭바 관리 탭
+  var adminTab=document.getElementById('tab-admin');
+  if(adminTab) adminTab.style.display=isAdmin()?'':'none';
+};
 window.doLogout=async function(){
   if(!confirm('로그아웃할까요?')) return;
   await logoutUser();
@@ -881,9 +892,11 @@ watchAuth(function(user){
     var phone=(user.email||'').split('@')[0];
     if(phone){
       checkAllowedUser(phone).then(function(info){
+        window.currentUserRole=(info&&info.role)||'staff';
         var el=document.getElementById('home-welcome');
         if(el&&info&&info.name) el.innerHTML='<span style="font-weight:600;color:#185FA5;">'+info.name+'</span>님, 반갑습니다 👋';
-      }).catch(function(){});
+        applyRoleUI();
+      }).catch(function(){ window.currentUserRole='staff'; applyRoleUI(); });
     }
   } else {
     var splash=document.getElementById('splash-screen');
@@ -938,6 +951,7 @@ function applyState(state) {
     ['dashboard','support','businesses','admin'].forEach(function(p){
       var el=document.getElementById('page-'+p); if(el) el.style.display=p===state.page?'block':'none';
     });
+    if(state.page==='admin'&&!isAdmin()){ showToast('관리자만 접근할 수 있어요.'); history.replaceState({screen:'home'},'',''); applyState({screen:'home'}); return; }
     var pageEl=document.getElementById('page-'+state.page);
     if(pageEl){ pageEl.classList.remove('page-anim'); void pageEl.offsetWidth; pageEl.classList.add('page-anim'); }
     renderPage(state.page);
@@ -2171,6 +2185,7 @@ window.openAddModal=function(){
 };
 window.openEditModal=function(id){
   if(!id||id==='undefined') return;
+  if(!isAdmin()){ showToast('계약 정보는 관리자만 수정할 수 있어요.'); return; }
   var c=contracts.find(function(x){ return x.id===id; }); if(!c) return;
   editingId=id;
   document.getElementById('modal-title').textContent='계약 수정 — '+c.name;
