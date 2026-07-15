@@ -870,22 +870,7 @@ function showLoginError(msg){ var el=document.getElementById('login-error'); el.
 function hideLoginError(){ document.getElementById('login-error').style.display='none'; }
 window.currentUserRole='staff';
 function isAdmin(){ return window.currentUserRole==='admin'; }
-window.applyRoleUI=function(){
-  // 홈 화면 관리자 수정 버튼: staff는 반투명 + 자물쇠
-  document.querySelectorAll('.home-btn').forEach(function(btn){
-    if(btn.getAttribute('onclick')&&btn.getAttribute('onclick').includes("'admin'")){
-      btn.style.opacity=isAdmin()?'':'0.5';
-      var lock=btn.querySelector('.role-lock');
-      if(!isAdmin()&&!lock){
-        var l=document.createElement('div');
-        l.className='role-lock';
-        l.style.cssText='font-size:10px;color:#aaa;margin-top:2px;';
-        l.innerHTML='<i class="ti ti-lock"></i> 관리자 전용';
-        btn.appendChild(l);
-      } else if(isAdmin()&&lock){ lock.remove(); }
-    }
-  });
-};
+window.applyRoleUI=function(){};
 window.doLogout=async function(){
   if(!confirm('로그아웃할까요?')) return;
   await logoutUser();
