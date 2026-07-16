@@ -660,8 +660,17 @@ window.selectScheduleType=function(type){
   window._typeSelectStaff=null;
   if(type==='support'){
     openSupportModal();
-    if(date) document.getElementById('sup-date').value=date;
-    if(staff) setTimeout(function(){ setSelectedStaff([staff]); },50);
+    if(date){
+      document.getElementById('sup-date').value=date;
+      revealSupStep('sup-step-date');
+      revealSupStep('sup-step-cat');
+    }
+    if(staff) setTimeout(function(){
+      setSelectedStaff([staff]);
+      revealSupStep('sup-step-meal');
+      revealSupStep('sup-step-staff');
+      revealSupStep('sup-step-content');
+    },50);
   } else if(type==='personal'){
     openPersonalModal();
     if(date) document.getElementById('personal-date').value=date;
