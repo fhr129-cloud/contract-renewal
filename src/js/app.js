@@ -660,17 +660,8 @@ window.selectScheduleType=function(type){
   window._typeSelectStaff=null;
   if(type==='support'){
     openSupportModal();
-    if(date){
-      document.getElementById('sup-date').value=date;
-      revealSupStep('sup-step-date');
-      revealSupStep('sup-step-cat');
-    }
-    if(staff) setTimeout(function(){
-      setSelectedStaff([staff]);
-      revealSupStep('sup-step-meal');
-      revealSupStep('sup-step-staff');
-      revealSupStep('sup-step-content');
-    },50);
+    if(date) document.getElementById('sup-date').value=date;
+    if(staff) setTimeout(function(){ setSelectedStaff([staff]); },50);
   } else if(type==='personal'){
     openPersonalModal();
     if(date) document.getElementById('personal-date').value=date;
@@ -1897,7 +1888,11 @@ window.supStepsReset=function(showAll){
 window.selectSS=function(name){
   document.getElementById('ss-input').value=name;
   document.getElementById('sup-biz').value=name;
-  if(name) revealSupStep('sup-step-date');
+  if(name){
+    revealSupStep('sup-step-date');
+    // 날짜가 이미 채워져 있으면(달력에서 진입) 다음 단계도 자동 공개
+    if(document.getElementById('sup-date').value) revealSupStep('sup-step-cat');
+  }
   document.getElementById('ss-dropdown').classList.remove('open');
   var c=contracts.find(function(x){ return x.name===name; });
   var nutriEl=document.getElementById('sup-nutri-info');
