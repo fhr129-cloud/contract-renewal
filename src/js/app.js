@@ -938,7 +938,7 @@ window.addEventListener('popstate',function(e){
   
   if(document.getElementById('personal-modal').classList.contains('open')){ closePersonalModal(); return; }
   if(document.getElementById('team-modal').classList.contains('open')){ closeTeamModal(); return; }
-  if(state.modal) return;
+  if(state.modal){ history.back(); return; }
   applyState(state);
 });
 function applyState(state) {
