@@ -726,7 +726,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="sup-form-group">
           <label>카테고리 *</label>
-          <select id="sup-cat" onchange="toggleSpecialMenu(this.value);revealSupStep('sup-step-meal')">
+          <select id="sup-cat" onchange="toggleSpecialMenu(this.value);revealSupStep('sup-step-meal');if(document.querySelector('#staff-chip-wrap .staff-chip.selected')){revealSupStep('sup-step-staff');revealSupStep('sup-step-content');}">
             <option value="">선택...</option>
             <option>운영점검</option><option>위생점검</option>
             <option>환경개선</option><option>특식지원</option>
