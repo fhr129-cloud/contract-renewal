@@ -714,7 +714,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="sup-form-group">
           <label>시작일 * <span onclick="setSupToday()" style="font-size:11px;color:#185FA5;cursor:pointer;font-weight:500;margin-left:4px;">오늘</span></label>
-          <input type="date" id="sup-date" onchange="revealSupStep('sup-step-cat')">
+          <input type="date" id="sup-date" onchange="revealSupStep('sup-step-cat')" oninput="revealSupStep('sup-step-cat')" onblur="if(this.value)revealSupStep('sup-step-cat')">
         </div>
         <div class="sup-form-group">
           <label>종료일 <span style="font-size:10px;color:#aaa;">(기간 지원 시)</span></label>
