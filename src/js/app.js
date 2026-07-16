@@ -1699,6 +1699,18 @@ function renderWeekView(){
   });
   html+='</div>';
   var calEl=document.getElementById('calendar'); if(calEl) calEl.innerHTML=html;
+  // 모바일: 오늘 열로 자동 스크롤
+  if(weekOffset===0&&calEl){
+    setTimeout(function(){
+      var scroller=calEl.parentElement;
+      if(!scroller||scroller.scrollWidth<=scroller.clientWidth) return;
+      var todayHeader=calEl.querySelector('.week-header.today-col');
+      if(todayHeader){
+        var left=todayHeader.offsetLeft-80;
+        scroller.scrollTo({left:Math.max(0,left),behavior:'smooth'});
+      }
+    },100);
+  }
 }
 
 // ── 팝업 공통 헬퍼 ──────────────────────────
