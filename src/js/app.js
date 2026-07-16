@@ -1706,7 +1706,7 @@ function renderWeekView(){
       if(!scroller||scroller.scrollWidth<=scroller.clientWidth) return;
       var todayHeader=calEl.querySelector('.week-header.today-col');
       if(todayHeader){
-        var left=todayHeader.offsetLeft-80;
+        var left=todayHeader.offsetLeft-92;
         scroller.scrollTo({left:Math.max(0,left),behavior:'smooth'});
       }
     },100);
