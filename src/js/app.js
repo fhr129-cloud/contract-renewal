@@ -1704,9 +1704,10 @@ function renderWeekView(){
     setTimeout(function(){
       var scroller=calEl.parentElement;
       if(!scroller||scroller.scrollWidth<=scroller.clientWidth) return;
-      var todayHeader=calEl.querySelector('.week-header.today-col');
+     var todayHeader=calEl.querySelector('.week-header.today-col');
       if(todayHeader){
-        var left=todayHeader.offsetLeft-92;
+        var colW=todayHeader.offsetWidth;
+        var left=todayHeader.offsetLeft-92-Math.round(colW/2);
         scroller.scrollTo({left:Math.max(0,left),behavior:'smooth'});
       }
     },100);
