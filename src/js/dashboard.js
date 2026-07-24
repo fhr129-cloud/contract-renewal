@@ -21,6 +21,23 @@ function expireList(year,month){
     return d.getFullYear()===year&&d.getMonth()===month;
   }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
 }
+  function expireHtml(list){
+  var now=new Date(),todayStr=localDateStr(now);
+  if(!list.length) return '<div style="color:#aaa;font-size:12px;padding:12px 0;">없음</div>';
+  var threeMonthsAgo=new Date(now); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth()-3);
+  var threeStr=localDateStr(threeMonthsAgo);
+  return list.map(function(c){
+    var s=calcStatus(c),d=dDiff(c.endDate),col=s==='urgent'?'#A32D2D':s==='near'?'#854F0B':'#185FA5';
+    var recentCount=supports.filter(function(sp){ return sp.bizName===c.name&&sp.date&&sp.date>=threeStr&&sp.date<=todayStr; }).length;
+    return '<div class="dash-mini-item" onclick="goDetail(\''+c.id+'\')">'+
+      '<span class="dash-mini-name">'+c.name+'</span>'+
+      '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'+
+        '<span style="font-size:11px;color:#aaa;">최근3달 '+recentCount+'회</span>'+
+        '<span class="dash-mini-right" style="color:'+col+';font-weight:600;">'+dDayLabel(d)+'</span>'+
+      '</div>'+
+      '</div>';
+  }).join('');
+}
 function renderDashboard() {
   var now=new Date();
   var days=['일','월','화','수','목','금','토'];
