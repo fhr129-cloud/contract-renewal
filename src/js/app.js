@@ -988,15 +988,7 @@ function renderPage(page) {
   if(page==='admin') renderAdmin();
 }
 
-// ── 대시보드 헬퍼 ──────────────────────────
-function expireList(year,month){
-  return contracts.filter(function(c){
-    if(c.terminated) return false;
-    if(!c.endDate) return false;
-    var d=new Date(c.endDate);
-    return d.getFullYear()===year&&d.getMonth()===month;
-  }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
-}
+
 function expireHtml(list){
   var now=new Date(),todayStr=localDateStr(now);
   if(!list.length) return '<div style="color:#aaa;font-size:12px;padding:12px 0;">없음</div>';
