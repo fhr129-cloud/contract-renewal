@@ -11,6 +11,8 @@ export function initDashboard(ctx){
   window.supStatTab='quarter';
 
 /* ─── 여기부터 app.js에서 잘라낸 코드 붙여넣기 ─── */
+  var contracts,historyData,supports;
+  window.syncDashData=function(c,h,s){ contracts=c;historyData=h;supports=s; };
 function renderDashboard() {
   var now=new Date();
   var days=['일','월','화','수','목','금','토'];
@@ -175,7 +177,7 @@ recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
   renderSupStat('month');
 }
 
-var supStatTab='quarter';
+
 window.toggleSupStat=function(){
   var card=document.getElementById('sup-stat-card');
   var icon=document.getElementById('sup-stat-icon');
@@ -184,10 +186,10 @@ window.toggleSupStat=function(){
   var isHidden=body.style.display==='none';
   body.style.display=isHidden?'':'none';
   if(icon) icon.style.transform=isHidden?'rotate(180deg)':'';
-  if(isHidden&&!document.getElementById('dash-sup-stat').innerHTML) renderSupStat(supStatTab);
+  if(isHidden&&!document.getElementById('dash-sup-stat').innerHTML) renderSupStat(window.supStatTab);
 };
 window.setSupStatTab=function(tab){
-  supStatTab=tab;
+  window.supStatTab=tab;
   ['quarter','year'].forEach(function(t){
     var btn=document.getElementById('sup-tab-'+t);
     if(btn) btn.classList.toggle('active-filter',t===tab);
@@ -440,5 +442,7 @@ window._closeDashModalFromPop=function(){
   var m=document.getElementById('dash-modal'); if(m) m.remove();
   document.querySelectorAll('.stat-card').forEach(function(c){ c.classList.remove('active-card'); });
 };
+  window.renderDashboard=renderDashboard;
+window.renderSupStat=renderSupStat;
 /* ─── 여기까지 ─── */
 }
