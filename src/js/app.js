@@ -973,7 +973,7 @@ function applyState(state) {
     var c=contracts.find(function(x){ return x.id===state.id; });
     if(c) renderDetail(c);
   }
-}
+}https://github.com/fhr129-cloud/contract-renewal/blob/main/src/js/app.js
 window.goHome=function(){ var s={screen:'home'}; history.pushState(s,'',''); applyState(s); };
 window._goHome=window.goHome;
 window.goPage=function(page){ var s={screen:'page',page:page}; history.pushState(s,'',''); applyState(s); };
