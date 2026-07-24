@@ -866,6 +866,12 @@ window.doLogout=async function(){
   await logoutUser();
   location.reload();
 };
+initAdmin({
+  getContracts:function(){ return contracts; },
+  getHistory:function(){ return historyData; },
+  showToast:showToast,
+  mealsDisplay:mealsDisplay
+});
 watchAuth(function(user){
   var loginEl=document.getElementById('login-screen');
   if(user){
