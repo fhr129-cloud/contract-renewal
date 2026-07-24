@@ -3,6 +3,7 @@ import { calcStatus, STATUS_META, fmtDate, toInputDate, dDiff, dDayLabel, priceL
 import { COORDS } from './coords.js';
 import { STAFF_MAP, STAFF_ORDER, getStaffColor, getStaffBorderColor, getStaffBg } from './staff.js';
 import { initAdmin } from './admin.js';
+import { initDashboard } from './dashboard.js';
 
 var contracts = [];
 var historyData = [];
@@ -754,6 +755,7 @@ async function init() {
   await seedIfEmpty();
   listenContracts(function(data){
     contracts=data;
+    if(window.syncDashData) window.syncDashData(contracts,historyData,supports);
     ssOptions=data.slice().sort(function(a,b){ return a.name.localeCompare(b.name,'ko'); });
     // 모달이 열려있으면 renderPage 스킵 (히스토리 탭 버튼 중복 방지)
     var modalOpen=document.getElementById('modal-overlay').classList.contains('open');
@@ -767,6 +769,7 @@ async function init() {
  listenHistory(function(data){
     var prevData=historyData;
     historyData=data;
+    if(window.syncDashData) window.syncDashData(contracts,historyData,supports);
     if(currentModalTab==='hist'&&editingId){
       var prev=prevData.find(function(x){ return x.contractId===editingId; });
       var curr=data.find(function(x){ return x.contractId===editingId; });
@@ -778,7 +781,8 @@ async function init() {
   
   listenSupports(function(data){
     supports=data;
-    if(currentPage==='support'){ renderCalendar(); renderSupStat(supStatTab||'month'); }
+    if(window.syncDashData) window.syncDashData(contracts,historyData,supports);
+    if(currentPage==='support'){ renderCalendar(); renderSupStat(window.supStatTab||'month'); }
     if(currentPage==='dashboard') renderDashboard();
   });
 }
@@ -871,6 +875,11 @@ initAdmin({
   getHistory:function(){ return historyData; },
   showToast:showToast,
   mealsDisplay:mealsDisplay
+});
+initDashboard({
+  priceHistLabel:priceHistLabel,
+  localDateStr:localDateStr,
+  pushModalState:pushModalState
 });
 watchAuth(function(user){
   var loginEl=document.getElementById('login-screen');
