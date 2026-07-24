@@ -13,6 +13,14 @@ export function initDashboard(ctx){
 /* ─── 여기부터 app.js에서 잘라낸 코드 붙여넣기 ─── */
   var contracts,historyData,supports;
   window.syncDashData=function(c,h,s){ contracts=c;historyData=h;supports=s; };
+function expireList(year,month){
+  return contracts.filter(function(c){
+    if(c.terminated) return false;
+    if(!c.endDate) return false;
+    var d=new Date(c.endDate);
+    return d.getFullYear()===year&&d.getMonth()===month;
+  }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
+}
 function renderDashboard() {
   var now=new Date();
   var days=['일','월','화','수','목','금','토'];
