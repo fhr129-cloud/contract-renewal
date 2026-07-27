@@ -514,6 +514,11 @@ function showHistForm(idx,r) {
   popup.addEventListener('mousedown',function(e){ _mouseDownTarget=e.target; });
   popup.addEventListener('click',function(e){ if(e.target===popup&&_mouseDownTarget===popup) closeHistForm(); });
   document.body.appendChild(popup);
+  if(addType!=='terminate'){
+    var noteParts=(r.note||'').split(/[①②③④⑤⑥⑦⑧⑨⑩]/).map(function(t){ return t.trim(); }).filter(Boolean);
+    if(!noteParts.length) noteParts=[''];
+    noteParts.forEach(function(t){ addHfNoteRow(t); });
+  }
   pushModalState();
 }
 window.closeHistForm=function(){ var p=document.getElementById('hist-form-popup'); if(p) p.remove(); };
@@ -1061,7 +1066,7 @@ function renderDetail(c) {
     '<div class="detail-row"><span class="detail-label">계약단가</span><span class="detail-val">'+priceLabel(c)+'</span></div>'+
     '<div class="detail-row"><span class="detail-label">월평균식수</span><span class="detail-val">'+(c.avgMeals?Number(c.avgMeals).toLocaleString()+'식':'-')+'</span></div>'+
     '<div class="detail-row"><span class="detail-label">운영끼니</span><span class="detail-val">'+mealsDisplay(c.meals)+'</span></div>'+
-    (c.note?'<div class="detail-row"><span class="detail-label">특이사항</span><span class="detail-val">'+c.note+'</span></div>':'')+
+    '<div class="detail-row"><span class="detail-label">특이사항</span><span class="detail-val">'+(c.note||'-')+'</span></div>'+
     '</div>'+
     '<div class="detail-section"><div class="detail-section-title">계약 히스토리</div>'+histHtml+'</div>'+
     '<div class="detail-section"><div class="detail-section-title">운영지원 이력</div>'+supHtml+'</div>';
