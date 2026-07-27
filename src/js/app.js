@@ -466,6 +466,14 @@ window.delHistRow=async function(idx){
     }
   }
 };
+window.addHfNoteRow=function(val){
+  var wrap=document.getElementById('hf-note-wrap'); if(!wrap) return;
+  var row=document.createElement('div');
+  row.style.cssText='display:flex;gap:6px;align-items:center;';
+  row.innerHTML='<input type="text" class="hf-note-item" value="'+(typeof val==='string'?val.replace(/"/g,'&quot;'):'')+'" placeholder="특이사항" style="flex:1;">'+
+    '<button class="btn sm" onclick="this.parentElement.remove()" style="flex-shrink:0;"><i class="ti ti-x"></i></button>';
+  wrap.appendChild(row);
+};
 function showHistForm(idx,r) {
   var existing=document.getElementById('hist-form-popup'); if(existing) existing.remove();
   var isNew=idx===-1;
@@ -495,7 +503,7 @@ function showHistForm(idx,r) {
         '<option value="fixed"'+(r.priceType==='fixed'?' selected':'')+'>고정금액</option>'+
       '</select></div>'+
       '<div class="form-group"><label>단가 (원)</label><input type="number" id="hf-price" value="'+(r.price||0)+'"></div>'+
-      '<div class="form-group"><label>비고</label><input type="text" id="hf-note" value="'+(r.note||'')+'" placeholder="특이사항"></div>'
+      '<div class="form-group"><label>비고 <span onclick="addHfNoteRow()" style="font-size:11px;color:#185FA5;cursor:pointer;font-weight:500;margin-left:4px;"><i class="ti ti-plus"></i> 추가</span></label><div id="hf-note-wrap" style="display:flex;flex-direction:column;gap:6px;"></div></div>'
     )+
       '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;">'+
         '<button class="btn" onclick="closeHistForm()">취소</button>'+
@@ -520,7 +528,15 @@ window.saveHistForm=async function(idx){
     endDate:document.getElementById('hf-end').value,
     price:parseInt(document.getElementById('hf-price').value)||0,
     priceType:document.getElementById('hf-priceType').value,
-    note:document.getElementById('hf-note').value.trim(),
+    note:(function(){
+      var el=document.getElementById('hf-note');
+      if(el) return el.value.trim();
+      var items=Array.prototype.slice.call(document.querySelectorAll('.hf-note-item')).map(function(x){ return x.value.trim(); }).filter(Boolean);
+      if(!items.length) return '';
+      if(items.length===1) return items[0];
+      var nums=['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩'];
+      return items.map(function(t,i){ return (nums[i]||(i+1)+'.')+' '+t; }).join('\n');
+    })(),
     updatedAt:new Date().toISOString(),
     addType:idx===-1?(detectedType==='terminate'?'terminate':h&&h.records&&h.records.length>0?'renewal':'new'):(records[idx]&&records[idx].addType?records[idx].addType:'edit'),
     createdAt:idx===-1?new Date().toISOString():(records[idx]&&records[idx].createdAt?records[idx].createdAt:records[idx]&&records[idx].updatedAt?records[idx].updatedAt:new Date().toISOString())
@@ -598,6 +614,12 @@ window.openYearMonthPicker=function(){
   '</div>';
   popup.addEventListener('click',function(e){ if(e.target===popup) popup.remove(); });
   document.body.appendChild(popup);
+  // 기존 비고 파싱해서 행 생성 (①② 구분)
+  if(addType!=='terminate'){
+    var noteParts=(r.note||'').split(/[①②③④⑤⑥⑦⑧⑨⑩]/).map(function(t){ return t.trim(); }).filter(Boolean);
+    if(!noteParts.length) noteParts=[''];
+    noteParts.forEach(function(t){ addHfNoteRow(t); });
+  }
   pushModalState();
 };
 window.ymPickYear=function(y,el){
@@ -1008,7 +1030,8 @@ function renderDetail(c) {
     if(isCurrent) label=r.addType==='terminate'?'해지':'현재';
     return '<div class="hist-record"><span class="hist-round">'+label+'</span>'+
       '<span class="hist-dates">'+(r.addType==='terminate'?'해지일: '+(r.endDate?fmtDate(r.endDate):'-'):(r.startDate?fmtDate(r.startDate):'-')+' ~ '+(r.endDate?fmtDate(r.endDate):'-'))+'</span>'+
-      '<span class="hist-price">'+(r.addType==='terminate'?'':priceHistLabel(r))+'</span></div>';
+      '<span class="hist-price">'+(r.addType==='terminate'?'':priceHistLabel(r))+'</span></div>'+
+      (r.note?'<div style="font-size:11px;color:#888;padding:2px 0 6px 8px;white-space:pre-line;">'+r.note+'</div>':'');
   }).join(''):'<div style="color:#aaa;font-size:13px;padding:12px 0;">히스토리 없음</div>';
   var bizSups=supports.filter(function(sp){ return sp.bizName===c.name&&(!sp.type||sp.type==='support'); }).sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
   var supHtml=bizSups.length?bizSups.map(function(sp){
