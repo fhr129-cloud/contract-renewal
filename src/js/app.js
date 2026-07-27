@@ -246,9 +246,9 @@ function mealsDisplay(meals) {
     });
     p.push('평일: '+wd.join(' / '));
   }
-  if(meals.sat&&meals.sat.length) p.push('토: '+meals.sat.join('/'));
-  if(meals.sun&&meals.sun.length) p.push('일: '+meals.sun.join('/'));
-  return p.join(' | ')||'-';
+  if(meals.sat&&meals.sat.length) p.push('토: '+meals.sat.map(function(v){ return mealNames[v]||v; }).join('/'));
+  if(meals.sun&&meals.sun.length) p.push('일: '+meals.sun.map(function(v){ return mealNames[v]||v; }).join('/'));
+  return p.join('\n')||'-';
 }
 
 function isTerminatedNow(c){
@@ -1065,7 +1065,7 @@ function renderDetail(c) {
     '<div class="detail-row"><span class="detail-label">계약기간</span><span class="detail-val">'+fmtDate(c.startDate)+' ~ '+fmtDate(c.endDate)+'</span></div>'+
     '<div class="detail-row"><span class="detail-label">계약단가</span><span class="detail-val">'+priceLabel(c)+'</span></div>'+
     '<div class="detail-row"><span class="detail-label">월평균식수</span><span class="detail-val">'+(c.avgMeals?Number(c.avgMeals).toLocaleString()+'식':'-')+'</span></div>'+
-    '<div class="detail-row"><span class="detail-label">운영끼니</span><span class="detail-val">'+mealsDisplay(c.meals)+'</span></div>'+
+    '<div class="detail-row"><span class="detail-label">운영끼니</span><span class="detail-val" style="white-space:pre-line;">'+mealsDisplay(c.meals)+'</span></div>'+
     '<div class="detail-row"><span class="detail-label">특이사항</span><span class="detail-val">'+(c.note||'-')+'</span></div>'+
     '</div>'+
     '<div class="detail-section"><div class="detail-section-title">계약 히스토리</div>'+histHtml+'</div>'+
