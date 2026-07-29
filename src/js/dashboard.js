@@ -181,7 +181,7 @@ recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
         } else {
           priceHtml='<span style="font-size:11px;color:#888;margin-left:4px;">'+priceHistLabel(item.latest)+'</span>';
         }
-        if(!isTerminate&&item.latest.note){
+        if(item.latest.note){
           priceHtml+='<span style="font-size:11px;color:#aaa;margin-left:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;display:inline-block;vertical-align:bottom;">'+item.latest.note.replace(/\n/g,' ')+'</span>';
         }
         var diffStr=item.diffDays===0?'오늘':item.diffDays===1?'1일 전':item.diffDays+'일 전';
