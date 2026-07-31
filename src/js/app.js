@@ -1253,7 +1253,8 @@ function renderWeekView(){
             var ptColors={'연차':'#A32D2D','반차(오전)':'#A32D2D','반차(오후)':'#A32D2D','외근':'#185FA5','교육':'#6B2FA0','기타':'#666'};
             var ptCol=ptColors[s.personalType]||'#666';
             evStyle='background:transparent;color:'+ptCol+';font-weight:600;';
-            label=s.bizName;
+            var isLeaveType=s.personalType==='연차'||s.personalType==='반차(오전)'||s.personalType==='반차(오후)';
+            label=isLeaveType?s.bizName:'개인일정: '+(s.personalType||'기타');
           } else {
             evStyle='background:'+getStaffBg(staff)+';color:#1a1a18;border-left:3px solid '+borderColor+';font-weight:600;';
             label=s.bizName;
