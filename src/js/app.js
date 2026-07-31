@@ -1157,7 +1157,8 @@ function renderMonthView(){
         var staffStr=s.staffNames&&s.staffNames.length?s.staffNames[0]:(s.staffName||'');
         var allStaff=s.staffNames&&s.staffNames.length?s.staffNames.map(function(n){ return n.split(' ')[0]; }).join('·'):(s.staffName?s.staffName.split(' ')[0]:'');
         var cls=isTeam?'':isPersonal?'':getStaffColor(staffStr);
-        var evStyle=isTeam?'background:#FFECEC;color:#A32D2D;font-weight:700;':isPersonal?'background:#f0f0ec;color:#666;':'';
+        var ptColors={'연차':'#A32D2D','반차(오전)':'#A32D2D','반차(오후)':'#A32D2D','외근':'#185FA5','교육':'#6B2FA0','기타':'#666'};
+        var evStyle=isTeam?'background:#FFECEC;color:#A32D2D;font-weight:700;':isPersonal?'background:transparent;color:'+(ptColors[s.personalType]||'#666')+';font-weight:600;':'';
         var catLabel=s.category==='이벤트'?'이벤트':s.category?s.category.slice(0,2):'';
         var mainName=isTeam?'📢 '+s.bizName:isPersonal?s.bizName+(allStaff?'/'+allStaff:''):(allStaff?allStaff+' ':'')+s.bizName;
         return '<div class="cal-event '+(cls||'')+'" style="'+evStyle+';display:flex;align-items:center;justify-content:space-between;gap:2px;">'+
@@ -1249,8 +1250,9 @@ function renderWeekView(){
           
           var evStyle='',label='';
           if(isPersonal){
-            var isLeave=s.personalType==='연차'||s.personalType==='반차(오전)'||s.personalType==='반차(오후)';
-            evStyle=isLeave?'background:transparent;color:#A32D2D;font-weight:600;':'background:#e8e8e8;color:#444;';
+            var ptColors={'연차':'#A32D2D','반차(오전)':'#A32D2D','반차(오후)':'#A32D2D','외근':'#185FA5','교육':'#6B2FA0','기타':'#666'};
+            var ptCol=ptColors[s.personalType]||'#666';
+            evStyle='background:transparent;color:'+ptCol+';font-weight:600;';
             label=s.bizName;
           } else {
             evStyle='background:'+getStaffBg(staff)+';color:#1a1a18;border-left:3px solid '+borderColor+';font-weight:600;';
