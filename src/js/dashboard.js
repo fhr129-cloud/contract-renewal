@@ -32,8 +32,8 @@ function expireList(year,month){
     return '<div class="dash-mini-item" onclick="goDetail(\''+c.id+'\')">'+
       '<span class="dash-mini-name">'+c.name+'</span>'+
       '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'+
-        '<span style="font-size:11px;color:#aaa;">최근3달 '+recentCount+'회</span>'+
-        '<span class="dash-mini-right" style="color:'+col+';font-weight:600;">'+dDayLabel(d)+'</span>'+
+        '<span style="font-size:11px;color:#aaa;min-width:74px;text-align:right;display:inline-block;">최근3달 '+recentCount+'회</span>'+
+        '<span class="dash-mini-right" style="color:'+col+';font-weight:600;min-width:44px;text-align:right;display:inline-block;">'+dDayLabel(d)+'</span>'+
       '</div>'+
       '</div>';
   }).join('');
