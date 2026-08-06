@@ -1628,7 +1628,7 @@ window.renderBizTab=function(){
       },50);
     }
   } else if(currentBizTab==='resp'){
-    var ro=['손도란 대리','이소영 주임','김상준 주임','견병록 매니저'],rc=['blue','green','amber','red'];
+    var ro=['이소영 주임','김상준 주임','견병록 매니저'],rc=['blue','green','amber'];
     var html='<div class="resp-layout">';
     ro.forEach(function(r,i){
       var rid='rb'+i,list=filtered.filter(function(c){ return c.resp===r; }).sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); });
