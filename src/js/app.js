@@ -1243,10 +1243,10 @@ function renderWeekView(){
       var dow=new Date(dStr).getDay();
       if(isToday){
         cellBg='background:#fafff8;';
-      } else if(getHoliday(dStr)||dow===0){
-        cellBg='background:#FDF2F2;';
       } else if(dow===6){
         cellBg='background:#F2F7FD;';
+      } else if(getHoliday(dStr)||dow===0){
+        cellBg='background:#FDF2F2;';
       }
       html+='<div class="week-cell'+(isToday?' today-col':'')+'" style="'+cellBg+'" onclick="openTypeSelectWithStaff(\''+dStr+'\',\''+staff+'\')" >'+
         items.map(function(s){
