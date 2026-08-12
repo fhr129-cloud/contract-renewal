@@ -1150,7 +1150,7 @@ function renderMonthView(){
     var holiday=getHoliday(key);
     var dayOfWeek=new Date(key).getDay();
     var dayColor=dayOfWeek===0?'color:#C0392B;':dayOfWeek===6?'color:#1A5276;':'';
-    html+='<div class="cal-day'+(isToday?' today':'')+(holiday?' holiday':'')+'" onclick="openCalPopup(\''+key+'\')">'+
+   html+='<div class="cal-day'+(isToday?' today':'')+(holiday?' holiday':'')+'" onclick="openCalPopup(\''+key+'\')">'+
       '<div class="cal-num" style="'+dayColor+'">'+d+'</div>'+(holiday?'<div style="font-size:8px;color:#E24B4A;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 2px;margin-top:-2px;">'+holiday+'</div>':'')+
       uniqueItems.slice(0,3).map(function(s){
         var isPersonal=s.type==='personal',isTeam=s.type==='team';
@@ -1240,10 +1240,13 @@ function renderWeekView(){
       });
       // 연차/반차면 셀 배경색 변경
       var cellBg='';
+      var dow=new Date(dStr).getDay();
       if(isToday){
         cellBg='background:#fafff8;';
-      } else if(getHoliday(dStr)){
+      } else if(getHoliday(dStr)||dow===0){
         cellBg='background:#FDF2F2;';
+      } else if(dow===6){
+        cellBg='background:#F2F7FD;';
       }
       html+='<div class="week-cell'+(isToday?' today-col':'')+'" style="'+cellBg+'" onclick="openTypeSelectWithStaff(\''+dStr+'\',\''+staff+'\')" >'+
         items.map(function(s){
