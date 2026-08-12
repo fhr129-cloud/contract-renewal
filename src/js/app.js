@@ -1242,6 +1242,8 @@ function renderWeekView(){
       var cellBg='';
       if(isToday){
         cellBg='background:#fafff8;';
+      } else if(getHoliday(dStr)){
+        cellBg='background:#FDF2F2;';
       }
       html+='<div class="week-cell'+(isToday?' today-col':'')+'" style="'+cellBg+'" onclick="openTypeSelectWithStaff(\''+dStr+'\',\''+staff+'\')" >'+
         items.map(function(s){
