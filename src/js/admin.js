@@ -38,7 +38,25 @@ export function initAdmin(ctx){
       showToast('백업 파일이 다운로드됐어요!');
     } catch(e){ showToast('백업 실패: '+(e.message||'')); }
   };
-
+  window.cleanupDupSeed=async function(){
+    var contracts=ctx.getContracts();
+    // 2026-09-02 18:40~18:50 사이 생성된 문서 찾기
+    var targetStart=new Date('2026-09-02T18:40:00+09:00').getTime();
+    var targetEnd=new Date('2026-09-02T18:50:00+09:00').getTime();
+    var targets=contracts.filter(function(c){
+      if(!c.createdAt) return false;
+      var t=c.createdAt.seconds?c.createdAt.seconds*1000:new Date(c.createdAt).getTime();
+      return t>=targetStart&&t<=targetEnd;
+    });
+    if(!targets.length){ showToast('해당 시간대 문서가 없어요.'); return; }
+    if(!confirm(targets.length+'개 문서를 삭제할까요? (9/2 18:44 생성분)\n\n삭제 전 백업 버튼을 먼저 눌러주세요!')) return;
+    var deleted=0;
+    for(var i=0;i<targets.length;i++){
+      await ctx.deleteContract(targets[i].id);
+      deleted++;
+    }
+    showToast(deleted+'개 삭제 완료!');
+  };
   window.syncContractsFromHistory=async function(){
     if(!confirm('히스토리 마지막 record 기준으로 전체 계약정보를 업데이트할까요?')) return;
     var contracts=ctx.getContracts(),historyData=ctx.getHistory();
