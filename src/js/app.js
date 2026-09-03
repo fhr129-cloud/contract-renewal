@@ -901,7 +901,8 @@ initAdmin({
   getContracts:function(){ return contracts; },
   getHistory:function(){ return historyData; },
   showToast:showToast,
-  mealsDisplay:mealsDisplay
+  mealsDisplay:mealsDisplay,
+  deleteContract:deleteContract
 });
 initDashboard({
   priceHistLabel:priceHistLabel,
