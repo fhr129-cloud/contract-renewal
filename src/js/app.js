@@ -779,7 +779,7 @@ window.submitTeam=async function(){
 
 // ── 초기화 ──────────────────────────
 async function init() {
-  await seedIfEmpty();
+
   listenContracts(function(data){
     contracts=data;
     if(window.syncDashData) window.syncDashData(contracts,historyData,supports);
