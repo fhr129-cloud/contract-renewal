@@ -1779,10 +1779,6 @@ window.renderAdmin=function(){
 
 // ── 계약 모달 ──────────────────────────
 window.openAddModal=function(){
-  editingId=null;
-  document.getElementById('modal-title').textContent='계약 추가';
-  document.getElementById('contract-form').reset();
-  setContacts([]); setMeals(null); setNutritionists([]);
   switchModalTab('basic');
   document.getElementById('tab-hist-btn').style.display='none';
   document.getElementById('modal-overlay').classList.add('open');
