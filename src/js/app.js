@@ -1191,7 +1191,7 @@ function renderMonthView(){
     var dayColor=dayOfWeek===0?'color:#C0392B;':dayOfWeek===6?'color:#1A5276;':'';
    html+='<div class="cal-day'+(isToday?' today':'')+(holiday?' holiday':'')+'" onclick="openCalPopup(\''+key+'\')">'+
       '<div class="cal-num" style="'+dayColor+'">'+d+'</div>'+(holiday?'<div style="font-size:8px;color:#E24B4A;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 2px;margin-top:-2px;">'+holiday+'</div>':'')+
-            (isMine?uniqueItems.slice(0,3).map(function(s){
+                  (uniqueItems.slice(0,3).map(function(s){
         var isPersonal=s.type==='personal',isTeam=s.type==='team';
         var staffStr=s.staffNames&&s.staffNames.length?s.staffNames[0]:(s.staffName||'');
         var allStaff=s.staffNames&&s.staffNames.length?s.staffNames.map(function(n){ return n.split(' ')[0]; }).join('·'):(s.staffName?s.staffName.split(' ')[0]:'');
@@ -1204,8 +1204,8 @@ function renderMonthView(){
           '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">'+mainName+'</span>'+
           (!isTeam&&!isPersonal&&catLabel?'<span style="font-size:8px;color:#aaa;flex-shrink:0;white-space:nowrap;">'+catLabel+'</span>':'')+
         '</div>';
-            }).join(''):renderDots(uniqueItems))+
-      (isMine&&uniqueItems.length>3?'<div class="cal-more">+'+(uniqueItems.length-3)+'건</div>':'')+
+                 }).join(''))+
+      (uniqueItems.length>3?'<div class="cal-more">+'+(uniqueItems.length-3)+'건</div>':'')+
       '</div>';
   }
   html+='</div>';
