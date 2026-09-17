@@ -1074,23 +1074,50 @@ function renderDetail(c) {
 }
 
 // ── 달력 ──────────────────────────
-window.monthMode=null;
-window.setMonthMode=function(mode){
-  window.monthMode=mode;
-  document.getElementById('mode-team-btn').classList.toggle('active-filter',mode==='team');
-  document.getElementById('mode-mine-btn').classList.toggle('active-filter',mode==='mine');
+window.monthStaffFilter=[];
+window.toggleStaffFilter=function(){
+  var dd=document.getElementById('staff-filter-dd');
+  if(dd.style.display==='none'){ renderStaffFilterDD(); dd.style.display='block'; }
+  else dd.style.display='none';
+};
+function renderStaffFilterDD(){
+  var dd=document.getElementById('staff-filter-dd');
+  var html='<div onclick="clearStaffFilter()" style="font-size:12px;padding:8px 12px;border-radius:6px;cursor:pointer;color:'+(window.monthStaffFilter.length===0?'#185FA5;font-weight:600':'#555')+';">전체 보기</div>';
+  html+='<div style="height:.5px;background:#e8e8e4;margin:4px 8px;"></div>';
+  STAFF_ORDER.forEach(function(name){
+    var checked=window.monthStaffFilter.indexOf(name)!==-1;
+    html+='<div onclick="toggleStaffInFilter(\''+name+'\')" style="font-size:12px;padding:8px 12px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:8px;'+(checked?'background:#E6F1FB;color:#185FA5;font-weight:600;':'color:#555;')+'">'+
+      '<span style="width:15px;height:15px;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;'+(checked?'background:#185FA5;':'border:.5px solid #ccc;')+'">'+(checked?'<i class="ti ti-check" style="font-size:11px;color:#fff;"></i>':'')+'</span>'+name+'</div>';
+  });
+  dd.innerHTML=html;
+}
+window.toggleStaffInFilter=function(name){
+  var i=window.monthStaffFilter.indexOf(name);
+  if(i===-1) window.monthStaffFilter.push(name);
+  else window.monthStaffFilter.splice(i,1);
+  renderStaffFilterDD();
+  updateStaffFilterLabel();
   renderCalendar();
 };
+window.clearStaffFilter=function(){
+  window.monthStaffFilter=[];
+  renderStaffFilterDD();
+  updateStaffFilterLabel();
+  renderCalendar();
+};
+function updateStaffFilterLabel(){
+  var el=document.getElementById('staff-filter-label');
+  var f=window.monthStaffFilter;
+  if(!el) return;
+  el.textContent=f.length===0?'전체':f.length===1?f[0].split(' ')[0]:f[0].split(' ')[0]+' 외'+(f.length-1);
+}
 window.setCalView=function(view){
   calView=view;
   document.getElementById('view-month-btn').classList.toggle('active-filter',view==='month');
   document.getElementById('view-week-btn').classList.toggle('active-filter',view==='week');
   var mb=document.getElementById('month-mode-btns');
   if(mb) mb.style.display=view==='month'?'flex':'none';
-  if(view==='month'&&window.monthMode===null){
-    window.setMonthMode(isAdmin()?'team':'mine');
-    return;
-  }
+  
   renderCalendar();
 };
 
@@ -1149,13 +1176,13 @@ function renderDots(items){
 }
 function renderMonthView(){
   var filtered=filterSupports(),dayMap={};
-  var isMine=window.monthMode==='mine';
-  if(isMine){
-    var myName=window.currentUserName||'';
+    if(window.monthStaffFilter&&window.monthStaffFilter.length){
     filtered=filtered.filter(function(s){
       if(s.type==='team') return true;
       var names=s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]);
-      return names.some(function(n){ return n===myName||n.split(' ')[0]===myName.split(' ')[0]; });
+      return names.some(function(n){
+        return window.monthStaffFilter.some(function(f){ return n===f||n.split(' ')[0]===f.split(' ')[0]; });
+      });
     });
   }
   filtered.forEach(function(s){
@@ -2031,3 +2058,8 @@ if(splash){
     setTimeout(function(){ splash.remove(); },400);
   },1000);
 }
+document.addEventListener('click',function(e){
+  var dd=document.getElementById('staff-filter-dd');
+  var btn=document.getElementById('staff-filter-btn');
+  if(dd&&dd.style.display!=='none'&&!dd.contains(e.target)&&btn&&!btn.contains(e.target)) dd.style.display='none';
+});
