@@ -1943,6 +1943,47 @@ if(ptrPage){
     }
   },{passive:true});
 })();
+// 홈 화면에 추가 (PWA 설치)
+var _installPrompt=null;
+var _isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+window.addEventListener('beforeinstallprompt',function(e){
+  e.preventDefault();
+  _installPrompt=e;
+  if(!_isStandalone){
+    var btn=document.getElementById('install-home-btn');
+    if(btn) btn.style.display='flex';
+  }
+});
+var _isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent);
+if(_isIOS&&!_isStandalone){
+  var iosBtn=document.getElementById('install-home-btn');
+  if(iosBtn) iosBtn.style.display='flex';
+}
+window.doInstall=async function(){
+  if(_installPrompt){
+    _installPrompt.prompt();
+    var result=await _installPrompt.userChoice;
+    if(result.outcome==='accepted'){
+      var btn=document.getElementById('install-home-btn');
+      if(btn) btn.style.display='none';
+      showToast('설치되었습니다!');
+    }
+    _installPrompt=null;
+    return;
+  }
+  if(_isIOS){
+    var existing=document.getElementById('ios-install-guide'); if(existing){ existing.remove(); return; }
+    var g=document.createElement('div');
+    g.id='ios-install-guide';
+    g.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#fff;border:.5px solid #e8e8e4;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.18);padding:18px 20px;z-index:9500;width:300px;font-size:13px;line-height:1.7;color:#333;';
+    g.innerHTML='<div style="font-weight:600;margin-bottom:8px;">아이폰 설치 방법</div>'+
+      '1. Safari 하단 <b>공유 버튼</b> <span style="font-size:15px;">&#x2B06;&#xFE0F;</span> 탭<br>'+
+      '2. <b>홈 화면에 추가</b> 선택<br>'+
+      '3. 우측 상단 <b>추가</b> 탭'+
+      '<div onclick="this.parentElement.remove()" style="text-align:center;margin-top:12px;color:#185FA5;font-weight:500;cursor:pointer;">확인</div>';
+    document.body.appendChild(g);
+  }
+};
 // 스플래시 화면
 var splash=document.getElementById('splash-screen');
 if(splash){
