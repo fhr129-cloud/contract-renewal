@@ -1194,7 +1194,8 @@ function renderMonthView(){
                   (uniqueItems.slice(0,3).map(function(s){
         var isPersonal=s.type==='personal',isTeam=s.type==='team';
         var staffStr=s.staffNames&&s.staffNames.length?s.staffNames[0]:(s.staffName||'');
-        var allStaff=s.staffNames&&s.staffNames.length?s.staffNames.map(function(n){ return n.split(' ')[0]; }).join('·'):(s.staffName?s.staffName.split(' ')[0]:'');
+                var _sn=s.staffNames&&s.staffNames.length?s.staffNames:(s.staffName?[s.staffName]:[]);
+        var allStaff=_sn.length===0?'':_sn.length===1?_sn[0].split(' ')[0]:_sn[0].split(' ')[0]+' 외'+(_sn.length-1);
         var cls=isTeam?'':isPersonal?'':getStaffColor(staffStr);
         var ptColors={'연차':'#A32D2D','반차(오전)':'#A32D2D','반차(오후)':'#A32D2D','외근':'#185FA5','교육':'#6B2FA0','기타':'#666'};
         var evStyle=isTeam?'background:#FFECEC;color:#A32D2D;font-weight:700;':isPersonal?'background:transparent;color:'+(ptColors[s.personalType]||'#666')+';font-weight:600;':'';
