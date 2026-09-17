@@ -512,9 +512,9 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
           <button class="btn sm" id="cal-today-btn" onclick="changeMonth(0)">오늘</button>
         </div>
                 <div id="cal-view-btns" style="display:flex;gap:6px;flex-shrink:0;margin-left:auto;align-items:center;">
-          <div id="month-mode-btns" style="display:none;gap:4px;margin-right:6px;">
-            <button class="btn sm active-filter" id="mode-team-btn" onclick="setMonthMode('team')" style="white-space:nowrap;">팀 전체</button>
-            <button class="btn sm" id="mode-mine-btn" onclick="setMonthMode('mine')" style="white-space:nowrap;">내 일정</button>
+                    <div id="month-mode-btns" style="display:none;position:relative;margin-right:6px;">
+            <button class="btn sm" id="staff-filter-btn" onclick="toggleStaffFilter()" style="white-space:nowrap;"><i class="ti ti-users"></i> <span id="staff-filter-label">전체</span> <i class="ti ti-chevron-down" style="font-size:11px;"></i></button>
+            <div id="staff-filter-dd" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:#fff;border:.5px solid #e8e8e4;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:160px;z-index:200;padding:4px;max-height:320px;overflow-y:auto;"></div>
           </div>
           <button class="btn sm active-filter" id="view-week-btn" onclick="setCalView('week')" style="width:42px;justify-content:center;">주간</button>
           <button class="btn sm" id="view-month-btn" onclick="setCalView('month')" style="width:42px;justify-content:center;">월간</button>
