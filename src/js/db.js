@@ -67,7 +67,10 @@ export function updateContract(id, data) {
 }
 
 export function deleteContract(id) {
-  return deleteDoc(doc(db,'contracts',id));
+  var batch = writeBatch(db);
+  batch.delete(doc(db,'contracts',id));
+  batch.delete(doc(db,'history',id));
+  return batch.commit();
 }
 
 export async function addHistory(contractId, name, record) {
