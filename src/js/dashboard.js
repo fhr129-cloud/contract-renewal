@@ -11,7 +11,7 @@ export function initDashboard(ctx){
   window.supStatTab='quarter';
 
 /* ─── 여기부터 app.js에서 잘라낸 코드 붙여넣기 ─── */
-  var contracts,historyData,supports;
+    var contracts=[],historyData=[],supports=[];
   window.syncDashData=function(c,h,s){ contracts=c;historyData=h;supports=s; };
 function expireList(year,month){
   return contracts.filter(function(c){
