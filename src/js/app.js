@@ -630,9 +630,7 @@ window.openYearMonthPicker=function(){
     '</div>'+
   '</div>';
   popup.addEventListener('click',function(e){ if(e.target===popup) popup.remove(); });
-    document.body.appendChild(popup);
-  pushModalState();
-};
+  document.body.appendChild(popup);
   pushModalState();
 };
 window.ymPickYear=function(y,el){
