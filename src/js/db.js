@@ -94,7 +94,9 @@ export function listenHistory(cb) {
 }
 
 export function addSupport(data) {
+  var me=auth.currentUser&&auth.currentUser.email?auth.currentUser.email.split('@')[0]:'';
   return addDoc(collection(db,'supports'), Object.assign({}, sanitize(data), {
+    ownerPhone: me,
     createdAt: serverTimestamp()
   }));
 }
