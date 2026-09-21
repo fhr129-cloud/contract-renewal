@@ -631,12 +631,9 @@ window.openYearMonthPicker=function(){
   '</div>';
   popup.addEventListener('click',function(e){ if(e.target===popup) popup.remove(); });
   document.body.appendChild(popup);
-  // 기존 비고 파싱해서 행 생성 (①② 구분)
-  if(addType!=='terminate'){
-    var noteParts=(r.note||'').split(/[①②③④⑤⑥⑦⑧⑨⑩]/).map(function(t){ return t.trim(); }).filter(Boolean);
-    if(!noteParts.length) noteParts=[''];
-    noteParts.forEach(function(t){ addHfNoteRow(t); });
-  }
+    document.body.appendChild(popup);
+  pushModalState();
+};
   pushModalState();
 };
 window.ymPickYear=function(y,el){
@@ -1013,7 +1010,7 @@ function applyState(state) {
     var c=contracts.find(function(x){ return x.id===state.id; });
     if(c) renderDetail(c);
   }
-}https://github.com/fhr129-cloud/contract-renewal/blob/main/src/js/app.js
+}
 window.goHome=function(){ var s={screen:'home'}; history.pushState(s,'',''); applyState(s); };
 window._goHome=window.goHome;
 window.goPage=function(page){ var s={screen:'page',page:page}; history.pushState(s,'',''); applyState(s); };
@@ -1857,6 +1854,21 @@ window.renderAdmin=function(){
 
 // ── 계약 모달 ──────────────────────────
 window.openAddModal=function(){
+  if(!isAdmin()){ showToast('계약 정보는 관리자만 추가할 수 있어요.'); return; }
+  editingId=null;
+  document.getElementById('modal-title').textContent='계약 추가';
+  ['f-name','f-addr','f-resp','f-startDate','f-endDate','f-price','f-avgMeals','f-note'].forEach(function(fid){
+    var el=document.getElementById(fid); if(el) el.value='';
+  });
+  document.getElementById('f-team').value=1;
+  document.getElementById('f-priceType').value='per-meal';
+  ['f-startDate','f-endDate','f-price','f-priceType'].forEach(function(fid){
+    var el=document.getElementById(fid);
+    if(el){ el.readOnly=false; el.disabled=false; el.style.background=''; el.style.color=''; }
+  });
+  var hint=document.getElementById('hist-readonly-hint'); if(hint) hint.remove();
+  setContacts([{name:'',phone:'',tel:''}]);
+  setMeals(null); setNutritionists([]);
   switchModalTab('basic');
   document.getElementById('tab-hist-btn').style.display='none';
   document.getElementById('modal-overlay').classList.add('open');
@@ -1910,8 +1922,9 @@ window.saveContract=async function(){
   var name=document.getElementById('f-name').value.trim(),endDate=document.getElementById('f-endDate').value;
   if(!name||!endDate){ showToast('사업장명과 종료일은 필수입니다.'); return; }
   var contacts=getContacts(),meals=getMeals(),addr=document.getElementById('f-addr').value.trim();
-  var lat=null,lng=null;
-  if(addr){
+    var prevC=editingId?contracts.find(function(x){ return x.id===editingId; }):null;
+  var lat=prevC&&prevC.lat!=null?prevC.lat:null,lng=prevC&&prevC.lng!=null?prevC.lng:null;
+    if(addr&&(!prevC||prevC.addr!==addr||lat==null)){
     try{
       await new Promise(function(resolve){
         if(!window.kakaoReady){resolve();return;}
