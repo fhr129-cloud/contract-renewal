@@ -9,10 +9,21 @@ import {
   onAuthStateChanged, signOut, setPersistence, browserLocalPersistence
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import firebaseConfig from './firebase-config.js';
-import { SEED_CONTRACTS, SEED_HISTORY } from './seed-data.js';
+
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+
+// ── 무해화: 문자열 안의 < > " ' 를 전각 문자로 치환 (XSS 방어) ──
+var SAN_MAP={'<':'＜','>':'＞','"':'＂',"'":'＇'};
+export function sanitize(v){
+  if(typeof v==='string') return v.replace(/[<>"']/g,function(ch){ return SAN_MAP[ch]; });
+  if(Array.isArray(v)) return v.map(sanitize);
+  if(v&&typeof v==='object'&&!(v instanceof Date)&&typeof v.toDate!=='function'&&!v._methodName){
+    var o={}; for(var k in v) o[k]=sanitize(v[k]); return o;
+  }
+  return v;
+}
 
 // ── 인증 ──────────────────────────
 function phoneToEmail(phone){ return phone.replace(/[^0-9]/g,'')+'@onjeong.app'; }
@@ -38,18 +49,18 @@ export function logoutUser(){ return signOut(auth); }
 export function listenContracts(cb) {
   var q = query(collection(db,'contracts'), orderBy('endDate','asc'));
   return onSnapshot(q, function(snap) {
-    cb(snap.docs.map(function(d) { return Object.assign({id:d.id}, d.data()); }));
+        cb(snap.docs.map(function(d) { return Object.assign({id:d.id}, sanitize(d.data())); }));
   });
 }
 
 export function addContract(data) {
-  return addDoc(collection(db,'contracts'), Object.assign({}, data, {
+  return addDoc(collection(db,'contracts'), Object.assign({}, sanitize(data), {
     createdAt: serverTimestamp(), updatedAt: serverTimestamp()
   }));
 }
 
 export function updateContract(id, data) {
-  return updateDoc(doc(db,'contracts',id), Object.assign({}, data, {
+  return updateDoc(doc(db,'contracts',id), Object.assign({}, sanitize(data), {
     updatedAt: serverTimestamp()
   }));
 }
@@ -78,19 +89,19 @@ export async function addHistory(contractId, name, record) {
 
 export function listenHistory(cb) {
   return onSnapshot(collection(db,'history'), function(snap) {
-    cb(snap.docs.map(function(d) { return Object.assign({id:d.id}, d.data()); }));
+        cb(snap.docs.map(function(d) { return Object.assign({id:d.id}, sanitize(d.data())); }));
   });
 }
 
 export function addSupport(data) {
-  return addDoc(collection(db,'supports'), Object.assign({}, data, {
+  return addDoc(collection(db,'supports'), Object.assign({}, sanitize(data), {
     createdAt: serverTimestamp()
   }));
 }
 
 export function listenSupports(cb) {
   return onSnapshot(collection(db,'supports'), function(snap) {
-    cb(snap.docs.map(function(d) { return Object.assign({id:d.id}, d.data()); }));
+        cb(snap.docs.map(function(d) { return Object.assign({id:d.id}, sanitize(d.data())); }));
   });
 }
 
@@ -99,7 +110,7 @@ export function deleteSupport(id) {
 }
 
 export function updateSupport(id, data) {
-  return updateDoc(doc(db,'supports',id), Object.assign({}, data, {
+  return updateDoc(doc(db,'supports',id), Object.assign({}, sanitize(data), {
     updatedAt: serverTimestamp()
   }));
 }
@@ -107,21 +118,7 @@ export function updateSupport(id, data) {
 export function updateSupportBizName(id, bizName) {
   return updateDoc(doc(db,'supports',id), { bizName: bizName, updatedAt: serverTimestamp() });
 }
-export async function seedIfEmpty() {
-  const snap = await getDocs(collection(db,'contracts'));
-  if(snap.empty) {
-    const SEED_DATA = SEED_CONTRACTS;
-    const batch = writeBatch(db);
-    SEED_DATA.forEach(function(c) {
-      const ref = doc(collection(db,'contracts'));
-      batch.set(ref, Object.assign({}, c, {
-        createdAt: serverTimestamp(), updatedAt: serverTimestamp()
-      }));
-    });
-    await batch.commit();
-  }
-  await seedHistory();
-}
+
 
 export function updateHistoryName(contractId, name) {
   return updateDoc(doc(db,'history',contractId), { name: name, updatedAt: serverTimestamp() });
