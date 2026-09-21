@@ -47,9 +47,10 @@ export function watchAuth(callback){ return onAuthStateChanged(auth,callback); }
 export function logoutUser(){ return signOut(auth); }
 
 export function listenContracts(cb) {
-  var q = query(collection(db,'contracts'), orderBy('endDate','asc'));
-  return onSnapshot(q, function(snap) {
-        cb(snap.docs.map(function(d) { return Object.assign({id:d.id}, sanitize(d.data())); }));
+    return onSnapshot(collection(db,'contracts'), function(snap) {
+    var list=snap.docs.map(function(d) { return Object.assign({id:d.id}, sanitize(d.data())); });
+    list.sort(function(a,b){ return String(a.endDate||'9999').localeCompare(String(b.endDate||'9999')); });
+    cb(list);
   });
 }
 
