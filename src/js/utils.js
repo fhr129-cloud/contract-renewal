@@ -6,6 +6,7 @@ export function today() {
 }
 
 export function dDiff(endDate) {
+  if (!endDate) return NaN;
   var t = today();
   var parts = String(endDate).slice(0,10).split('-');
   var e = new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2]));
@@ -14,7 +15,8 @@ export function dDiff(endDate) {
 }
 
 export function calcStatus(contract) {
-  var d = dDiff(contract.endDate);
+    var d = dDiff(contract.endDate);
+  if (isNaN(d)) return 'ok';
   if (d < 0) return 'auto';
   if (d <= 30) return 'urgent';
   if (d <= 90) return 'near';
@@ -50,6 +52,7 @@ export function monthLabel(key) {
 }
 
 export function dDayLabel(d) {
+  if (isNaN(d)) return '종료일 미입력';
   if (d < 0) return 'D+' + Math.abs(d) + ' (자동연장)';
   if (d === 0) return 'D-day';
   return 'D-' + d;
