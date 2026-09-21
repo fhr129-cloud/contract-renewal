@@ -443,7 +443,8 @@ window.delHistRow=async function(idx){
   var isTerminate=deletedRecord&&deletedRecord.addType==='terminate';
   var records=h.records.slice(); records.splice(idx,1);
   var prevRecord=records.length?records[records.length-1]:null;
-  var c=contracts.find(function(x){ return x.id===editingId; });
+    var c=contracts.find(function(x){ return x.id===editingId; });
+  try{
   await saveHistRecords(records,h.name);
   if(isTerminate){
     var restoreStart=prevRecord&&prevRecord.startDate?prevRecord.startDate:(c&&c.startDate?c.startDate:'');
@@ -455,9 +456,10 @@ window.delHistRow=async function(idx){
       startDate:restoreStart||'',
       endDate:restoreEnd||'',
       price:restorePrice||0,
-      priceType:restoreType||'per-meal'
+            priceType:restoreType||'per-meal'
     });
   }
+  }catch(e){ console.error(e); showToast('삭제 중 오류가 발생했습니다.'); return; }
   showToast('삭제되었습니다.');
   if(isTerminate){
     // contracts 배열 즉시 업데이트 (리스너 대기 없이)
@@ -558,7 +560,8 @@ window.saveHistForm=async function(idx){
     addType:idx===-1?(detectedType==='terminate'?'terminate':h&&h.records&&h.records.length>0?'renewal':'new'):(records[idx]&&records[idx].addType?records[idx].addType:'edit'),
     createdAt:idx===-1?new Date().toISOString():(records[idx]&&records[idx].createdAt?records[idx].createdAt:records[idx]&&records[idx].updatedAt?records[idx].updatedAt:new Date().toISOString())
   };
-  if(idx===-1){ records.push(newRecord); } else records[idx]=newRecord;
+    if(idx===-1){ records.push(newRecord); } else records[idx]=newRecord;
+  try{
   await saveHistRecords(records,c?c.name:'');
   var lastRecord=records[records.length-1];
   if(lastRecord&&lastRecord.endDate){
@@ -568,9 +571,10 @@ window.saveHistForm=async function(idx){
       price:lastRecord.price||0,
       priceType:lastRecord.priceType||'per-meal'
     };
-    if(lastRecord.addType==='terminate') updateData.terminated=true;
+        if(lastRecord.addType==='terminate') updateData.terminated=true;
     await updateContract(editingId,updateData);
   }
+  }catch(e){ console.error(e); showToast('저장 중 오류가 발생했습니다.'); return; }
   closeHistForm(); showToast(idx===-1?'이력이 추가되었습니다.':'이력이 수정되었습니다.');
   renderHistTab();
   if(c&&document.getElementById('detail-screen').style.display==='flex') renderDetail(c);
