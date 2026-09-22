@@ -84,7 +84,31 @@ export function initAdmin(ctx){
       if(last.addType==='terminate'){ skipped.push(c.name+' (해지)'); return; }
       if(!last.endDate||last.endDate.trim()==='') skipped.push(c.name+' (종료일없음)');
     });
-    console.log('동기화 제외:', skipped);
+        console.log('동기화 제외:', skipped);
     showToast(updated+'개 사업장 동기화 완료!');
+  };
+  window.recalcCoords=async function(){
+    if(!window.kakaoReady){ showToast('지도 서비스가 아직 준비되지 않았어요. 잠시 후 다시 시도해주세요.'); return; }
+    var contracts=ctx.getContracts().filter(function(c){ return c.addr; });
+    if(!confirm(contracts.length+'개 사업장의 주소로 좌표를 다시 계산할까요?\n(1~2분 걸려요. 완료 전에 화면을 닫지 마세요)')) return;
+    var geocoder=new kakao.maps.services.Geocoder();
+    var ok=0,fail=[];
+    for(var i=0;i<contracts.length;i++){
+      var c=contracts[i];
+      showToast('좌표 계산 중… '+(i+1)+'/'+contracts.length);
+      var r=await new Promise(function(resolve){
+        geocoder.addressSearch(c.addr,function(result,status){
+          if(status===kakao.maps.services.Status.OK) resolve({lat:parseFloat(result[0].y),lng:parseFloat(result[0].x)});
+          else resolve(null);
+        });
+      });
+      if(r){
+        try{ await updateContract(c.id,{lat:r.lat,lng:r.lng}); ok++; }
+        catch(e){ console.error(c.name,e); fail.push(c.name); }
+      } else fail.push(c.name);
+      await new Promise(function(res){ setTimeout(res,150); });
+    }
+    console.log('좌표 실패:',fail);
+    showToast('좌표 갱신 '+ok+'개 완료'+(fail.length?' · 실패 '+fail.length+'개 (콘솔 참고)':''));
   };
 }
