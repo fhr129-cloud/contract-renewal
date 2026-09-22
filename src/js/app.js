@@ -1809,7 +1809,7 @@ window.renderBizTab=function(){
     
     } else {
     var TEAM_COLOR={1:'#185FA5',2:'#3B6D11',3:'#854F0B'};
-    el.innerHTML='<div class="map-legend"><span><span class="leg-dot" style="background:#185FA5;"></span>1팀</span><span><span class="leg-dot" style="background:#3B6D11;"></span>2팀</span><span><span class="leg-dot" style="background:#854F0B;"></span>3팀</span><span><span class="leg-dot" style="background:#aaa;"></span>해지</span><span style="margin-left:auto;color:#999;">숫자 원 = 가까운 사업장 묶음 · 확대하면 이름 표시</span></div><div id="map"></div>';
+    el.innerHTML='<div class="map-legend"><span><span class="leg-dot" style="background:#185FA5;"></span>1팀</span><span><span class="leg-dot" style="background:#3B6D11;"></span>2팀</span><span><span class="leg-dot" style="background:#854F0B;"></span>3팀</span><span><span class="leg-dot" style="background:#aaa;"></span>해지</span><span style="margin-left:auto;color:#999;">숫자 원 = 묶음 · 점을 누르면 주변 보기</span></div><div id="map"></div><div id="map-near"></div>';
     setTimeout(function(){
       if(mapInstance){mapInstance.remove();mapInstance=null;}
       mapInstance=L.map('map',{zoomControl:true}).setView([36.98,127.05],9);
@@ -1821,8 +1821,8 @@ window.renderBizTab=function(){
         var color=c.terminated?'#aaa':(TEAM_COLOR[c.team]||'#4A90D9');
         var marker=L.circleMarker([coord.lat,coord.lng],{radius:c.terminated?6:8,fillColor:color,color:'#fff',weight:2,fillOpacity:c.terminated?0.4:0.95});
         marker.bindTooltip(c.name,{permanent:true,direction:'right',offset:[8,0],opacity:c.terminated?0.6:1,className:'map-label'});
-        marker.on('click',function(){ window.goDetail(c.id); });
-        marker._bizName=c.name;
+                marker.on('click',function(){ enterNearby(c,coord); });
+        marker._bizName=c.name; marker._biz=c; marker._coord=coord;
         cluster.addLayer(marker); markers.push(marker);
       });
       mapInstance.addLayer(cluster);
@@ -1833,7 +1833,50 @@ window.renderBizTab=function(){
       }
       mapInstance.on('zoomend',updateLabels); cluster.on('animationend',updateLabels);
       setTimeout(updateLabels,50);
-      if(markers.length) mapInstance.fitBounds(cluster.getBounds().pad(0.1));
+            if(markers.length) mapInstance.fitBounds(cluster.getBounds().pad(0.1));
+
+      // ── 주변 모드 ──
+      var nearLayer=L.layerGroup().addTo(mapInstance);
+      var nearKm=10;
+      function kmBetween(a,b){
+        var R=6371,p=Math.PI/180;
+        var dLat=(b.lat-a.lat)*p,dLng=(b.lng-a.lng)*p;
+        var h=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a.lat*p)*Math.cos(b.lat*p)*Math.sin(dLng/2)*Math.sin(dLng/2);
+        return 2*R*Math.asin(Math.sqrt(h));
+      }
+      function enterNearby(center,coord){
+        nearLayer.clearLayers();
+        nearLayer.addLayer(L.circle([coord.lat,coord.lng],{radius:nearKm*1000,color:'#185FA5',weight:1,dashArray:'4 4',fillColor:'#185FA5',fillOpacity:0.06}));
+        nearLayer.addLayer(L.circle([coord.lat,coord.lng],{radius:5000,color:'#185FA5',weight:1,dashArray:'4 4',fillColor:'#185FA5',fillOpacity:0.08}));
+        var list=[];
+        markers.forEach(function(m){
+          if(m._biz.id===center.id){ m.setStyle({fillColor:'#A32D2D',radius:11}); return; }
+          var d=kmBetween(coord,m._coord);
+          var inside=d<=nearKm;
+          m.setStyle({fillOpacity:inside?0.95:0.25,radius:inside?8:5});
+          if(inside) list.push({c:m._biz,d:d});
+        });
+        list.sort(function(a,b){ return a.d-b.d; });
+        mapInstance.fitBounds(L.latLng(coord.lat,coord.lng).toBounds(nearKm*2000).pad(0.05));
+        var box=document.getElementById('map-near'); if(!box) return;
+        box.innerHTML='<div class="near-head">'+
+          '<button class="btn sm" onclick="window._exitNearby()"><i class="ti ti-x"></i> 전체</button>'+
+          '<span class="near-title" onclick="goDetail(\''+center.id+'\')">'+center.name+'</span>'+
+          '<span class="near-sub">주변 '+nearKm+'km · '+list.length+'곳 · 직선거리</span>'+
+          '<span class="near-toggle"><span class="'+(nearKm===5?'on':'')+'" onclick="window._setNearKm(5)">5km</span><span class="'+(nearKm===10?'on':'')+'" onclick="window._setNearKm(10)">10km</span></span>'+
+        '</div>'+
+        (list.length?'<div class="near-list">'+list.map(function(x){
+          return '<div class="near-row" onclick="goDetail(\''+x.c.id+'\')"><span class="leg-dot" style="background:'+(x.c.terminated?'#aaa':(TEAM_COLOR[x.c.team]||'#4A90D9'))+';"></span><span class="near-name">'+x.c.name+'</span><span class="near-team">'+(x.c.team?x.c.team+'팀':'')+'</span><span class="near-dist">'+x.d.toFixed(1)+' km</span></div>';
+        }).join('')+'</div>':'<div class="near-empty">'+nearKm+'km 안에 다른 사업장이 없어요</div>');
+        window._nearCenter={c:center,coord:coord};
+      }
+      window._setNearKm=function(km){ nearKm=km; if(window._nearCenter) enterNearby(window._nearCenter.c,window._nearCenter.coord); };
+      window._exitNearby=function(){
+        nearLayer.clearLayers(); window._nearCenter=null;
+        markers.forEach(function(m){ var c=m._biz; m.setStyle({fillColor:c.terminated?'#aaa':(TEAM_COLOR[c.team]||'#4A90D9'),radius:c.terminated?6:8,fillOpacity:c.terminated?0.4:0.95}); });
+        var box=document.getElementById('map-near'); if(box) box.innerHTML='';
+        mapInstance.fitBounds(cluster.getBounds().pad(0.1));
+      };
     },100);
   }
 };
