@@ -1807,22 +1807,33 @@ window.renderBizTab=function(){
     html+='</div>';
    el.innerHTML=html;
     
-  } else {
-    el.innerHTML='<div class="map-legend"><span><span class="leg-dot" style="background:#E24B4A;"></span>긴급</span><span><span class="leg-dot" style="background:#EF9F27;"></span>임박</span><span><span class="leg-dot" style="background:#4A90D9;"></span>여유/자동연장</span><span><span class="leg-dot" style="background:#aaa;"></span>해지</span></div><div id="map"></div>';
+    } else {
+    var TEAM_COLOR={1:'#185FA5',2:'#3B6D11',3:'#854F0B'};
+    el.innerHTML='<div class="map-legend"><span><span class="leg-dot" style="background:#185FA5;"></span>1팀</span><span><span class="leg-dot" style="background:#3B6D11;"></span>2팀</span><span><span class="leg-dot" style="background:#854F0B;"></span>3팀</span><span><span class="leg-dot" style="background:#aaa;"></span>해지</span><span style="margin-left:auto;color:#999;">숫자 원 = 가까운 사업장 묶음 · 확대하면 이름 표시</span></div><div id="map"></div>';
     setTimeout(function(){
       if(mapInstance){mapInstance.remove();mapInstance=null;}
-      mapInstance=L.map('map').setView([36.98,127.05],9);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapInstance);
-     filtered.forEach(function(c){
+      mapInstance=L.map('map',{zoomControl:true}).setView([36.98,127.05],9);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',maxZoom:19}).addTo(mapInstance);
+      var cluster=L.markerClusterGroup({maxClusterRadius:45,showCoverageOnHover:false,spiderfyOnMaxZoom:true,disableClusteringAtZoom:13});
+      var markers=[];
+      filtered.forEach(function(c){
         var coord=(c.lat&&c.lng)?{lat:c.lat,lng:c.lng}:COORDS[c.name]; if(!coord) return;
-        var s=calcStatus(c);
-        var color=c.terminated?'#aaa':s==='urgent'?'#E24B4A':s==='near'?'#EF9F27':'#4A90D9';
-        var radius=c.terminated?6:s==='urgent'?10:8;
-        var opacity=c.terminated?0.4:0.9;
-        var marker=L.circleMarker([coord.lat,coord.lng],{radius:radius,fillColor:color,color:'#fff',weight:2,fillOpacity:opacity}).addTo(mapInstance);
-        marker.bindTooltip(c.name,{permanent:true,direction:'top',offset:[0,-8],opacity:c.terminated?0.5:0.97,className:'map-label'});
+        var color=c.terminated?'#aaa':(TEAM_COLOR[c.team]||'#4A90D9');
+        var marker=L.circleMarker([coord.lat,coord.lng],{radius:c.terminated?6:8,fillColor:color,color:'#fff',weight:2,fillOpacity:c.terminated?0.4:0.95});
+        marker.bindTooltip(c.name,{permanent:true,direction:'right',offset:[8,0],opacity:c.terminated?0.6:1,className:'map-label'});
         marker.on('click',function(){ window.goDetail(c.id); });
+        marker._bizName=c.name;
+        cluster.addLayer(marker); markers.push(marker);
       });
+      mapInstance.addLayer(cluster);
+      // 이름표: 줌 12 이상에서만 표시
+      function updateLabels(){
+        var show=mapInstance.getZoom()>=12;
+        markers.forEach(function(m){ var t=m.getTooltip(); if(!t) return; var e=t.getElement(); if(e) e.style.display=show?'':'none'; });
+      }
+      mapInstance.on('zoomend',updateLabels); cluster.on('animationend',updateLabels);
+      setTimeout(updateLabels,50);
+      if(markers.length) mapInstance.fitBounds(cluster.getBounds().pad(0.1));
     },100);
   }
 };
