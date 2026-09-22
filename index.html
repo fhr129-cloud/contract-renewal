@@ -15,8 +15,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
 window.kakaoReady = false;
 function loadKakao() {
@@ -250,7 +253,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f0ee;color:#1a1a18;min-
 .biz-info-row span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .biz-bottom{display:flex;justify-content:space-between;font-size:11px;color:#aaa;border-top:.5px solid #f0f0ec;padding-top:6px;gap:4px;}
 .biz-bottom span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-#map{height:500px;border-radius:12px;border:.5px solid #e8e8e4;}
+#map{height:calc(100vh - 230px);min-height:420px;border-radius:12px;border:.5px solid #e8e8e4;}
+.marker-cluster-small,.marker-cluster-medium,.marker-cluster-large{background:rgba(24,95,165,.25);}
+.marker-cluster-small div,.marker-cluster-medium div,.marker-cluster-large div{background:#185FA5;color:#fff;font-weight:700;font-family:'Noto Sans KR',sans-serif;}
 .map-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:#666;margin-bottom:10px;}
 .map-legend span{display:flex;align-items:center;gap:4px;white-space:nowrap;}
 .leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
