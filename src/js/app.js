@@ -1,4 +1,4 @@
-import { listenContracts, listenHistory, listenSupports, addContract, updateContract, deleteContract, addHistory, addSupport, updateSupport, updateSupportBizName, deleteSupport,  saveHistoryRecords, updateHistoryName, checkAllowedUser, loginUser, registerUser, watchAuth, logoutUser, fetchAllForBackup, listenStaff, logUsage } from './db.js';
+import { listenContracts, listenHistory, listenSupports, addContract, updateContract, deleteContract, addHistory, addSupport, updateSupport, updateSupportBizName, deleteSupport,  saveHistoryRecords, updateHistoryName, checkAllowedUser, loginUser, registerUser, watchAuth, logoutUser, fetchAllForBackup, listenStaff } from './db.js';
 import { calcStatus, STATUS_META, fmtDate, toInputDate, dDiff, dDayLabel, priceLabel } from './utils.js';
 import { COORDS } from './coords.js';
 import { STAFF_MAP, STAFF_ORDER, DEFAULT_STAFF, applyStaff, teamLead, getStaffColor, getStaffBorderColor, getStaffBg } from './staff.js';
@@ -979,7 +979,6 @@ window.addEventListener('popstate',function(e){
   applyState(state);
 });
 function applyState(state) {
-  if(state&&state.screen==='home') logUsage('home');
   document.getElementById('home-screen').style.display='none';
   document.getElementById('app').style.display='none';
   document.getElementById('detail-screen').style.display='none';
@@ -1031,7 +1030,6 @@ window.goDetail=function(id){ if(!id||id==='undefined') return; var s={screen:'d
 window.goDetailByName=function(name){ var c=contracts.find(function(x){ return x.name===name; }); if(c) goDetail(c.id); };
 window.goBackFromDetail=function(){ history.back(); };
 function renderPage(page) {
-  logUsage(page);
   if(page==='dashboard') renderDashboard();
   if(page==='support'){ renderCalendar(); initSS(); }
   if(page==='businesses') renderBizTab();
@@ -1046,7 +1044,6 @@ function renderPage(page) {
 
 // ── 사업장 상세 ──────────────────────────
 function renderDetail(c) {
-  logUsage('detail');
   var s=calcStatus(c),d=dDiff(c.endDate),col=s==='urgent'?'#A32D2D':s==='auto'?'#185FA5':s==='near'?'#854F0B':'#3B6D11';
   document.getElementById('detail-title').textContent=c.name;
   var contactHtml='';
@@ -1851,7 +1848,6 @@ window.renderAdmin=function(){
       '<td onclick="event.stopPropagation()"><button class="btn sm danger" onclick="handleDelete(\''+c.id+'\',\''+c.name.replace(/'/g,'')+'\')" ><i class="ti ti-trash"></i></button></td></tr>';
   }).join('')||'<tr><td colspan="6"><div class="empty-state">없음</div></td></tr>';
   if(window.renderStaffAdmin) window.renderStaffAdmin();
-  if(window.renderUsage&&!window._usageLoaded){ window._usageLoaded=true; window.renderUsage(30); }
 };
 
 // ── 계약 모달 ──────────────────────────
