@@ -450,6 +450,20 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 .sf-sw{width:32px;height:32px;border-radius:8px;border:1.5px solid;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;cursor:pointer;}
 .sf-sw.on{outline:2px solid #1a1a18;outline-offset:2px;}
 .sf-note{font-size:11px;color:#888;margin-top:8px;line-height:1.5;}
+
+/* ── 사용 현황 ── */
+.usage-tabs{display:flex;gap:6px;margin-bottom:10px;}
+.usage-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.usage-kpis div{background:#F7F9FC;border-radius:10px;padding:10px 6px;text-align:center;}
+.usage-kpis b{display:block;font-size:20px;color:#185FA5;}
+.usage-kpis em{font-style:normal;font-size:12px;color:#999;font-weight:400;}
+.usage-kpis span{font-size:10px;color:#888;}
+.usage-sec{font-size:12px;font-weight:600;color:#555;margin:10px 0 6px;}
+.usage-row{display:grid;grid-template-columns:90px 1fr 36px;gap:8px;align-items:center;font-size:12px;margin-bottom:5px;}
+.usage-lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.usage-bar{height:8px;background:#f0f0ee;border-radius:99px;overflow:hidden;}
+.usage-bar span{display:block;height:8px;background:#185FA5;border-radius:99px;}
+.usage-n{text-align:right;color:#555;}
 </style>
 </head>
 <body>
@@ -655,6 +669,10 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
         <button class="btn primary" onclick="openStaffModal('')"><i class="ti ti-user-plus"></i> 직원 추가</button>
       </div>
       <div id="staff-admin-list"></div>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <div class="staff-admin-head"><div><div style="font-size:15px;font-weight:600;">사용 현황</div><div style="font-size:11px;color:#888;margin-top:2px;">누가 어떤 화면을 얼마나 여는지 — 관리자에게만 보입니다.</div></div><button class="btn sm" onclick="renderUsage(30)"><i class="ti ti-refresh"></i></button></div>
+      <div id="usage-admin"></div>
     </div>
   </div>
 </div>
@@ -1035,7 +1053,7 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
-<script type="module" src="./src/js/app.js?v=20260928c"></script>
+<script type="module" src="./src/js/app.js?v=20260928d"></script>
 
 <!-- 직원 추가/수정 -->
 <div id="staff-modal" class="sup-modal">
