@@ -64,14 +64,14 @@ export function renderRegionTab(el,contracts){
     '<div class="rg-chips" id="rg-chips"></div><div id="rg-near"></div><div class="rg-cards" id="rg-cards"></div>';
   setTimeout(function(){ initMap(); drawAll(); },50);
 }
-export function destroyRegionMap(){ if(map){ map.remove(); map=null; } }
+export function destroyRegionMap(){ if(map){ map.remove(); map=null; bubbleLayer=null; } }
 
 function initMap(){
   if(map){ map.remove(); map=null; }
   var mapEl=document.getElementById('rg-map'); if(!mapEl) return;
   map=L.map('rg-map',{zoomControl:false,attributionControl:false});
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(map);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png',{maxZoom:19,opacity:0.6}).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,className:'rg-tiles'}).addTo(map);
+  map.on('zoomend',function(){ if((!selectedCity||selectedCity==='__rest')&&layers.overview) placeBubbles(); });
   layers.overview=L.layerGroup().addTo(map); layers.sites=L.layerGroup().addTo(map); layers.near=L.layerGroup().addTo(map);
 }
 function drawAll(){ drawMap(); drawChips(); drawNear(); drawCards(); }
@@ -79,22 +79,18 @@ function drawAll(){ drawMap(); drawChips(); drawNear(); drawCards(); }
 function drawMap(){
   if(!map) return;
   layers.overview.clearLayers(); layers.sites.clearLayers(); layers.near.clearLayers();
+  if(bubbleLayer){ map.removeLayer(bubbleLayer); bubbleLayer=null; }
   var regions=cache.regions, ov=document.getElementById('rg-map-ov');
   if(!selectedCity||selectedCity==='__rest'){
     // 전체: 주요 지역은 숫자 원, 나머지는 회색 점
     var bounds=[];
     regions.forEach(function(r){
-      if(r.major){
-        var c=centroid(r.items); if(!c) return; bounds.push([c.lat,c.lng]);
-        var size=28+Math.min(r.items.length,40)*0.8;
-        var icon=L.divIcon({className:'rg-bubble-wrap',html:'<div class="rg-bubble" style="width:'+size+'px;height:'+size+'px;background:'+r.color+';">'+r.items.length+'</div><div class="rg-bubble-lbl">'+esc(r.name.replace(/시$|군$/,''))+'</div>',iconSize:[size,size+18],iconAnchor:[size/2,size/2]});
-        L.marker([c.lat,c.lng],{icon:icon}).on('click',function(){ selectCity(r.name); }).addTo(layers.overview);
-      } else {
-        r.items.forEach(function(x){ var co=coordOf(x); if(!co) return; bounds.push([co.lat,co.lng]);
-          L.circleMarker([co.lat,co.lng],{radius:3.5,fillColor:'#B8B4AC',color:'#fff',weight:1,fillOpacity:1}).bindTooltip(esc(x.name),{direction:'top'}).addTo(layers.overview); });
-      }
+      if(r.major){ var c=centroid(r.items); if(c){ r._c=c; bounds.push([c.lat,c.lng]); } }
+      else r.items.forEach(function(x){ var co=coordOf(x); if(!co) return;
+        L.circleMarker([co.lat,co.lng],{radius:3.5,fillColor:'#B8B4AC',color:'#fff',weight:1,fillOpacity:1}).bindTooltip(esc(x.name),{direction:'top'}).addTo(layers.overview); });
     });
-    if(bounds.length) map.fitBounds(bounds,{padding:[24,24]});
+    if(bounds.length) map.fitBounds(bounds,{padding:[36,36],maxZoom:10});
+    placeBubbles();
     if(ov) ov.innerHTML='<span class="rg-hint">지역 원을 누르면 그 지역으로 확대</span>';
   } else {
     var r=regions.filter(function(x){ return x.name===selectedCity; })[0]; if(!r) return;
@@ -121,6 +117,31 @@ function drawMap(){
     } else if(bounds.length) map.fitBounds(bounds,{padding:[28,28]});
     if(ov) ov.innerHTML='<button class="rg-back" onclick="window._rgBack()">← 전체</button><span class="rg-title" style="color:'+r.color+'">'+esc(r.name)+' '+r.items.length+'곳</span>'+(sel?'<span class="rg-title" style="color:#A32D2D">· '+esc(sel.name)+'</span>':'');
   }
+}
+var bubbleLayer=null;
+function placeBubbles(){
+  if(!map) return;
+  if(bubbleLayer){ map.removeLayer(bubbleLayer); }
+  bubbleLayer=L.layerGroup().addTo(map);
+  var items=cache.regions.filter(function(r){ return r.major&&r._c; }).map(function(r){
+    var size=28+Math.min(r.items.length,40)*0.8, p=map.latLngToContainerPoint([r._c.lat,r._c.lng]);
+    return {r:r,size:size,x:p.x,y:p.y,ox:p.x,oy:p.y};
+  });
+  // 겹치는 원 서로 밀어내기 (픽셀 단위)
+  for(var it=0;it<60;it++){
+    var moved=false;
+    for(var i=0;i<items.length;i++) for(var j=i+1;j<items.length;j++){
+      var a=items[i],b=items[j],dx=b.x-a.x,dy=b.y-a.y,d=Math.sqrt(dx*dx+dy*dy)||0.01,min=(a.size+b.size)/2+10;
+      if(d<min){ var push=(min-d)/2,ux=dx/d,uy=dy/d; a.x-=ux*push;a.y-=uy*push;b.x+=ux*push;b.y+=uy*push; moved=true; }
+    }
+    if(!moved) break;
+  }
+  items.forEach(function(it){
+    var r=it.r,size=it.size,ll=map.containerPointToLatLng([it.x,it.y]);
+    if(Math.abs(it.x-it.ox)>2||Math.abs(it.y-it.oy)>2) L.polyline([[r._c.lat,r._c.lng],ll],{color:r.color,weight:1,opacity:.5,dashArray:'2 3'}).addTo(bubbleLayer);
+    var icon=L.divIcon({className:'rg-bubble-wrap',html:'<div class="rg-bubble" style="width:'+size+'px;height:'+size+'px;background:'+r.color+';">'+r.items.length+'</div><div class="rg-bubble-lbl">'+esc(r.name.replace(/시$|군$/,''))+'</div>',iconSize:[size,size+18],iconAnchor:[size/2,size/2]});
+    L.marker(ll,{icon:icon}).on('click',function(){ selectCity(r.name); }).addTo(bubbleLayer);
+  });
 }
 function drawChips(){
   var el=document.getElementById('rg-chips'); if(!el) return;
