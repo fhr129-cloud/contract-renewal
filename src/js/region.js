@@ -142,7 +142,8 @@ function layoutLabels(){
     var el=q.m.getTooltip().getElement(); if(!el) return;
     var b={x0:q.x+6,y0:q.y-9,x1:q.x+6+q.m._lw,y1:q.y+9};
     var onScreen=b.x0>=0&&b.y0>=0&&b.x1<=size.x&&b.y1<=size.y;
-    var hit=!onScreen||boxes.some(function(o){ return !(b.x1<o.x0||b.x0>o.x1||b.y1<o.y0||b.y0>o.y1); });
+        var self={x0:q.x-8,y0:q.y-8,x1:q.x+8,y1:q.y+8};
+    var hit=!onScreen||boxes.some(function(o){ if(o.x0===self.x0&&o.y0===self.y0&&o.x1===self.x1&&o.y1===self.y1) return false; return !(b.x1<o.x0||b.x0>o.x1||b.y1<o.y0||b.y0>o.y1); });
     if(hit&&q.m._pri!==0){ el.style.display='none'; }
     else { el.style.display=''; boxes.push(b); }
   });
