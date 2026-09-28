@@ -1816,7 +1816,6 @@ window.renderBizTab=function(){
 };
 
 // ── 관리자 수정 ──────────────────────────
-// ── 관리자 수정 ──────────────────────────
 window.renderAdmin=function(){
   var searchEl=document.getElementById('admin-search'),q=searchEl?searchEl.value.toLowerCase():'';
   var statusOrder={urgent:0,near:1,ok:2,auto:3,terminated:4};
