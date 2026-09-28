@@ -4,6 +4,7 @@ import { COORDS } from './coords.js';
 import { STAFF_MAP, STAFF_ORDER, getStaffColor, getStaffBorderColor, getStaffBg } from './staff.js';
 import { initAdmin } from './admin.js';
 import { initDashboard } from './dashboard.js';
+import { renderRegionTab, destroyRegionMap } from './region.js';
 
 var contracts = [];
 var historyData = [];
@@ -973,7 +974,8 @@ function applyState(state) {
   document.getElementById('home-screen').style.display='none';
   document.getElementById('app').style.display='none';
   document.getElementById('detail-screen').style.display='none';
-  if(mapInstance&&state.screen!=='page'){ mapInstance.remove(); mapInstance=null; }
+   if(mapInstance&&state.screen!=='page'){ mapInstance.remove(); mapInstance=null; }
+  if(state.screen!=='page') destroyRegionMap();
   var tabBar=document.getElementById('bottom-tab-bar');
   if(state.screen==='home'){
     document.getElementById('home-screen').style.display='flex'; currentPage='';
@@ -1672,6 +1674,7 @@ window.setBizTab=function(tab){
   var idx={team:0,resp:1,region:2,newterm:3},btns=document.querySelectorAll('.tab-btn');
   if(btns[idx[tab]!==undefined?idx[tab]:0]) btns[idx[tab]!==undefined?idx[tab]:0].classList.add('active');
   if(mapInstance&&tab!=='region'){mapInstance.remove();mapInstance=null;}
+  if(tab!=='region') destroyRegionMap();
   document.querySelectorAll('.team-body').forEach(function(b){ b.classList.remove('open'); });
   renderBizTab();
 };
@@ -1807,79 +1810,9 @@ window.renderBizTab=function(){
     html+='</div>';
    el.innerHTML=html;
     
-    } else {
-    var TEAM_COLOR={1:'#185FA5',2:'#3B6D11',3:'#854F0B'};
-    el.innerHTML='<div class="map-legend"><span><span class="leg-dot" style="background:#185FA5;"></span>1팀</span><span><span class="leg-dot" style="background:#3B6D11;"></span>2팀</span><span><span class="leg-dot" style="background:#854F0B;"></span>3팀</span><span><span class="leg-dot" style="background:#aaa;"></span>해지</span><span style="margin-left:auto;color:#999;">숫자 원 = 묶음 · 점을 누르면 주변 보기</span></div><div id="map"></div><div id="map-near"></div>';
-    setTimeout(function(){
-      if(mapInstance){mapInstance.remove();mapInstance=null;}
-      mapInstance=L.map('map',{zoomControl:true}).setView([36.98,127.05],9);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',maxZoom:19}).addTo(mapInstance);
-      var cluster=L.markerClusterGroup({maxClusterRadius:45,showCoverageOnHover:false,spiderfyOnMaxZoom:true,disableClusteringAtZoom:13});
-      var markers=[];
-      filtered.forEach(function(c){
-        var coord=(c.lat&&c.lng)?{lat:c.lat,lng:c.lng}:COORDS[c.name]; if(!coord) return;
-        var color=c.terminated?'#aaa':(TEAM_COLOR[c.team]||'#4A90D9');
-        var marker=L.circleMarker([coord.lat,coord.lng],{radius:c.terminated?6:8,fillColor:color,color:'#fff',weight:2,fillOpacity:c.terminated?0.4:0.95});
-        marker.bindTooltip(c.name,{permanent:true,direction:'right',offset:[8,0],opacity:c.terminated?0.6:1,className:'map-label'});
-                marker.on('click',function(){ enterNearby(c,coord); });
-        marker._bizName=c.name; marker._biz=c; marker._coord=coord;
-        cluster.addLayer(marker); markers.push(marker);
-      });
-      mapInstance.addLayer(cluster);
-      // 이름표: 줌 12 이상에서만 표시
-      function updateLabels(){
-        var show=mapInstance.getZoom()>=12;
-        markers.forEach(function(m){ var t=m.getTooltip(); if(!t) return; var e=t.getElement(); if(e) e.style.display=show?'':'none'; });
-      }
-      mapInstance.on('zoomend',updateLabels); cluster.on('animationend',updateLabels);
-      setTimeout(updateLabels,50);
-            if(markers.length) mapInstance.fitBounds(cluster.getBounds().pad(0.1));
-
-      // ── 주변 모드 ──
-      var nearLayer=L.layerGroup().addTo(mapInstance);
-      var nearKm=10;
-      function kmBetween(a,b){
-        var R=6371,p=Math.PI/180;
-        var dLat=(b.lat-a.lat)*p,dLng=(b.lng-a.lng)*p;
-        var h=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a.lat*p)*Math.cos(b.lat*p)*Math.sin(dLng/2)*Math.sin(dLng/2);
-        return 2*R*Math.asin(Math.sqrt(h));
-      }
-      function enterNearby(center,coord){
-        nearLayer.clearLayers();
-        nearLayer.addLayer(L.circle([coord.lat,coord.lng],{radius:nearKm*1000,color:'#185FA5',weight:1,dashArray:'4 4',fillColor:'#185FA5',fillOpacity:0.06}));
-        nearLayer.addLayer(L.circle([coord.lat,coord.lng],{radius:5000,color:'#185FA5',weight:1,dashArray:'4 4',fillColor:'#185FA5',fillOpacity:0.08}));
-        var list=[];
-        markers.forEach(function(m){
-          if(m._biz.id===center.id){ m.setStyle({fillColor:'#A32D2D',radius:11}); return; }
-          var d=kmBetween(coord,m._coord);
-          var inside=d<=nearKm;
-          m.setStyle({fillOpacity:inside?0.95:0.25,radius:inside?8:5});
-          if(inside) list.push({c:m._biz,d:d});
-        });
-        list.sort(function(a,b){ return a.d-b.d; });
-        mapInstance.fitBounds(L.latLng(coord.lat,coord.lng).toBounds(nearKm*2000).pad(0.05));
-        var box=document.getElementById('map-near'); if(!box) return;
-        box.innerHTML='<div class="near-head">'+
-          '<button class="btn sm" onclick="window._exitNearby()"><i class="ti ti-x"></i> 전체</button>'+
-          '<span class="near-title" onclick="goDetail(\''+center.id+'\')">'+center.name+'</span>'+
-          '<span class="near-sub">주변 '+nearKm+'km · '+list.length+'곳 · 직선거리</span>'+
-          '<span class="near-toggle"><span class="'+(nearKm===5?'on':'')+'" onclick="window._setNearKm(5)">5km</span><span class="'+(nearKm===10?'on':'')+'" onclick="window._setNearKm(10)">10km</span></span>'+
-        '</div>'+
-        (list.length?'<div class="near-list">'+list.map(function(x){
-          return '<div class="near-row" onclick="goDetail(\''+x.c.id+'\')"><span class="leg-dot" style="background:'+(x.c.terminated?'#aaa':(TEAM_COLOR[x.c.team]||'#4A90D9'))+';"></span><span class="near-name">'+x.c.name+'</span><span class="near-team">'+(x.c.team?x.c.team+'팀':'')+'</span><span class="near-dist">'+x.d.toFixed(1)+' km</span></div>';
-        }).join('')+'</div>':'<div class="near-empty">'+nearKm+'km 안에 다른 사업장이 없어요</div>');
-        window._nearCenter={c:center,coord:coord};
-      }
-      window._setNearKm=function(km){ nearKm=km; if(window._nearCenter) enterNearby(window._nearCenter.c,window._nearCenter.coord); };
-      window._exitNearby=function(){
-        nearLayer.clearLayers(); window._nearCenter=null;
-        markers.forEach(function(m){ var c=m._biz; m.setStyle({fillColor:c.terminated?'#aaa':(TEAM_COLOR[c.team]||'#4A90D9'),radius:c.terminated?6:8,fillOpacity:c.terminated?0.4:0.95}); });
-        var box=document.getElementById('map-near'); if(box) box.innerHTML='';
-        mapInstance.fitBounds(cluster.getBounds().pad(0.1));
-      };
-    },100);
+     } else {
+    renderRegionTab(el, filtered);
   }
-};
 
 // ── 관리자 수정 ──────────────────────────
 window.renderAdmin=function(){
