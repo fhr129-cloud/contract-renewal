@@ -99,7 +99,7 @@ export function initAdmin(ctx){
   var editingStaffId=null;
   window.renderStaffAdmin=function(){
     var el=document.getElementById('staff-admin-list'); if(!el) return;
-    var all=(window.STAFF_ALL||[]).slice();
+        var all=(window.STAFF_ALL||[]).filter(function(s){ return !!s.id; });
     if(!all.length){
       el.innerHTML='<div class="staff-empty">직원 명단이 아직 앱에 없어요. 코드에 있던 기존 명단('+DEFAULT_STAFF.filter(function(s){ return s.active!==false; }).length+'명)을 가져오면 시작됩니다.</div>'+
         '<button class="btn primary" onclick="importDefaultStaff()"><i class="ti ti-download"></i> 기존 직원 가져오기</button>';
