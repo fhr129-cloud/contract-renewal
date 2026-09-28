@@ -1,7 +1,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import {
   getFirestore, collection, doc, getDoc, addDoc, setDoc,
-  updateDoc, deleteDoc, query, orderBy, onSnapshot,
+  updateDoc, deleteDoc, query, orderBy, where, onSnapshot,
   serverTimestamp, writeBatch, getDocs
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import {
@@ -168,6 +168,25 @@ export async function ensureAllowedUser(phone, name){
 export function removeAllowedUser(phone){
   var p=String(phone||'').replace(/[^0-9]/g,''); if(!p) return Promise.resolve();
   return deleteDoc(doc(db,'allowedUsers',p));
+}
+// ── 사용 기록 (관리자만 읽음) ──
+var _lastLog={key:'',t:0};
+export function logUsage(page){
+  try{
+    var me=auth.currentUser&&auth.currentUser.email?auth.currentUser.email.split('@')[0]:'';
+    if(!me||!page) return;
+    var key=me+'|'+page, now=Date.now();
+    if(_lastLog.key===key&&now-_lastLog.t<60000) return; // 같은 화면 1분 내 중복 기록 방지
+    _lastLog={key:key,t:now};
+    var d=new Date(), day=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    addDoc(collection(db,'usage'),{phone:me,page:page,day:day,at:serverTimestamp()}).catch(function(){});
+  }catch(e){}
+}
+export async function fetchUsage(days){
+  var since=new Date(Date.now()-days*86400000);
+  var sinceDay=since.getFullYear()+'-'+String(since.getMonth()+1).padStart(2,'0')+'-'+String(since.getDate()).padStart(2,'0');
+  var snap=await getDocs(query(collection(db,'usage'),where('day','>=',sinceDay)));
+  return snap.docs.map(function(d){ return d.data(); });
 }
 export async function fetchAllForBackup(){
   var result={};
