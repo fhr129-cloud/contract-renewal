@@ -17,6 +17,7 @@ function kmBetween(a,b){
   var h=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a.lat*p)*Math.cos(b.lat*p)*Math.sin(dLng/2)*Math.sin(dLng/2);
   return 2*R*Math.asin(Math.sqrt(h));
 }
+function shortName(n){ var t=String(n||'').replace(/\([^)]*\)/g,'').replace(/\s+/g,''); return t.length>6?t.slice(0,5):t; }
 function shortCity(n){ return n.replace(/광역시$|특별시$/,'').replace(/시$|군$/,''); }
 export function regionOf(c){
   var a=(c.addr||'').trim(), city=null, town=null;
@@ -75,6 +76,7 @@ function initMap(){
   map=L.map('rg-map',{zoomControl:false,attributionControl:false});
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,className:'rg-tiles'}).addTo(map);
   map.on('zoomend',function(){ if(isOverview()) placeBubbles(); });
+  map.on('moveend',function(){ if(!isOverview()) layoutLabels(); });
   layers.sites=L.layerGroup().addTo(map); layers.near=L.layerGroup().addTo(map);
 }
 function isOverview(){ return !selectedCity||selectedCity==='__rest'; }
@@ -103,7 +105,8 @@ function drawMap(){
     var inTown=!selectedTown||x._region.town===selectedTown; if(inTown&&selectedTown) townBounds.push([co.lat,co.lng]);
     var m=L.circleMarker([co.lat,co.lng],{radius:isSel?11:(inTown?7:5),fillColor:isSel?'#A32D2D':(x.terminated?'#aaa':(TEAM_COLOR[x.team]||'#4A90D9')),color:'#fff',weight:isSel?3:1.5,fillOpacity:inTown?1:0.3});
     m._biz=x; m._co=co;
-    m.bindTooltip(esc(x.name),{direction:'top',offset:[0,-6],permanent:isSel,className:isSel?'rg-tip-sel':'rg-tip'});
+    m.bindTooltip(isSel?esc(x.name):esc(shortName(x.name)),{direction:'right',offset:[6,0],permanent:true,interactive:true,className:isSel?'rg-tip-sel':'rg-tip'});
+    m._pri=isSel?0:(inTown?1:2); m._lw=(isSel?x.name.length:shortName(x.name).length)*11+8;
     m.on('click',function(){ selectSite(x.id); });
     m.addTo(layers.sites);
   });
@@ -119,6 +122,7 @@ function drawMap(){
     map.fitBounds(L.latLng(selCo.lat,selCo.lng).toBounds(nearKm*2200));
   } else if(selectedTown&&townBounds.length) map.fitBounds(townBounds,{padding:[40,40],maxZoom:14});
   else if(bounds.length) map.fitBounds(bounds,{padding:[28,28]});
+  setTimeout(layoutLabels,0);
   if(ov){
     var crumb='<button class="rg-back" onclick="window._rgBack()">← 전체</button>';
     crumb+='<span class="rg-title" style="color:'+r.color+'" onclick="window._rgTown(null)">'+esc(r.name)+' '+r.items.length+'</span>';
@@ -126,6 +130,22 @@ function drawMap(){
     if(sel) crumb+='<span class="rg-title" style="color:#A32D2D">› '+esc(sel.name)+'</span>';
     ov.innerHTML=crumb;
   }
+}
+// 이름표 겹침 방지: 겹치지 않는 것만 표시 (선택 > 선택 읍·면 > 나머지 순)
+function layoutLabels(){
+  if(!map||!layers.sites) return;
+  var ms=[]; layers.sites.eachLayer(function(m){ if(m._biz&&m.getTooltip()) ms.push(m); });
+  var size=map.getSize(), pts=ms.map(function(m){ var p=map.latLngToContainerPoint(m.getLatLng()); return {m:m,x:p.x,y:p.y}; });
+  var boxes=pts.map(function(q){ return {x0:q.x-8,y0:q.y-8,x1:q.x+8,y1:q.y+8}; }); // 점 자체는 항상 차지
+  pts.sort(function(a,b){ return a.m._pri-b.m._pri||a.y-b.y; });
+  pts.forEach(function(q){
+    var el=q.m.getTooltip().getElement(); if(!el) return;
+    var b={x0:q.x+6,y0:q.y-9,x1:q.x+6+q.m._lw,y1:q.y+9};
+    var onScreen=b.x0>=0&&b.y0>=0&&b.x1<=size.x&&b.y1<=size.y;
+    var hit=!onScreen||boxes.some(function(o){ return !(b.x1<o.x0||b.x0>o.x1||b.y1<o.y0||b.y0>o.y1); });
+    if(hit&&q.m._pri!==0){ el.style.display='none'; }
+    else { el.style.display=''; boxes.push(b); }
+  });
 }
 function placeBubbles(){
   if(!map) return;
