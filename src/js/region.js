@@ -6,6 +6,20 @@ var CITY_PALETTE=['#185FA5','#6B2FA0','#0B6B5A','#854F0B','#A32D6B','#3B6D11','#
 var CENTERS={'평택시':[36.992,127.113],'화성시':[37.199,126.831],'아산시':[36.790,127.002],'천안시':[36.815,127.114],'용인시':[37.241,127.178],'안성시':[37.008,127.280],'오산시':[37.150,127.077],'수원시':[37.263,127.029],'안산시':[37.322,126.831],'시흥시':[37.380,126.803],'이천시':[37.272,127.435],'성남시':[37.420,127.127]};
 var TOWN2CITY={'포승읍':'평택시','청북읍':'평택시','진위면':'평택시','서탄면':'평택시','오성면':'평택시','고덕면':'평택시','팽성읍':'평택시','세교동':'평택시','모곡동':'평택시','둔포면':'아산시','음봉면':'아산시','정남면':'화성시','우정읍':'화성시','양감면':'화성시'};
 
+// 본사 — 주소는 여기 한 줄만 바꾸면 됨. 좌표는 앱 실행 시 카카오 지오코딩으로 갱신해 기억
+var HQ={id:'__hq',name:'본사',addr:'경기 평택시 청북읍 청북로 172',lat:37.017,lng:126.930};
+(function(){ try{ var c=JSON.parse(localStorage.getItem('hqCoord')||'null'); if(c&&c.addr===HQ.addr){ HQ.lat=c.lat; HQ.lng=c.lng; } }catch(e){} })();
+function geocodeHQ(){
+  try{
+    var saved=JSON.parse(localStorage.getItem('hqCoord')||'null'); if(saved&&saved.addr===HQ.addr) return;
+    if(!window.kakaoReady||!window.kakao||!kakao.maps||!kakao.maps.services) return;
+    new kakao.maps.services.Geocoder().addressSearch(HQ.addr,function(res,st){
+      if(st===kakao.maps.services.Status.OK&&res[0]){ HQ.lat=parseFloat(res[0].y); HQ.lng=parseFloat(res[0].x);
+        try{ localStorage.setItem('hqCoord',JSON.stringify({addr:HQ.addr,lat:HQ.lat,lng:HQ.lng})); }catch(e){}
+        if(map) drawMap(); }
+    });
+  }catch(e){}
+}
 var map=null, layers={sites:null,near:null}, bubbleLayer=null;
 var selectedCity=null, selectedTown=null, selectedSiteId=null, nearKm=5;
 var cache={contracts:[],regions:null};
@@ -78,6 +92,7 @@ function initMap(){
   map.on('zoomend',function(){ if(isOverview()) placeBubbles(); });
   map.on('moveend',function(){ if(!isOverview()) layoutLabels(); });
   layers.sites=L.layerGroup().addTo(map); layers.near=L.layerGroup().addTo(map);
+  geocodeHQ();
 }
 function isOverview(){ return !selectedCity||selectedCity==='__rest'; }
 function drawAll(){ drawMap(); drawChips(); drawNear(); drawCards(); }
@@ -90,8 +105,9 @@ function drawMap(){
   if(isOverview()){
     var bounds=cache.regions.filter(function(r){ return r._c; }).map(function(r){ return [r._c.lat,r._c.lng]; });
     if(bounds.length) map.fitBounds(bounds,{padding:[30,30],maxZoom:10});
-    placeBubbles();
-    if(ov) ov.innerHTML='<span class="rg-hint">지역 원을 누르면 그 지역으로 확대</span>';
+    placeBubbles(); drawHQ();
+    if(selectedSiteId==='__hq') drawHQRadius();
+    if(ov) ov.innerHTML=selectedSiteId==='__hq'?'<span class="rg-title" style="color:#A32D2D">★ 본사 주변 '+nearKm+'km</span>':'<span class="rg-hint">지역 원을 누르면 그 지역으로 확대 · ★ 본사</span>';
     return;
   }
   var r=regionByName(selectedCity); if(!r) return;
@@ -122,6 +138,7 @@ function drawMap(){
     map.fitBounds(L.latLng(selCo.lat,selCo.lng).toBounds(nearKm*2200));
   } else if(selectedTown&&townBounds.length) map.fitBounds(townBounds,{padding:[40,40],maxZoom:14});
   else if(bounds.length) map.fitBounds(bounds,{padding:[28,28]});
+  drawHQ();
   setTimeout(layoutLabels,0);
   if(ov){
     var crumb='<button class="rg-back" onclick="window._rgBack()">← 전체</button>';
@@ -142,11 +159,21 @@ function layoutLabels(){
     var el=q.m.getTooltip().getElement(); if(!el) return;
     var b={x0:q.x+6,y0:q.y-9,x1:q.x+6+q.m._lw,y1:q.y+9};
     var onScreen=b.x0>=0&&b.y0>=0&&b.x1<=size.x&&b.y1<=size.y;
-        var self={x0:q.x-8,y0:q.y-8,x1:q.x+8,y1:q.y+8};
+    var self={x0:q.x-8,y0:q.y-8,x1:q.x+8,y1:q.y+8};
     var hit=!onScreen||boxes.some(function(o){ if(o.x0===self.x0&&o.y0===self.y0&&o.x1===self.x1&&o.y1===self.y1) return false; return !(b.x1<o.x0||b.x0>o.x1||b.y1<o.y0||b.y0>o.y1); });
     if(hit&&q.m._pri!==0){ el.style.display='none'; }
     else { el.style.display=''; boxes.push(b); }
   });
+}
+function drawHQRadius(){
+  L.circle([HQ.lat,HQ.lng],{radius:nearKm*1000,color:'#A32D2D',weight:1,dashArray:'4 4',fillColor:'#A32D2D',fillOpacity:0.05}).addTo(layers.near);
+  map.fitBounds(L.latLng(HQ.lat,HQ.lng).toBounds(nearKm*2200));
+}
+function drawHQ(){
+  if(!map) return;
+  var on=selectedSiteId==='__hq';
+  var icon=L.divIcon({className:'rg-hq-wrap',html:'<div class="rg-hq'+(on?' on':'')+'">★</div><div class="rg-hq-lbl">본사</div>',iconSize:[26,40],iconAnchor:[13,13]});
+  L.marker([HQ.lat,HQ.lng],{icon:icon,zIndexOffset:1000}).bindTooltip('본사 · '+esc(HQ.addr),{direction:'top',offset:[0,-10]}).on('click',function(){ selectSite(on?null:'__hq'); }).addTo(layers.near);
 }
 function placeBubbles(){
   if(!map) return;
@@ -186,15 +213,18 @@ function drawChips(){
 function drawNear(){
   var el=document.getElementById('rg-near'); if(!el) return;
   if(!selectedSiteId){ el.innerHTML=''; return; }
-  var center=cache.contracts.filter(function(x){ return x.id===selectedSiteId; })[0]; var co=center?coordOf(center):null;
+  var isHQ=selectedSiteId==='__hq';
+  var center=isHQ?HQ:cache.contracts.filter(function(x){ return x.id===selectedSiteId; })[0]; var co=center?(isHQ?{lat:HQ.lat,lng:HQ.lng}:coordOf(center)):null;
   if(!co){ el.innerHTML=''; return; }
   var list=cache.contracts.filter(function(x){ return x.id!==selectedSiteId&&coordOf(x); }).map(function(x){ return {c:x,d:kmBetween(co,coordOf(x))}; }).filter(function(x){ return x.d<=nearKm; }).sort(function(a,b){ return a.d-b.d; });
-  el.innerHTML='<div class="rg-near"><div class="rg-near-head"><span class="rg-near-name" onclick="goDetail(\''+center.id+'\')">'+esc(center.name)+'</span><span class="rg-near-sub">주변 '+nearKm+'km · '+list.length+'곳 · 직선거리</span><span class="rg-near-tg"><span class="'+(nearKm===5?'on':'')+'" onclick="window._rgKm(5)">5km</span><span class="'+(nearKm===10?'on':'')+'" onclick="window._rgKm(10)">10km</span></span><button class="rg-x" onclick="window._rgSite(null)" aria-label="닫기">✕</button></div>'+
+  var kms=isHQ?[10,20,30]:[5,10];
+  el.innerHTML='<div class="rg-near"><div class="rg-near-head"><span class="rg-near-name" '+(isHQ?'':'onclick="goDetail(\''+center.id+'\')"')+'>'+(isHQ?'★ ':'')+esc(center.name)+'</span><span class="rg-near-sub">주변 '+nearKm+'km · '+list.length+'곳 · 직선거리</span><span class="rg-near-tg">'+kms.map(function(k){ return '<span class="'+(nearKm===k?'on':'')+'" onclick="window._rgKm('+k+')">'+k+'km</span>'; }).join('')+'</span><button class="rg-x" onclick="window._rgSite(null)" aria-label="닫기">✕</button></div>'+
     (list.length?list.map(function(x){ return '<div class="rg-near-row" onclick="goDetail(\''+x.c.id+'\')"><span class="rg-dot" style="background:'+(x.c.terminated?'#aaa':(TEAM_COLOR[x.c.team]||'#4A90D9'))+'"></span><span class="rg-near-n">'+esc(x.c.name)+'</span><span class="rg-near-t">'+(x.c.team?x.c.team+'팀 · ':'')+esc(x.c._region.town!=='기타'?x.c._region.town:x.c._region.city)+'</span><span class="rg-near-d">'+x.d.toFixed(1)+' km</span></div>'; }).join(''):'<div class="rg-near-empty">'+nearKm+'km 안에 다른 사업장이 없어요</div>')+'</div>';
 }
 function chip(x,cityLabel){
-  var on=x.id===selectedSiteId;
-  return '<span class="rg-site'+(on?' on':'')+(x.terminated?' term':'')+'" onclick="window._rgSite(\''+x.id+'\')"><span class="rg-dot" style="background:'+(on?'#fff':(x.terminated?'#aaa':(TEAM_COLOR[x.team]||'#4A90D9')))+'"></span>'+esc(x.name)+(cityLabel?'<em class="rg-site-city">'+esc(cityLabel)+'</em>':'')+'</span>';
+  var on=x.id===selectedSiteId, co=coordOf(x);
+  var km=co?'<em class="rg-site-km">'+kmBetween({lat:HQ.lat,lng:HQ.lng},co).toFixed(0)+'km</em>':'';
+  return '<span class="rg-site'+(on?' on':'')+(x.terminated?' term':'')+'" onclick="window._rgSite(\''+x.id+'\')"><span class="rg-dot" style="background:'+(on?'#fff':(x.terminated?'#aaa':(TEAM_COLOR[x.team]||'#4A90D9')))+'"></span>'+esc(x.name)+(cityLabel?'<em class="rg-site-city">'+esc(cityLabel)+'</em>':'')+km+'</span>';
 }
 function openCard(r){
   var html='<div class="rg-card open" style="border-color:'+r.color+'"><div class="rg-card-head" onclick="window._rgBack()"><span class="rg-dot lg" style="background:'+r.color+'"></span><span class="rg-card-name">'+esc(r.name)+'</span><span class="rg-card-sub">'+r.items.length+'곳 · '+teamCount(r.items)+'</span><i class="ti ti-chevron-up"></i></div>';
@@ -226,6 +256,8 @@ function selectCity(name){ selectedCity=name||null; selectedTown=null; selectedS
 function selectTown(t){ selectedTown=t||null; selectedSiteId=null; drawAll(); }
 function selectSite(id){
   selectedSiteId=id||null;
+  if(id==='__hq'){ selectedCity=null; selectedTown=null; if([10,20,30].indexOf(nearKm)<0) nearKm=20; drawAll(); var nr=document.getElementById('rg-near'); if(nr) nr.scrollIntoView({behavior:'smooth',block:'nearest'}); return; }
+  if(selectedSiteId&&[5,10].indexOf(nearKm)<0) nearKm=5;
   if(id){
     var x=cache.contracts.filter(function(c){ return c.id===id; })[0];
     if(x){ selectedCity=x._region.city; if(selectedTown&&x._region.town!==selectedTown) selectedTown=null; }
