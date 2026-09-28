@@ -139,32 +139,39 @@ export function saveHistoryRecords(contractId, name, records) {
   });
 }
 
-async function seedHistory() {
-  // 이미 히스토리가 있으면 스킵
-  const histSnap = await getDocs(collection(db,'history'));
-  if(histSnap.size > 0) return;
-  const contractSnap = await getDocs(collection(db,'contracts'));
-  const contractMap = {};
-  contractSnap.docs.forEach(function(d) {
-    contractMap[d.data().name] = d.id;
+// ── 직원 ──────────────────────────
+export function listenStaff(cb){
+  return onSnapshot(collection(db,'staff'), function(snap){
+    cb(snap.docs.map(function(d){ return Object.assign({id:d.id}, sanitize(d.data())); }));
   });
-  const batch = writeBatch(db);
-  SEED_HISTORY.forEach(function(h) {
-    const contractId = contractMap[h.name];
-    if(!contractId) return;
-    const ref = doc(db,'history',contractId);
-    batch.set(ref, {
-      contractId: contractId,
-      name: h.name,
-      records: h.records,
-      updatedAt: serverTimestamp()
-    });
-  });
+}
+export function saveStaff(id, data){
+  var clean=Object.assign({}, sanitize(data), {updatedAt: serverTimestamp()});
+  if(id) return updateDoc(doc(db,'staff',id), clean);
+  clean.createdAt=serverTimestamp();
+  return addDoc(collection(db,'staff'), clean);
+}
+export function deleteStaff(id){ return deleteDoc(doc(db,'staff',id)); }
+export async function importStaff(list){
+  var batch=writeBatch(db);
+  list.forEach(function(s){ batch.set(doc(collection(db,'staff')), Object.assign({}, s, {createdAt: serverTimestamp(), updatedAt: serverTimestamp()})); });
   await batch.commit();
+}
+// 로그인 허용 목록에 번호 등록 (이미 있으면 이름만 갱신)
+export async function ensureAllowedUser(phone, name){
+  var p=String(phone||'').replace(/[^0-9]/g,''); if(p.length<10) return false;
+  var ref=doc(db,'allowedUsers',p), snap=await getDoc(ref);
+  if(snap.exists()){ await updateDoc(ref,{name:name}); return 'updated'; }
+  await setDoc(ref,{name:name, role:'staff', registered:false, createdAt: serverTimestamp()});
+  return 'created';
+}
+export function removeAllowedUser(phone){
+  var p=String(phone||'').replace(/[^0-9]/g,''); if(!p) return Promise.resolve();
+  return deleteDoc(doc(db,'allowedUsers',p));
 }
 export async function fetchAllForBackup(){
   var result={};
-  var cols=['contracts','history','supports','allowedUsers'];
+  var cols=['contracts','history','supports','allowedUsers','staff'];
   for(var i=0;i<cols.length;i++){
     var snap=await getDocs(collection(db,cols[i]));
     result[cols[i]]=snap.docs.map(function(d){ return {_id:d.id,data:d.data()}; });
