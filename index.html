@@ -92,16 +92,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f0ee;color:#1a1a18;min-
 .badge.auto{background:#E6F1FB;color:#185FA5;border-color:#B5D4F4;}
 .badge-cat{font-size:11px;font-weight:500;padding:2px 8px;border-radius:99px;background:#f0f0ec;color:#555;white-space:nowrap;flex-shrink:0;}
 
-.sc-박주형{background:#E6F1FB;color:#185FA5;border-color:#B5D4F4;}
-.sc-김재희{background:#EAF3DE;color:#3B6D11;border-color:#C0DD97;}
-.sc-손도란{background:#FAEEDA;color:#854F0B;border-color:#FAC775;}
-.sc-권은진{background:#FAEEDA;color:#854F0B;border-color:#FAC775;}
-.sc-이소영{background:#F3E6FB;color:#6B2FA0;border-color:#D4A8F0;}
-.sc-김상준{background:#FCEBEB;color:#A32D2D;border-color:#F7C1C1;}
-.sc-안은재{background:#E6FBF8;color:#0B6B5A;border-color:#A8EDE3;}
-.sc-견병록{background:#FBF6E6;color:#6B5B0B;border-color:#EDE0A8;}
-.sc-임성창{background:#F0F0EC;color:#444;border-color:#ccc;}
-.sc-김동현{background:#FBE6F0;color:#A32D6B;border-color:#F0A8D0;}
 
 .stat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px;}
 .stat-card{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:box-shadow .12s;min-width:0;min-height:80px;touch-action:manipulation;}
@@ -439,6 +429,27 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
   .contact-row{grid-template-columns:1fr auto;}
   
 }
+
+/* ── 직원 관리 ── */
+.staff-admin-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+.staff-list{display:flex;flex-direction:column;gap:6px;}
+.staff-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border:.5px solid #e8e8e4;border-radius:10px;background:#fff;cursor:pointer;}
+.staff-row:hover{border-color:#185FA5;}
+.staff-row.retired{opacity:.55;}
+.staff-swatch{width:28px;height:28px;border-radius:8px;border:1px solid;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+.staff-name{font-size:13px;font-weight:600;}
+.staff-meta{font-size:11px;color:#888;flex:1;}
+.staff-row i{color:#bbb;}
+.staff-sub{font-size:11px;color:#888;margin:12px 0 6px;}
+.staff-hint{font-size:11px;color:#999;margin-top:10px;}
+.staff-empty{font-size:13px;color:#666;padding:10px 0 12px;line-height:1.5;}
+.sf-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.sf-checks{display:flex;flex-direction:column;gap:6px;margin:10px 0;font-size:13px;}
+.sf-checks label{display:flex;align-items:center;gap:8px;cursor:pointer;}
+.sf-palette{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+.sf-sw{width:32px;height:32px;border-radius:8px;border:1.5px solid;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;cursor:pointer;}
+.sf-sw.on{outline:2px solid #1a1a18;outline-offset:2px;}
+.sf-note{font-size:11px;color:#888;margin-top:8px;line-height:1.5;}
 </style>
 </head>
 <body>
@@ -638,6 +649,13 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
         </table>
       </div>
     </div>
+    <div class="card" style="margin-top:16px;">
+      <div class="staff-admin-head">
+        <div><div style="font-size:15px;font-weight:600;">직원 관리</div><div style="font-size:11px;color:#888;margin-top:2px;">여기서 추가·수정하면 일정 담당자 선택, 팀장 표시, 색상, 로그인 번호까지 한 번에 반영됩니다.</div></div>
+        <button class="btn primary" onclick="openStaffModal('')"><i class="ti ti-user-plus"></i> 직원 추가</button>
+      </div>
+      <div id="staff-admin-list"></div>
+    </div>
   </div>
 </div>
 
@@ -719,15 +737,6 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
       <div class="sup-form-group">
         <label>담당자 *</label>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;" id="personal-staff-wrap">
-          <div class="staff-chip" onclick="togglePersonalStaffChip(this,'박주형 본부장')">박주형 본부장</div>
-          <div class="staff-chip" onclick="togglePersonalStaffChip(this,'김재희 차장')">김재희 차장</div>
-          <div class="staff-chip" onclick="togglePersonalStaffChip(this,'권은진 과장')">권은진 과장</div>
-          <div class="staff-chip" onclick="togglePersonalStaffChip(this,'이소영 주임')">이소영 주임</div>
-          <div class="staff-chip" onclick="togglePersonalStaffChip(this,'김상준 주임')">김상준 주임</div>
-          <div class="staff-chip" onclick="togglePersonalStaffChip(this,'안은재 주임')">안은재 주임</div>
-          <div class="staff-chip" onclick="togglePersonalStaffChip(this,'견병록 매니저')">견병록 매니저</div>
-          <div class="staff-chip" onclick="togglePersonalStaffChip(this,'임성창 차장')">임성창 차장</div>
-          <div class="staff-chip" onclick="togglePersonalStaffChip(this,'김동현 대리')">김동현 대리</div>
         </div>
       </div>
       <div class="sup-form-group">
@@ -843,17 +852,6 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
       <div class="sup-form-group">
         <label>지원자</label>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;" id="staff-chip-wrap">
-          <div style="font-size:11px;color:#888;width:100%;margin-bottom:2px;">운영팀</div>
-          <div class="staff-chip" onclick="toggleStaffChip(this,'박주형 본부장')">박주형 본부장</div>
-          <div class="staff-chip" onclick="toggleStaffChip(this,'김재희 차장')">김재희 차장</div>
-          <div class="staff-chip" onclick="toggleStaffChip(this,'권은진 과장')">권은진 과장</div>
-          <div class="staff-chip" onclick="toggleStaffChip(this,'이소영 주임')">이소영 주임</div>
-          <div class="staff-chip" onclick="toggleStaffChip(this,'김상준 주임')">김상준 주임</div>
-          <div class="staff-chip" onclick="toggleStaffChip(this,'안은재 주임')">안은재 주임</div>
-          <div class="staff-chip" onclick="toggleStaffChip(this,'견병록 매니저')">견병록 매니저</div>
-          <div style="font-size:11px;color:#888;width:100%;margin-bottom:2px;margin-top:4px;">지원팀</div>
-          <div class="staff-chip" onclick="toggleStaffChip(this,'임성창 차장')">임성창 차장</div>
-          <div class="staff-chip" onclick="toggleStaffChip(this,'김동현 대리')">김동현 대리</div>
         </div>
       </div>
       </div>
@@ -909,14 +907,10 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
             </div>
           </div>
           <div class="form-group"><label>팀</label>
-            <select id="f-team"><option value="1">1팀 (박주형)</option><option value="2">2팀 (김재희)</option><option value="3">3팀 (권은진)</option></select>
+            <select id="f-team"></select>
           </div>
           <div class="form-group"><label>책임</label>
-            <select id="f-resp">
-              <option value="">선택...</option>
-              <option>이소영 주임</option>
-              <option>김상준 주임</option><option>견병록 매니저</option>
-            </select>
+            <select id="f-resp"><option value="">선택...</option></select>
           </div>
           <div class="form-group"><label>계약 시작일</label><input type="date" id="f-startDate"></div>
           <div class="form-group"><label>계약 종료일 *</label><input type="date" id="f-endDate"></div>
@@ -1041,6 +1035,35 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
-<script type="module" src="./src/js/app.js?v=20260928"></script>
+<script type="module" src="./src/js/app.js?v=20260928c"></script>
+
+<!-- 직원 추가/수정 -->
+<div id="staff-modal" class="sup-modal">
+  <div class="sup-modal-inner">
+    <div class="sup-modal-header"><h3 id="sf-title">직원 추가</h3><button class="btn sm" onclick="closeStaffModal()"><i class="ti ti-x"></i></button></div>
+    <div class="sup-modal-body">
+      <div class="sf-grid">
+        <div class="sup-form-group"><label>이름 *</label><input type="text" id="sf-name" placeholder="홍길동"></div>
+        <div class="sup-form-group"><label>직급</label><input type="text" id="sf-jobtitle" placeholder="주임 / 대리 / 과장 …"></div>
+        <div class="sup-form-group"><label>소속</label><select id="sf-group"><option value="운영">운영팀</option><option value="지원">지원팀</option></select></div>
+        <div class="sup-form-group"><label>담당 팀</label><select id="sf-team"><option value="0">없음</option><option value="1">1팀</option><option value="2">2팀</option><option value="3">3팀</option></select></div>
+        <div class="sup-form-group"><label>휴대폰 (로그인용)</label><input type="tel" id="sf-phone" placeholder="01012345678"></div>
+        <div class="sup-form-group"><label>표시 순서</label><input type="number" id="sf-order" min="1"></div>
+      </div>
+      <div class="sf-checks">
+        <label><input type="checkbox" id="sf-lead"> 팀장 (사업장 현황 팀 제목에 표시)</label>
+        <label><input type="checkbox" id="sf-active" checked> 재직 중</label>
+      </div>
+      <div class="sup-form-group"><label>색상</label><div id="sf-palette" class="sf-palette"></div></div>
+      <div class="sf-note">휴대폰을 넣고 저장하면 로그인 허용 목록에 자동 등록돼요. 본인이 앱에서 번호 입력 → 비밀번호 만들기만 하면 됩니다.</div>
+    </div>
+    <div class="sup-modal-footer">
+      <button class="btn" id="sf-delete" onclick="deleteStaffForm()" style="color:#A32D2D;">삭제</button>
+      <span style="flex:1;"></span>
+      <button class="btn" onclick="closeStaffModal()">취소</button>
+      <button class="btn primary" onclick="saveStaffForm()">저장</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
