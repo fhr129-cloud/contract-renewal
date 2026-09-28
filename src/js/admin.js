@@ -1,5 +1,5 @@
 // admin.js — 관리자 기능 (엑셀/백업/동기화)
-import { fetchAllForBackup, updateContract, saveStaff, deleteStaff, importStaff, ensureAllowedUser, fetchUsage } from './db.js';
+import { fetchAllForBackup, updateContract, saveStaff, deleteStaff, importStaff, ensureAllowedUser } from './db.js';
 import { DEFAULT_STAFF, COLOR_PALETTE, fullName } from './staff.js';
 import { calcStatus, STATUS_META, fmtDate, dDiff, priceLabel } from './utils.js';
 
@@ -169,33 +169,5 @@ export function initAdmin(ctx){
     if(!confirm('이 직원을 명단에서 완전히 삭제할까요?\n(퇴사자는 삭제보다 "재직 중" 체크를 끄는 걸 권장해요 — 과거 일정의 이름·색이 유지됩니다)')) return;
     try{ await deleteStaff(editingStaffId); showToast('삭제되었습니다.'); closeStaffModal(); }
     catch(e){ console.error(e); showToast('삭제 실패: '+(e.message||'')); }
-  };
-
-  // ── 사용 현황 (관리자 전용) ──
-  var PAGE_LABEL={home:'홈',dashboard:'대시보드',support:'운영지원',businesses:'사업장 현황',admin:'관리자',detail:'사업장 상세'};
-  window.renderUsage=async function(days){
-    var el=document.getElementById('usage-admin'); if(!el) return;
-    days=days||30;
-    el.innerHTML='<div class="staff-hint">불러오는 중…</div>';
-    var rows; try{ rows=await fetchUsage(days); }catch(e){ el.innerHTML='<div class="staff-hint">사용 기록을 읽을 수 없어요 (관리자 권한 필요)</div>'; return; }
-    var byPage={},byUser={},byDay={},users={};
-    rows.forEach(function(r){
-      byPage[r.page]=(byPage[r.page]||0)+1;
-      byUser[r.phone]=(byUser[r.phone]||0)+1;
-      byDay[r.day]=byDay[r.day]||{}; byDay[r.day][r.phone]=1;
-      users[r.phone]=1;
-    });
-    var nameOf=function(p){ var u=(window.STAFF_ALL||[]).filter(function(s){ return s.phone===p; })[0]; return u?u.name:p.replace(/^(\d{3})(\d{3,4})(\d{4})$/,'$1-****-$3'); };
-    var activeDays=Object.keys(byDay).length, total=rows.length, maxP=Math.max.apply(null,Object.keys(byPage).map(function(k){ return byPage[k]; }).concat([1]));
-    var pages=Object.keys(byPage).sort(function(a,b){ return byPage[b]-byPage[a]; });
-    var userList=Object.keys(byUser).sort(function(a,b){ return byUser[b]-byUser[a]; });
-    var staffCount=(window.STAFF_ALL||[]).filter(function(s){ return s.active!==false&&s.phone; }).length;
-    el.innerHTML=
-      '<div class="usage-tabs"><span class="rg-chip'+(days===7?' on':'')+'" style="'+(days===7?'background:#185FA5;border-color:#185FA5;':'')+'" onclick="renderUsage(7)">7일</span><span class="rg-chip'+(days===30?' on':'')+'" style="'+(days===30?'background:#185FA5;border-color:#185FA5;':'')+'" onclick="renderUsage(30)">30일</span><span class="rg-chip'+(days===90?' on':'')+'" style="'+(days===90?'background:#185FA5;border-color:#185FA5;':'')+'" onclick="renderUsage(90)">90일</span></div>'+
-      '<div class="usage-kpis"><div><b>'+total+'</b><span>화면 열람</span></div><div><b>'+userList.length+(staffCount?'<em>/'+staffCount+'</em>':'')+'</b><span>사용한 사람</span></div><div><b>'+activeDays+'</b><span>사용 있었던 날</span></div></div>'+
-      '<div class="usage-sec">화면별</div>'+pages.map(function(pg){ return '<div class="usage-row"><span class="usage-lbl">'+esc(PAGE_LABEL[pg]||pg)+'</span><span class="usage-bar"><span style="width:'+Math.round(byPage[pg]/maxP*100)+'%"></span></span><span class="usage-n">'+byPage[pg]+'</span></div>'; }).join('')+
-      '<div class="usage-sec">사람별 <span style="font-weight:400;color:#aaa;">열람 횟수</span></div>'+userList.map(function(u){ return '<div class="usage-row"><span class="usage-lbl">'+esc(nameOf(u))+'</span><span class="usage-bar"><span style="width:'+Math.round(byUser[u]/byUser[userList[0]]*100)+'%;background:#3B6D11;"></span></span><span class="usage-n">'+byUser[u]+'</span></div>'; }).join('')+
-      (staffCount>userList.length?'<div class="staff-hint">이 기간에 한 번도 열지 않은 사람: '+esc((window.STAFF_ALL||[]).filter(function(s){ return s.active!==false&&s.phone&&!byUser[s.phone]; }).map(function(s){ return s.name; }).join(', ')||'-')+'</div>':'')+
-      '<div class="staff-hint">같은 사람이 같은 화면을 1분 안에 다시 열면 1회로 칩니다. 기록은 관리자만 볼 수 있어요.</div>';
   };
 }
