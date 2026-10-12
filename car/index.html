@@ -177,6 +177,14 @@ dd{line-height:1.45;word-break:keep-all;}
 .foot{position:fixed;left:0;right:0;bottom:0;z-index:41;background:#fff;border-top:.5px solid #E2E0DA;padding:10px 14px calc(12px + env(safe-area-inset-bottom));}
 .sum{font-size:12px;color:#55524B;text-align:center;margin-bottom:8px;min-height:16px;line-height:1.4;}
 
+/* 월간 위 차량 상태(작게) */
+.stats.sm{margin-bottom:14px;}
+.stats.sm .stat{min-height:0;padding:10px 12px;gap:1px;}
+.stats.sm .state{font-size:14px;margin-top:4px;}
+/* 입력 화면: 그날 예약 현황 */
+.dayb{margin-top:8px;background:#fff;border:.5px solid #E2E0DA;border-radius:10px;padding:8px 12px;font-size:12px;color:#55524B;display:flex;flex-direction:column;gap:4px;}
+.dayb i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;}
+.dayb.free{color:#3B6D11;}
 /* 단계형 입력 (운영지원 등록과 같은 흐름) */
 .step{animation:stepIn .25s ease;}
 @keyframes stepIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -257,6 +265,6 @@ dd{line-height:1.45;word-break:keep-all;}
 <div id="form" class="full"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script type="module" src="./car.js?v=20261012f"></script>
+<script type="module" src="./car.js?v=20261012g"></script>
 </body>
 </html>
