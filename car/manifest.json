@@ -1,0 +1,14 @@
+{
+  "name": "차량 예약",
+  "short_name": "차량예약",
+  "description": "온정F&B 레이 차량 예약",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F4F3EF",
+  "theme_color": "#185FA5",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "../icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
