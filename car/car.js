@@ -1,4 +1,4 @@
-// car.js — 차량 예약 앱 (레이 2대). FS 앱과 같은 Firebase·로그인을 쓴다.
+// car.js — 차량 예약 앱 (레이 2대 + 스타렉스 1대). FS 앱과 같은 Firebase·로그인을 쓴다.
 import { db, checkAllowedUser, loginUser, registerUser, watchAuth, logoutUser } from '../src/js/db.js';
 import {
   collection, doc, query, where, onSnapshot, runTransaction, serverTimestamp
@@ -6,12 +6,11 @@ import {
 
 // ── 설정: 차량번호·안내 문구는 여기만 고치면 됨 ──────────────────
 export var CARS = [
-  { id:'ray1', name:'레이 1호', plate:'', color:'#185FA5', bg:'#E6F1FB' },
-  { id:'ray2', name:'레이 2호', plate:'', color:'#C2600F', bg:'#FBEBD6' }
+  { id:'ray1',   name:'레이 1호', short:'레이1',   plate:'', color:'#185FA5', bg:'#E6F1FB' },
+  { id:'ray2',   name:'레이 2호', short:'레이2',   plate:'', color:'#854F0B', bg:'#FAEEDA' },
+  { id:'starex', name:'스타렉스', short:'스타렉스', plate:'', color:'#3B6D11', bg:'#EAF3DE' }
 ];
 var NOTICE = '';                 // 예: '키: 본사 1층 경영지원팀 · 주차: 본사 주차장 B구역'
-var DAY_START = 8, DAY_END = 20; // 주간 타임라인에 그리는 시간 범위
-var TICKS = [10,12,14,16,18];      // 시간표 눈금
 var SLOTS = { am:{label:'오전', s:'09:00', e:'13:00'}, pm:{label:'오후', s:'13:00', e:'18:00'}, day:{label:'종일', s:'09:00', e:'18:00'} };
 var PURPOSES = ['특식지원','이벤트지원','물품배송','정비검사','기타'];
 
@@ -27,11 +26,7 @@ var ICON = {
 // ── 상태 ──────────────────────────
 var me = null;            // {phone,name,role,apps}
 var list = [];            // 예약 전체 (최근 2달~)
-var view = 'month';       // 'month'(처음 화면) | 'home'(주간)
-var weekStart = mondayOf(new Date());
 var monthCursor = firstOfMonth(new Date());
-var monthSel = ymd(new Date());
-var sheetId = null;       // 상세 창에 띄운 예약 id
 var form = null;          // 예약 입력 중인 값
 var unsub = null, unsubSites = null;
 var sites = [];           // FS 사업장 이름 목록 (meta/sites)
@@ -172,142 +167,132 @@ async function cancelReservation(g){
   });
 }
 
-// ── 화면 ──────────────────────────
+// ── 화면 (FS 운영지원 화면과 같은 모양) ──────────────────────────
 function render(){
-  var app = document.getElementById('app');
+  var app=document.getElementById('app');
   if(!me){ app.innerHTML=''; return; }
-  app.innerHTML = topBar() + (view==='month' ? monthView() : homeView());
-  renderSheet(); renderForm();
+  app.innerHTML=topBar()+'<div class="page-body">'+statusRow()+monthView()+myList()+'</div>';
+  renderPopup(); renderForm();
 }
 function topBar(){
-  var today=new Date();
-  return '<header class="top">'+
-    (hasApp(me,'fs')?'<a class="back" href="../">← FS</a>':'')+
-    '<div class="ttl"><div class="t1">차량 예약</div><div class="t2">'+(today.getMonth()+1)+'월 '+today.getDate()+'일 ('+DOW[today.getDay()]+') · '+esc(me.name)+'</div></div>'+
-    '<button class="icon" data-act="view" data-v="'+(view==='month'?'home':'month')+'" aria-label="'+(view==='month'?'주간 보기':'월간 달력')+'">'+(view==='month'?ICON.list:ICON.cal)+'</button>'+
-    '<button class="icon" data-act="logout" aria-label="로그아웃">'+ICON.out+'</button>'+
-  '</header>';
+  return '<div class="top-bar">'+
+    (hasApp(me,'fs')?'<a class="back-btn" href="../"><i class="ti ti-arrow-left"></i> 홈</a>':'')+
+    '<h2>차량 예약</h2>'+
+    '<div class="top-actions"><button class="btn primary" data-act="new"><i class="ti ti-plus"></i> 예약 등록</button>'+
+    '<button class="btn sm" data-act="logout" title="로그아웃"><i class="ti ti-logout"></i></button></div></div>';
 }
-function statusCard(c){
+function statusRow(){
   var t=ymd(new Date()), n=nowHM();
-  var today=itemsOn(t,c.id);
-  var cur=today.filter(function(r){ return r.start<=n&&n<r.end; })[0];
-  var next=list.filter(function(r){ return r.carId===c.id&&(r.date>t||(r.date===t&&r.start>n)); }).sort(function(a,b){ return (a.date+a.start).localeCompare(b.date+b.start); })[0];
-  var nextTxt = next ? '다음 예약 '+(next.date===t?'오늘':next.date===ymd(addDays(new Date(),1))?'내일':dayLabel(next.date))+' '+next.start : '다음 예약 없음';
-  var cls, state, sub;
-  if(cur&&cur.type==='maint'){ cls='busy'; state='정비 중'; sub='~'+cur.end; }
-  else if(cur){ var g=group(cur), last=g[g.length-1]; cls='busy'; state='사용 중'; sub=esc(String(cur.ownerName||'').split(' ')[0])+' · ~'+(last.date!==t?(parseYmd(last.date).getMonth()+1)+'/'+parseYmd(last.date).getDate()+' ':'')+last.end+' 반납'; }
-  else { cls='free'; state='지금 사용 가능'; sub=nextTxt; }
-  return '<button class="stat '+cls+'" data-act="'+(cur?'open':'new')+'" data-id="'+(cur?cur.id:'')+'" data-car="'+c.id+'">'+
-    '<span class="row"><span class="dot" style="background:'+c.color+'"></span><b>'+c.name+'</b></span>'+
-    (c.plate?'<span class="plate">'+esc(c.plate)+'</span>':'')+
-    '<span class="state">'+state+'</span><span class="sub">'+sub+'</span></button>';
+  return '<div class="car-stats">'+CARS.map(function(c){
+    var cur=itemsOn(t,c.id).filter(function(r){ return r.start<=n&&n<r.end; })[0];
+    var next=list.filter(function(r){ return r.carId===c.id&&(r.date>t||(r.date===t&&r.start>n)); }).sort(function(a,b){ return (a.date+a.start).localeCompare(b.date+b.start); })[0];
+    var state, sub, cls;
+    if(cur){
+      var g=group(cur), last=g[g.length-1];
+      cls='busy'; state='사용 중';
+      sub=esc(String(cur.ownerName||'').split(' ')[0])+' · ~'+(last.date!==t?(parseYmd(last.date).getMonth()+1)+'/'+parseYmd(last.date).getDate()+' ':'')+last.end;
+    } else {
+      cls='free'; state='사용 가능';
+      sub=next?'다음 '+(next.date===t?'오늘':(parseYmd(next.date).getMonth()+1)+'/'+parseYmd(next.date).getDate())+' '+next.start:'예약 없음';
+    }
+    return '<div class="car-stat '+cls+'" data-act="'+(cur?'open':'new')+'" data-id="'+(cur?cur.id:'')+'" data-car="'+c.id+'">'+
+      '<div class="cs-name"><span class="cs-dot" style="background:'+c.color+'"></span>'+c.name+(c.plate?' <small>'+esc(c.plate)+'</small>':'')+'</div>'+
+      '<div class="cs-state">'+state+'</div><div class="cs-sub">'+sub+'</div></div>';
+  }).join('')+'</div>'+(NOTICE?'<div class="notice">'+esc(NOTICE)+'</div>':'');
 }
-function homeView(){
-  var t=ymd(new Date()), n=nowHM();
-  var h='<main class="pad">'+
-    '<div class="sec">지금 차량 상태 <span>'+n+' 기준</span></div>'+
-    '<div class="stats">'+CARS.map(statusCard).join('')+'</div>'+
-    (NOTICE?'<div class="notice">'+esc(NOTICE)+'</div>':'');
-  // 주간 타임라인
-  var ws=weekStart, we=addDays(ws,6);
-  h+='<div class="sec sp"><span class="wk"><button class="nav" data-act="week" data-d="-7" aria-label="이전 주">‹</button>'+
-     (ws.getMonth()+1)+'.'+ws.getDate()+' – '+(we.getMonth()+1)+'.'+we.getDate()+
-     '<button class="nav" data-act="week" data-d="7" aria-label="다음 주">›</button></span>'+
-     '<span class="legend">'+CARS.map(function(c){ return '<i style="background:'+c.color+'"></i>'+c.name.replace('레이 ',''); }).join('')+'</span></div>';
-  var span=(DAY_END-DAY_START)*60;
-  function pct(m){ return ((m-DAY_START*60)/span*100).toFixed(2)+'%'; }
-  var lines=TICKS.map(function(x){ return '<i class="tl-line" style="left:'+pct(x*60)+'"></i>'; }).join('');
-  h+='<div class="card tl"><div class="tl-axis"><span></span><div>'+TICKS.map(function(x){ return '<span style="left:'+pct(x*60)+'">'+x+'시</span>'; }).join('')+'</div></div>';
-  for(var i=0;i<7;i++){
-    var d=addDays(ws,i), ds=ymd(d), isToday=ds===t, wkend=d.getDay()===0||d.getDay()===6;
-    h+='<div class="tl-row'+(isToday?' today':'')+'" data-act="new" data-date="'+ds+'">'+
-       '<div class="tl-day'+(wkend?' red':'')+'"><b>'+DOW[d.getDay()]+'</b><span>'+d.getDate()+'</span></div><div class="tl-track">'+lines;
-    CARS.forEach(function(c,ci){
-      itemsOn(ds,c.id).forEach(function(r){
-        var a=Math.max(toMin(r.start),DAY_START*60), b=Math.min(toMin(r.end),DAY_END*60); if(b<=a) return;
-        var label=r.type==='maint'?'정비':String(r.ownerName||'').split(' ')[0];
-        h+='<button class="bar'+(r.type==='maint'?' maint':'')+(r.type!=='maint'&&r.ownerPhone===me.phone?' mine':'')+'" data-act="open" data-id="'+r.id+'" style="left:'+pct(a)+';width:'+((b-a)/span*100).toFixed(2)+'%;top:'+(ci?24:6)+'px;'+(r.type==='maint'?'':'background:'+c.color+';')+'">'+((b-a)>=90?esc(label):'')+'</button>';
-      });
-    });
-    h+='</div></div>';
-  }
-  h+='</div>';
-  // 내 예약
-  var seenG={};
-  var mine=list.filter(function(r){ return r.ownerPhone===me.phone&&r.type!=='maint'&&(r.date>t||(r.date===t&&r.end>n)); }).sort(function(a,b){ return (a.date+a.start).localeCompare(b.date+b.start); })
-    .filter(function(r){ if(!r.groupId) return true; if(seenG[r.groupId]) return false; seenG[r.groupId]=1; return true; }).slice(0,3);
-  if(mine.length){
-    h+='<div class="sec sp">내 예약</div><div class="card">'+mine.map(function(r){ var d=parseYmd(r.date), c=car(r.carId);
-      return '<button class="mine-row" data-act="open" data-id="'+r.id+'"><span class="md"><small>'+DOW[d.getDay()]+'</small><b style="color:'+c.color+'">'+d.getDate()+'</b></span><span class="mt"><b>'+c.name+'</b><small>'+shortRange(r)+(r.dest?' · '+esc(r.dest):'')+'</small></span><span class="chev">›</span></button>'; }).join('')+'</div>';
-  }
-  h+='<div style="height:90px"></div></main><button class="fab" data-act="new">'+ICON.plus+'예약하기</button>';
-  return h;
-}
+function evLabel(r){ return r.type==='maint'?'정비':String(r.ownerName||'').split(' ')[0]+(r.dest?' '+r.dest:''); }
 function monthView(){
   var m=monthCursor, y=m.getFullYear(), mo=m.getMonth(), t=ymd(new Date());
-  var first=new Date(y,mo,1), lead=(first.getDay()+6)%7, days=new Date(y,mo+1,0).getDate();
-  var h='<main class="pad"><div class="stats sm">'+CARS.map(statusCard).join('')+'</div><div class="mhead"><button class="nav" data-act="month" data-d="-1" aria-label="이전 달">‹</button><b>'+y+'년 '+(mo+1)+'월</b><button class="nav" data-act="month" data-d="1" aria-label="다음 달">›</button></div>'+
-    '<div class="mgrid dow">'+['월','화','수','목','금','토','일'].map(function(x,i){ return '<span'+(i>4?' class="red"':'')+'>'+x+'</span>'; }).join('')+'</div><div class="mgrid">';
-  for(var i=0;i<lead;i++) h+='<span></span>';
-  for(var d=1;d<=days;d++){
-    var ds=y+'-'+pad(mo+1)+'-'+pad(d), dow=(lead+d-1)%7;
-    var cls='mcell'+(ds===t?' today':'')+(ds===monthSel?' sel':'')+(ds<t?' past':'');
-    h+='<button class="'+cls+'" data-act="mday" data-date="'+ds+'"><span class="mn'+(dow>4?' red':'')+'">'+d+'</span>';
-    CARS.forEach(function(c){
-      var its=itemsOn(ds,c.id), maint=its.some(function(r){ return r.type==='maint'; });
-      var mins=its.reduce(function(s,r){ return s+Math.max(0,Math.min(toMin(r.end),18*60)-Math.max(toMin(r.start),9*60)); },0);
-      var f=Math.min(1,mins/540);
-      h+='<i class="mb" style="background:'+(maint?'repeating-linear-gradient(135deg,#9A968E 0 3px,#D9D6CF 3px 6px)':(f?'linear-gradient(90deg,'+c.color+' '+Math.round(f*100)+'%,#EEECE7 '+Math.round(f*100)+'%)':'#EEECE7'))+'"></i>';
-    });
-    h+='</button>';
+  var first=new Date(y,mo,1).getDay(), last=new Date(y,mo+1,0).getDate();
+  var h='<div class="cal-toolbar"><button class="btn sm" data-act="month" data-d="-1"><i class="ti ti-chevron-left"></i></button>'+
+    '<span class="cal-toolbar-title">'+y+'년 '+(mo+1)+'월</span>'+
+    '<button class="btn sm" data-act="month" data-d="1"><i class="ti ti-chevron-right"></i></button>'+
+    '<button class="btn sm" data-act="month" data-d="0">오늘</button>'+
+    '<span class="cal-legend">'+CARS.map(function(c){ return '<span><i style="background:'+c.bg+';border-color:'+c.color+'"></i>'+c.short+'</span>'; }).join('')+'</span></div>';
+  h+='<div class="cal-scroll"><div class="cal-grid">';
+  ['일','월','화','수','목','금','토'].forEach(function(d,i){ h+='<div class="cal-header" style="'+(i===0?'color:#C0392B;font-weight:700;':i===6?'color:#1A5276;font-weight:700;':'')+'">'+d+'</div>'; });
+  for(var i=0;i<first;i++) h+='<div class="cal-day empty"></div>';
+  for(var d=1;d<=last;d++){
+    var key=y+'-'+pad(mo+1)+'-'+pad(d), dow=new Date(y,mo,d).getDay(), hol=getHoliday(key);
+    var its=itemsOn(key);
+    var color=dow===0?'color:#C0392B;':dow===6?'color:#1A5276;':'';
+    h+='<div class="cal-day'+(key===t?' today':'')+(hol||dow===0?' holiday':'')+(dow===6?' sat':'')+(key<t?' past':'')+'" data-act="day" data-date="'+key+'">'+
+       '<div class="cal-num" style="'+color+'">'+d+'</div>'+(hol?'<div class="cal-hol">'+hol+'</div>':'')+
+       its.slice(0,3).map(function(r){ var c=car(r.carId);
+         return '<div class="cal-event" data-act="open" data-id="'+r.id+'" style="background:'+(r.type==='maint'?'#F0F0EC':c.bg)+';color:'+(r.type==='maint'?'#666':c.color)+';">'+
+           '<span class="ev-t">'+esc(evLabel(r))+'</span><span class="ev-c">'+c.short+'</span></div>'; }).join('')+
+       (its.length>3?'<div class="cal-more" data-act="daylist" data-date="'+key+'">+'+(its.length-3)+'건</div>':'')+
+       '</div>';
   }
-  h+='</div><div class="legend m">'+CARS.map(function(c){ return '<i style="background:'+c.color+'"></i>'+c.name.replace('레이 ',''); }).join('')+'<i class="hatch"></i>정비 <span>막대 길이 = 9~18시 중 예약된 비율</span></div>';
-  h+='<div class="sec sp">'+dayLabel(monthSel)+'</div><div class="card">';
-  CARS.forEach(function(c){
-    var its=itemsOn(monthSel,c.id);
-    its.forEach(function(r){ h+='<button class="drow" data-act="open" data-id="'+r.id+'"><i style="background:'+(r.type==='maint'?'#9A968E':c.color)+'"></i><span><b>'+c.name+' · '+esc(who(r))+'</b><small>'+r.start+'–'+r.end+(r.dest?' · '+esc(r.dest):'')+(r.purpose?' · '+esc(r.purpose):'')+'</small></span></button>'; });
-    if(!its.length) h+='<div class="drow free"><i style="background:'+c.color+'"></i><span><b class="ok">'+c.name+' · 종일 비어 있음</b></span><button class="mini" data-act="new" data-date="'+monthSel+'" data-car="'+c.id+'">예약</button></div>';
-  });
-  h+='</div><div style="height:90px"></div></main><button class="fab" data-act="new">'+ICON.plus+'예약하기</button>';
+  var cells=first+last; for(var k=cells;k%7;k++) h+='<div class="cal-day empty"></div>';
+  h+='</div></div>';
   return h;
 }
-
-// ── 상세 창 ──────────────────────────
-function renderSheet(){
-  var el=document.getElementById('sheet');
-  var r=sheetId&&list.filter(function(x){ return x.id===sheetId; })[0];
-  if(!r){ el.className='ov'; el.innerHTML=''; return; }
-  var g=group(r), c=car(r.carId), edit=canEdit(r), others=isAdmin()&&r.ownerPhone!==me.phone&&r.type!=='maint';
-  var riders=(r.riders||[]).join(', ');
-  el.className='ov on';
-  el.innerHTML='<div class="sheet" role="dialog" aria-label="예약 상세"><div class="grip"></div>'+
-    '<div class="sh-h"><span class="dot lg" style="background:'+c.color+'"></span><b>'+c.name+'</b>'+(r.type==='maint'?'<span class="tag">정비</span>':(r.purpose?'<span class="tag">'+esc(r.purpose)+'</span>':''))+'<button class="x" data-act="close" aria-label="닫기">'+ICON.x+'</button></div>'+
-    '<dl>'+(r.dest?'<dt>업장</dt><dd><b>'+esc(r.dest)+'</b></dd>':'')+
-    '<dt>일시</dt><dd><b>'+rangeText(g)+'</b></dd>'+
-    '<dt>예약자</dt><dd>'+esc(who(r))+'</dd>'+
-    (riders?'<dt>동승자</dt><dd>'+esc(riders)+'</dd>':'')+
-    (r.memo?'<dt>내용</dt><dd>'+esc(r.memo)+'</dd>':'')+'</dl>'+
-    (edit?(others?'<div class="warn">다른 사람 예약이에요. 관리자 권한으로 수정·취소할 수 있어요.</div>':'')+'<div class="btns"><button class="b ghost" data-act="edit" data-id="'+r.id+'">수정</button><button class="b danger" data-act="cancel" data-id="'+r.id+'">예약 취소</button></div>'
-         :(r.type!=='maint'&&r.ownerPhone?'<a class="b call" href="tel:'+esc(r.ownerPhone)+'">'+ICON.phone+esc(r.ownerName)+'에게 전화 <small>'+telFmt(r.ownerPhone)+'</small></a><div class="hint">다른 사람 예약은 보기만 가능해요.</div>':''))+
-  '</div>';
+function myList(){
+  var t=ymd(new Date()), n=nowHM(), seenG={};
+  var mine=list.filter(function(r){ return r.ownerPhone===me.phone&&r.type!=='maint'&&(r.date>t||(r.date===t&&r.end>n)); })
+    .sort(function(a,b){ return (a.date+a.start).localeCompare(b.date+b.start); })
+    .filter(function(r){ if(!r.groupId) return true; if(seenG[r.groupId]) return false; seenG[r.groupId]=1; return true; }).slice(0,5);
+  if(!mine.length) return '';
+  return '<div class="card-title">내 예약</div><div class="dash-list-wrap">'+mine.map(function(r){ var c=car(r.carId);
+    return '<div class="sup-row" data-act="open" data-id="'+r.id+'"><div class="sup-row-top"><span class="sup-biz">'+esc(r.dest||'-')+'</span>'+
+      '<span class="badge-cat" style="background:'+c.bg+';color:'+c.color+'">'+c.short+'</span></div>'+
+      '<div class="sup-row-sub">'+esc(shortRangeFull(r))+(r.purpose?' · '+esc(r.purpose):'')+(r.riders&&r.riders.length?' · 동승 '+esc(r.riders.join(', ')):'')+'</div></div>'; }).join('')+'</div>';
+}
+function shortRangeFull(r){
+  var g=group(r), a=g[0], b=g[g.length-1];
+  function md(x){ var d=parseYmd(x); return (d.getMonth()+1)+'/'+d.getDate()+'('+DOW[d.getDay()]+')'; }
+  return g.length>1 ? md(a.date)+' '+a.start+' ~ '+md(b.date)+' '+b.end : md(a.date)+' '+a.start+'–'+a.end;
 }
 
-// ── 예약 입력 (운영지원 일정 등록과 같은 순서: 업장 → 날짜 → 시간·차량 → 카테고리 → 지원자 → 내용) ──
+// ── 팝업: 예약 상세 / 그날 목록 (운영지원 달력 팝업과 같은 모양) ──────────────
+var popup=null; // {type:'detail', id} | {type:'day', date}
+function renderPopup(){
+  var el=document.getElementById('popup');
+  if(!popup){ el.className='cal-popup'; el.innerHTML=''; return; }
+  var h='';
+  if(popup.type==='detail'){
+    var r=list.filter(function(x){ return x.id===popup.id; })[0];
+    if(!r){ popup=null; el.className='cal-popup'; el.innerHTML=''; return; }
+    var g=group(r), c=car(r.carId), edit=canEdit(r), others=isAdmin()&&r.ownerPhone!==me.phone;
+    h='<div class="cal-popup-inner"><div class="cal-popup-header"><h4><span class="cs-dot" style="background:'+c.color+'"></span>'+c.name+(r.purpose?' <span class="badge-cat">'+esc(r.purpose)+'</span>':'')+'</h4><button class="btn sm" data-act="pclose"><i class="ti ti-x"></i></button></div>'+
+      '<div class="cal-popup-body"><div class="dl">'+
+      '<div><span>업장</span><b>'+esc(r.dest||'-')+'</b></div>'+
+      '<div><span>일시</span><b>'+esc(rangeText(g))+'</b></div>'+
+      '<div><span>예약자</span>'+esc(who(r))+'</div>'+
+      (r.riders&&r.riders.length?'<div><span>동승자</span>'+esc(r.riders.join(', '))+'</div>':'')+
+      (r.memo?'<div><span>상세 내용</span>'+esc(r.memo)+'</div>':'')+'</div>'+
+      (edit?(others?'<div class="warn">다른 사람 예약이에요. 관리자 권한으로 수정·취소할 수 있어요.</div>':'')+
+        '<div class="pbtns"><button class="btn" data-act="edit" data-id="'+r.id+'"><i class="ti ti-pencil"></i> 수정</button><button class="btn danger" data-act="cancel" data-id="'+r.id+'"><i class="ti ti-trash"></i> 예약 취소</button></div>'
+        :(r.ownerPhone?'<div class="pbtns"><a class="btn" href="tel:'+esc(r.ownerPhone)+'"><i class="ti ti-phone"></i> '+esc(String(r.ownerName||'').split(' ')[0])+'에게 전화 ('+telFmt(r.ownerPhone)+')</a></div><div class="hint">다른 사람 예약은 보기만 가능해요.</div>':''))+
+      '</div></div>';
+  } else {
+    var its=itemsOn(popup.date), past=popup.date<ymd(new Date());
+    h='<div class="cal-popup-inner"><div class="cal-popup-header"><h4>'+dayLabel(popup.date)+'</h4><button class="btn sm" data-act="pclose"><i class="ti ti-x"></i></button></div><div class="cal-popup-body">'+
+      (its.length?its.map(function(r){ var c=car(r.carId);
+        return '<div class="cal-sup-item" data-act="open" data-id="'+r.id+'"><div><div class="sup-biz">'+esc(r.dest||'-')+'</div><div class="sup-row-sub">'+r.start+'–'+r.end+' · '+esc(who(r))+(r.purpose?' · '+esc(r.purpose):'')+'</div></div>'+
+          '<span class="badge-cat" style="background:'+c.bg+';color:'+c.color+'">'+c.short+'</span></div>'; }).join(''):'<div class="empty-state">예약이 없어요</div>')+
+      (past?'':'<button class="btn primary full" data-act="new" data-date="'+popup.date+'"><i class="ti ti-plus"></i> 이 날 예약 등록</button>')+
+      '</div></div>';
+  }
+  el.className='cal-popup open'; el.innerHTML=h;
+}
+
+// ── 예약 등록 (운영지원 등록과 같은 단계형 모달) ──────────────────
 function openForm(opts){
   opts=opts||{};
   var g=opts.edit?group(opts.edit):null, a=g&&g[0], b=g&&g[g.length-1];
   var date=a?a.date:(opts.date||'');
-  var slot=a?'custom':null;
   form={
     editIds:g?g.map(function(x){ return x.id; }):[], olds:g||[],
-    date:date, endDate:b?b.date:date, slot:slot,
+    date:date, endDate:b?b.date:date, slot:a?'custom':null,
     start:a?a.start:'', end:b?b.end:'',
-    carId:a?a.carId:(opts.car||null), carManual:!!(a||opts.car),
-    dest:a?(a.dest||''):'', destPicked:!!(a&&a.dest), purpose:a?(a.purpose||''):'', riders:a?(a.riders||[]).slice():[], ridersDone:!!a, memo:a?(a.memo||''):'',
-    maint:a?a.type==='maint':false, busy:false, open:!!a
+    carId:a?a.carId:(opts.car||null),
+    dest:a?(a.dest||''):'', destPicked:!!(a&&a.dest), purpose:a?(a.purpose||''):'',
+    rider:a&&a.riders&&a.riders[0]||'', memo:a?(a.memo||''):'',
+    maint:a?a.type==='maint':false, busy:false, open:!!a, _n:0
   };
-  pushLayer(); sheetId=null; render();
+  pushLayer(); popup=null; renderPopup(); renderForm();
 }
 function pushLayer(){ try{ if(history.state&&history.state.layer) history.replaceState({layer:1},''); else history.pushState({layer:1},''); }catch(e){} }
 function popLayer(){ try{ if(history.state&&history.state.layer) history.back(); }catch(e){} }
@@ -323,87 +308,77 @@ function conflictsFor(carId){
   return null;
 }
 function myShort(){ return String(me.name||'').split(' ')[0]; }
+function grp(label, body, opt){ return '<div class="sup-form-group"><label>'+label+(opt?' <span class="opt">'+opt+'</span>':'')+'</label>'+body+'</div>'; }
 function renderForm(){
   var el=document.getElementById('form');
-  if(!form){ el.className='full'; el.innerHTML=''; return; }
+  if(!form){ el.className='sup-modal'; el.innerHTML=''; return; }
   var multi=!!form.date&&form.endDate>form.date, valid=formValid(), op=form.open;
   var cars=CARS.map(function(c){ return { c:c, cf:valid?conflictsFor(c.id):null }; });
   if(form.carId&&cars.some(function(x){ return x.c.id===form.carId&&x.cf; })) form.carId=null;
 
   // 단계별로 하나씩 열림 (수정할 때는 전부 보임)
-  var s1=true;                                           // 시작일·종료일
   var s2=!!form.date;                                    // 시간(오전/오후/종일)
   var s3=s2&&(op||multi||!!form.slot);                   // 출발·반납 시간
   var s4=s3&&valid;                                      // 차량
-  var sD=s4&&!!form.carId;                               // 업장
-  var s5=sD&&!!form.dest.trim();                         // 동승자
-  var s6=s5&&(op||form.ridersDone);                      // 카테고리
+  var s5=s4&&!!form.carId;                               // 업장
+  var s6=s5&&!!form.dest.trim();                         // 동승자 + 카테고리
   var s7=s6&&!!form.purpose;                             // 상세 내용
   var canSave=s7&&!form.busy;
 
-  var h='<header class="top"><button class="back" data-act="fclose">취소</button><div class="ttl c"><div class="t1">'+(form.editIds.length?'예약 수정':'차량 예약')+'</div></div><span style="width:44px"></span></header><main class="pad form">';
-  if(s1){
-    h+='<div class="step"><div class="two">'+
-       '<div><div class="lbl">시작일 * <button class="lnk" data-act="fdate" data-date="'+ymd(new Date())+'">오늘</button><button class="lnk" data-act="fdate" data-date="'+ymd(addDays(new Date(),1))+'">내일</button></div>'+
-       '<input type="date" value="'+form.date+'" data-f="date"></div>'+
-       '<div><div class="lbl">종료일 <span>(기간 사용 시)</span></div><input type="date" min="'+form.date+'" value="'+(multi?form.endDate:'')+'" data-f="endDate"'+(form.date?'':' disabled')+'></div></div>'+
-       (form.date?'<div class="lbl-sub">'+dayLabel(form.date)+(multi?' ~ '+dayLabel(form.endDate)+' · '+datesBetween(form.date,form.endDate).length+'일':'')+'</div>'+dayBookings():'')+'</div>';
-  }
+  var h='<div class="sup-modal-inner"><div class="sup-modal-header"><h3>'+(form.editIds.length?'차량 예약 수정':'차량 예약 등록')+'</h3><button class="btn sm" data-act="fclose"><i class="ti ti-x"></i></button></div><div class="sup-modal-body" id="form-body">';
+  h+='<div class="g2">'+
+     grp('시작일 *','<input type="date" value="'+form.date+'" data-f="date">')+
+     grp('종료일','<input type="date" min="'+form.date+'" value="'+(multi?form.endDate:'')+'" data-f="endDate"'+(form.date?'':' disabled')+'>','(기간 사용 시)')+'</div>'+
+     (form.date?'<div class="dayb">'+dayLabel(form.date)+(multi?' ~ '+dayLabel(form.endDate)+' · '+datesBetween(form.date,form.endDate).length+'일':'')+dayBookings()+'</div>':'');
   if(s2&&!multi){
-    h+='<div class="step"><div class="lbl">시간 *</div><div class="slots">'+Object.keys(SLOTS).map(function(k){ var t=SLOTS[k]; return '<button class="slot'+(form.slot===k?' on':'')+'" data-act="slot" data-k="'+k+'"><b>'+t.label+'</b><small>'+t.s+'–'+t.e+'</small></button>'; }).join('')+'</div></div>';
+    h+='<div class="step">'+grp('시간 *','<div class="chips">'+Object.keys(SLOTS).map(function(k){ var t=SLOTS[k]; return '<div class="staff-chip'+(form.slot===k?' selected':'')+'" data-act="slot" data-k="'+k+'">'+t.label+' <small>'+t.s+'–'+t.e+'</small></div>'; }).join('')+'</div>')+'</div>';
   }
   if(s3){
-    h+='<div class="step">'+(multi?'<div class="lbl">시간 *</div>':'')+
-       '<div class="times"><label>출발 시간 *'+(multi?' (첫날)':'')+'<input type="time" step="1800" value="'+form.start+'" data-f="start"></label><span>–</span><label>반납 시간 *'+(multi?' (마지막 날)':'')+'<input type="time" step="1800" value="'+form.end+'" data-f="end"></label></div>'+
+    h+='<div class="step"><div class="g2">'+
+       grp('출발 시간 *'+(multi?' (첫날)':''),'<input type="time" step="1800" value="'+form.start+'" data-f="start">')+
+       grp('반납 시간 *'+(multi?' (마지막 날)':''),'<input type="time" step="1800" value="'+form.end+'" data-f="end">')+'</div>'+
        (form.start&&form.end&&!valid?'<div class="err">반납 시간이 출발보다 늦어야 해요.</div>':'')+'</div>';
   }
   if(s4){
-    h+='<div class="step"><div class="lbl">차량 선택 *</div>'+cars.map(function(x){ var c=x.c, on=form.carId===c.id;
-      return '<button class="carpick'+(x.cf?' no':on?' on':'')+'" data-act="car" data-car="'+c.id+'"'+(x.cf?' disabled':'')+'><span class="dot lg" style="background:'+(x.cf?'#ccc':c.color)+'"></span><span class="cp"><b>'+c.name+'</b><small'+(x.cf?' class="bad"':'')+'>'+
-        (x.cf?(x.cf.date!==form.date?dayLabel(x.cf.date)+' ':'')+esc(who(x.cf.r))+' '+x.cf.r.start+'–'+x.cf.r.end+' 사용 — 시간이 겹쳐요':(c.plate?esc(c.plate)+' · ':'')+'이 시간 비어 있음')+'</small></span><span class="tagr">'+(x.cf?'예약 불가':on?'선택됨':'')+'</span></button>'; }).join('')+
-      (cars.every(function(x){ return x.cf; })?'<div class="err">이 시간엔 빈 차가 없어요. 시간을 바꿔보세요.</div>':'')+'</div>';
-  }
-  if(sD){
-  h+='<div class="step"><div class="lbl">업장 선택 *</div><div class="dest"><input id="f-dest" type="text" autocomplete="off" placeholder="업장명 검색..." value="'+esc(form.dest)+'" data-f="dest">'+
-     (form.dest?'<button class="dest-x" data-act="dclear" aria-label="지우기">'+ICON.x+'</button>':'')+
-     '<div id="dest-sug" class="ss-dropdown"></div></div></div>';
+    h+='<div class="step">'+grp('차량 *','<div class="carpicks">'+cars.map(function(x){ var c=x.c, on=form.carId===c.id;
+      return '<div class="carpick'+(x.cf?' no':on?' on':'')+'" data-act="car" data-car="'+c.id+'" style="'+(on?'border-color:'+c.color+';background:'+c.bg+';':'')+'">'+
+        '<div class="cp-n"><span class="cs-dot" style="background:'+(x.cf?'#ccc':c.color)+'"></span>'+c.name+'</div>'+
+        '<div class="cp-s'+(x.cf?' bad':'')+'">'+(x.cf?esc(who(x.cf.r))+' '+x.cf.r.start+'–'+x.cf.r.end+(x.cf.date!==form.date?' ('+(parseYmd(x.cf.date).getMonth()+1)+'/'+parseYmd(x.cf.date).getDate()+')':''):'비어 있음')+'</div></div>'; }).join('')+'</div>'+
+      (cars.every(function(x){ return x.cf; })?'<div class="err">이 시간엔 빈 차가 없어요. 시간을 바꿔보세요.</div>':''))+'</div>';
   }
   if(s5){
-    var mine=myShort();
-    var people=staffList.filter(function(x){ return x.n.split(' ')[0]!==mine; });
-    form.riders.forEach(function(n){ if(!people.some(function(x){ return x.n===n; })) people.push({ n:n, g:'' }); });
-    var groups=[]; people.forEach(function(x){ if(groups.indexOf(x.g)<0) groups.push(x.g); });
-    h+='<div class="step"><div class="lbl">동승자 <span>같이 가는 사람 (없으면 "혼자")</span></div>'+
-       '<div class="chips"><button class="chip'+(form.ridersDone&&!form.riders.length?' on':'')+'" data-act="alone">혼자</button></div>'+
-       groups.map(function(g){
-          return (g?'<div style="font-size:11px;color:#8A877F;margin:6px 2px 5px;">'+esc(g)+'팀</div>':'')+'<div class="chips">'+people.filter(function(x){ return x.g===g; }).map(function(x){
-            return '<button class="chip'+(form.riders.indexOf(x.n)>=0?' on':'')+'" data-act="rider" data-n="'+esc(x.n)+'">'+esc(x.n)+'</button>'; }).join('')+'</div>';
-        }).join('')+'</div>';
+    h+='<div class="step">'+grp('업장 선택 *','<div class="searchable-select"><input id="f-dest" type="text" autocomplete="off" placeholder="업장명 검색..." value="'+esc(form.dest)+'" data-f="dest"><div id="dest-sug" class="ss-dropdown"></div></div>')+'</div>';
   }
   if(s6){
-    h+='<div class="step"><div class="lbl">카테고리 *</div><div class="chips">'+PURPOSES.map(function(p){ return '<button class="chip'+(form.purpose===p?' on':'')+'" data-act="purpose" data-p="'+p+'">'+p+'</button>'; }).join('')+'</div></div>';
+    var mine=myShort();
+    var people=staffList.filter(function(x){ return x.n.split(' ')[0]!==mine; });
+    if(form.rider&&!people.some(function(x){ return x.n===form.rider; })) people.push({ n:form.rider, g:'' });
+    var groups=[]; people.forEach(function(x){ if(groups.indexOf(x.g)<0) groups.push(x.g); });
+    h+='<div class="step">'+grp('동승자', people.length?groups.map(function(g){
+          return (g?'<div class="chip-grp">'+esc(g)+'팀</div>':'')+'<div class="chips">'+people.filter(function(x){ return x.g===g; }).map(function(x){
+            return '<div class="staff-chip'+(form.rider===x.n?' selected':'')+'" data-act="rider" data-n="'+esc(x.n)+'">'+esc(x.n)+'</div>'; }).join('')+'</div>';
+        }).join(''):'<div class="hint l">직원 목록을 불러오는 중이에요…</div>','(1명 · 없으면 선택 안 함)')+
+       grp('카테고리 *','<div class="chips">'+PURPOSES.map(function(p){ return '<div class="staff-chip'+(form.purpose===p?' selected':'')+'" data-act="purpose" data-p="'+p+'">'+p+'</div>'; }).join('')+'</div>')+'</div>';
   }
   if(s7){
-    h+='<div class="step"><div class="lbl">상세 내용</div><textarea placeholder="용무 간략히 (짐, 특이사항 등)" data-f="memo">'+esc(form.memo)+'</textarea></div>';
+    h+='<div class="step">'+grp('상세 내용','<textarea placeholder="용무 간략히 (짐, 특이사항 등)" data-f="memo">'+esc(form.memo)+'</textarea>')+'</div>';
   }
-  var hint=!s2?'시작일을 골라주세요.':!s3?'시간을 골라주세요.':!s4?'출발·반납 시간을 확인해주세요.':!sD?'차량을 골라주세요.':!s5?'업장을 골라주세요.':!s6?'동승자를 골라주세요. (없으면 "혼자")':!s7?'카테고리를 골라주세요.':'';
-  h+='<div style="height:130px"></div></main><footer class="foot"><div class="sum">'+
-     (canSave?esc(rangeText(formSegs()))+' · '+car(form.carId).name+' · '+esc(form.dest):hint)+'</div>'+
-     '<button class="b primary" data-act="save"'+(canSave?'':' disabled')+'>'+(form.busy?'저장 중…':form.editIds.length?'수정 저장':'예약 확정')+'</button></footer>';
-  var y=el.scrollTop, before=form._n||0;
-  el.className='full on'; el.innerHTML=h; el.scrollTop=y;
-  // 새 칸이 열리면 그 칸이 보이도록 살짝 스크롤 (운영지원 등록과 동일)
-  var steps=el.querySelectorAll('.step'); form._n=steps.length;
-  if(steps.length>before&&before>0){ var last=steps[steps.length-1]; setTimeout(function(){ last.scrollIntoView({behavior:'smooth',block:'nearest'}); },60); }
+  var hint=!s2?'시작일을 골라주세요.':!s3?'시간을 골라주세요.':!s4?'출발·반납 시간을 확인해주세요.':!s5?'차량을 골라주세요.':!s6?'업장을 골라주세요.':!s7?'카테고리를 골라주세요.':esc(rangeText(formSegs()))+' · '+car(form.carId).name;
+  h+='</div><div class="sup-modal-footer"><span class="foot-hint">'+hint+'</span><button class="btn" data-act="fclose">취소</button><button class="btn primary" data-act="save"'+(canSave?'':' disabled')+'>'+(form.busy?'저장 중…':form.editIds.length?'수정 저장':'등록')+'</button></div></div>';
+  var prev=document.getElementById('form-body'), y=prev?prev.scrollTop:0, before=form._n||0;
+  el.className='sup-modal open'; el.innerHTML=h;
+  var body=document.getElementById('form-body'); body.scrollTop=y;
+  var steps=body.querySelectorAll('.step'); form._n=steps.length;
+  if(steps.length>before&&before>0){ var lastS=steps[steps.length-1]; lastS.classList.add('sup-step-anim'); setTimeout(function(){ lastS.scrollIntoView({behavior:'smooth',block:'nearest'}); },80); }
 }
-// 고른 날짜의 예약 현황 (입력 화면 날짜 칸 아래)
+// 고른 날짜의 예약 현황
 function dayBookings(){
   var its=itemsOn(form.date).filter(function(r){ return form.editIds.indexOf(r.id)<0; });
-  if(!its.length) return '<div class="dayb free">이 날은 두 대 모두 비어 있어요.</div>';
-  return '<div class="dayb">'+its.map(function(r){ var c=car(r.carId);
-    return '<div><i style="background:'+(r.type==='maint'?'#9A968E':c.color)+'"></i>'+c.name+' · '+r.start+'–'+r.end+' · '+esc(who(r))+'</div>'; }).join('')+'</div>';
+  if(!its.length) return '<div class="dayb-row free">이 날은 모든 차가 비어 있어요.</div>';
+  return its.map(function(r){ var c=car(r.carId);
+    return '<div class="dayb-row"><i style="background:'+c.color+'"></i>'+c.short+' · '+r.start+'–'+r.end+' · '+esc(who(r))+'</div>'; }).join('');
 }
-// 업장 선택: 운영지원 일정 등록과 같은 방식. 칸을 누르면 전체 사업장 목록이 펼쳐지고, 글자를 치면 걸러짐.
+// 업장 선택: 운영지원 일정 등록과 같은 방식. 칸을 누르면 전체 목록, 글자를 치면 걸러짐.
 // 목록에 없는 곳은 맨 아래 "직접 입력"으로 그대로 쓸 수 있음.
 var FIXED_SITES = ['온정본사','온정CS'];
 function destSug(q){
@@ -412,26 +387,24 @@ function destSug(q){
   var m=function(n){ return !ql||n.replace(/\s/g,'').toLowerCase().indexOf(ql)>=0; };
   var names=[]; FIXED_SITES.concat(sites).forEach(function(n){ if(n&&names.indexOf(n)<0) names.push(n); });
   var past=[]; list.forEach(function(r){ if(r.dest&&names.indexOf(r.dest)<0&&past.indexOf(r.dest)<0) past.push(r.dest); });
-  function opt(n,k,direct){ return '<button class="ss-option'+(direct?' direct':'')+'" data-act="dpick" data-v="'+esc(n)+'"><span>'+(direct?'"'+esc(n)+'" 직접 입력':esc(n))+'</span>'+(k?'<small>'+k+'</small>':'')+'</button>'; }
+  function opt(n,k,direct){ return '<div class="ss-option'+(direct?' direct':'')+'" data-act="dpick" data-v="'+esc(n)+'">'+(direct?'"'+esc(n)+'" 직접 입력':esc(n))+(k?'<small>'+k+'</small>':'')+'</div>'; }
   var html=names.filter(m).map(function(n){ return opt(n,''); }).join('')+past.filter(m).map(function(n){ return opt(n,'지난 행선지'); }).join('');
   if(q&&names.indexOf(q)<0&&past.indexOf(q)<0) html+=opt(q,'',true);
-  return html||'<div class="ss-none">없음</div>';
+  return html||'<div class="ss-option" style="color:#aaa;">없음</div>';
 }
 function openSug(){
   var sg=document.getElementById('dest-sug'); if(!sg||!form) return;
-  // 이미 고른 업장이면 전체 목록을 다시 보여줌 (운영지원과 동일)
   sg.innerHTML=destSug(form.destPicked?'':form.dest); sg.classList.add('open'); sg.scrollTop=0;
 }
 async function submitForm(){
   if(!form||!form.carId||!formValid()) return;
-  var r={ carId:form.carId, segs:formSegs(), type:form.maint?'maint':'use',
-          dest:form.maint?'':form.dest.trim(), purpose:form.maint?'':form.purpose,
-          riders:form.maint?[]:form.riders.slice(), memo:form.maint?'':form.memo.trim() };
+  var r={ carId:form.carId, segs:formSegs(), type:'use',
+          dest:form.dest.trim(), purpose:form.purpose, riders:form.rider?[form.rider]:[], memo:form.memo.trim() };
   var olds=form.olds; form.busy=true; renderForm();
   try{
     await saveReservation(r, olds);
-    toast(olds.length?'예약을 수정했어요.':(r.type==='maint'?'정비로 막았어요.':'예약했어요.'));
-    form=null; monthSel=r.segs[0].date; weekStart=mondayOf(parseYmd(r.segs[0].date)); render(); popLayer();
+    toast(olds.length?'예약을 수정했어요.':'예약했어요.');
+    var d0=parseYmd(r.segs[0].date); form=null; monthCursor=firstOfMonth(d0); render(); popLayer();
   }catch(e){
     console.error(e); form.busy=false;
     if(e.message==='CONFLICT') toast('방금 '+(e.hit&&e.hit.who?e.hit.who+'님이 ':'다른 사람이 ')+'그 시간을 먼저 예약했어요. 다른 시간이나 차를 골라주세요.');
@@ -442,45 +415,43 @@ async function submitForm(){
 }
 
 // ── 이벤트 (화면 전체에서 data-act 하나로 처리) ──────────────────
-// 검색 목록을 누를 때 입력칸 포커스가 먼저 빠지면서 화면이 다시 그려지는 걸 막음
-document.addEventListener('pointerdown', function(ev){ if(ev.target.closest('.ss-option,.dest-x')) ev.preventDefault(); });
+document.addEventListener('pointerdown', function(ev){ if(ev.target.closest('.ss-option')) ev.preventDefault(); });
 document.addEventListener('click', async function(ev){
   var t=ev.target.closest('[data-act]'); if(!t) return;
   var a=t.getAttribute('data-act');
-  if(a==='view'){ view=t.getAttribute('data-v'); render(); }
-  else if(a==='logout'){ if(confirm('로그아웃할까요?')){ await logoutUser(); location.reload(); } }
-  else if(a==='week'){ weekStart=addDays(weekStart,+t.getAttribute('data-d')); render(); }
-  else if(a==='month'){ monthCursor=new Date(monthCursor.getFullYear(),monthCursor.getMonth()+(+t.getAttribute('data-d')),1); render(); }
-  else if(a==='mday'){ monthSel=t.getAttribute('data-date'); render(); if(monthSel>=ymd(new Date())) openForm({ date:monthSel }); }
-  else if(a==='new'){ ev.stopPropagation(); openForm({ date:t.getAttribute('data-date')||null, car:t.getAttribute('data-car')||null }); }
-  else if(a==='open'){ ev.stopPropagation(); var id=t.getAttribute('data-id'); if(id){ pushLayer(); sheetId=id; renderSheet(); } else openForm({ car:t.getAttribute('data-car') }); }
-  else if(a==='close'){ sheetId=null; renderSheet(); popLayer(); }
+  ev.stopPropagation();
+  if(a==='logout'){ if(confirm('로그아웃할까요?')){ await logoutUser(); location.reload(); } }
+  else if(a==='month'){ var dd=+t.getAttribute('data-d'); monthCursor=dd?new Date(monthCursor.getFullYear(),monthCursor.getMonth()+dd,1):firstOfMonth(new Date()); render(); }
+  else if(a==='day'){ var dt=t.getAttribute('data-date'); if(dt>=ymd(new Date())) openForm({ date:dt }); else { pushLayer(); popup={type:'day',date:dt}; renderPopup(); } }
+  else if(a==='daylist'){ pushLayer(); popup={type:'day',date:t.getAttribute('data-date')}; renderPopup(); }
+  else if(a==='new'){ openForm({ date:t.getAttribute('data-date')||null, car:t.getAttribute('data-car')||null }); }
+  else if(a==='open'){ var id=t.getAttribute('data-id'); if(id){ pushLayer(); popup={type:'detail',id:id}; renderPopup(); } else openForm({ car:t.getAttribute('data-car') }); }
+  else if(a==='pclose'){ popup=null; renderPopup(); popLayer(); }
   else if(a==='edit'){ var r=list.filter(function(x){ return x.id===t.getAttribute('data-id'); })[0]; if(r) openForm({ edit:r }); }
   else if(a==='cancel'){
     var r2=list.filter(function(x){ return x.id===t.getAttribute('data-id'); })[0]; if(!r2) return;
     var g=group(r2);
     if(!confirm(rangeText(g)+' '+car(r2.carId).name+' 예약을 취소할까요?')) return;
-    try{ await cancelReservation(g); sheetId=null; renderSheet(); popLayer(); toast('예약을 취소했어요.'); }
+    try{ await cancelReservation(g); popup=null; renderPopup(); popLayer(); toast('예약을 취소했어요.'); }
     catch(e){ console.error(e); toast(e.code==='permission-denied'?'본인 예약만 취소할 수 있어요.':'취소하지 못했어요.'); }
   }
-  else if(a==='fclose'){ form=null; render(); popLayer(); }
-  else if(a==='fdate'){ var nd=t.getAttribute('data-date'); var len=form.date?datesBetween(form.date,form.endDate).length-1:0; form.date=nd; form.endDate=ymd(addDays(parseYmd(nd),len)); renderForm(); }
+  else if(a==='fclose'){ form=null; renderForm(); popLayer(); }
   else if(a==='slot'){ var k=t.getAttribute('data-k'); form.slot=k; form.start=SLOTS[k].s; form.end=SLOTS[k].e; renderForm(); }
-  else if(a==='car'){ form.carId=t.getAttribute('data-car'); renderForm(); }
+  else if(a==='car'){ if(t.classList.contains('no')) return; form.carId=t.getAttribute('data-car'); renderForm(); }
   else if(a==='purpose'){ var p=t.getAttribute('data-p'); form.purpose=form.purpose===p?'':p; renderForm(); }
-  else if(a==='rider'){ var n=t.getAttribute('data-n'), ix=form.riders.indexOf(n); if(ix>=0) form.riders.splice(ix,1); else form.riders.push(n); form.ridersDone=true; renderForm(); }
-  else if(a==='alone'){ form.riders=[]; form.ridersDone=true; renderForm(); }
+  else if(a==='rider'){ var n=t.getAttribute('data-n'); form.rider=form.rider===n?'':n; renderForm(); }
   else if(a==='save'){ submitForm(); }
   else if(a==='dpick'){ form.dest=t.getAttribute('data-v'); form.destPicked=true; var inp=document.getElementById('f-dest'); if(inp){ inp.value=form.dest; inp.blur(); } renderForm(); }
-  else if(a==='dclear'){ form.dest=''; form.destPicked=false; renderForm(); var i=document.getElementById('f-dest'); if(i) i.focus(); }
 });
-document.addEventListener('click', function(ev){ if(ev.target.id==='sheet'){ sheetId=null; renderSheet(); popLayer(); } });
+// 바깥(어두운 부분) 누르면 닫기
+document.addEventListener('click', function(ev){
+  if(ev.target.id==='popup'){ popup=null; renderPopup(); popLayer(); }
+});
 document.addEventListener('change', function(ev){
   var f=ev.target.getAttribute&&ev.target.getAttribute('data-f'); if(!f||!form) return;
-  if(f==='maint'){ form.maint=ev.target.checked; }
-  else if(f==='date'){ if(!ev.target.value) return; var len=form.date?datesBetween(form.date,form.endDate).length-1:0; form.date=ev.target.value; form.endDate=ymd(addDays(parseYmd(form.date),len)); }
+  if(f==='date'){ if(!ev.target.value) return; var len=form.date?datesBetween(form.date,form.endDate).length-1:0; form.date=ev.target.value; form.endDate=ymd(addDays(parseYmd(form.date),len)); }
   else if(f==='endDate'){ var v=ev.target.value; form.endDate=v&&v>form.date?v:form.date; }
-  else { form[f]=ev.target.value; if(f==='start'||f==='end') form.slot='custom'; }
+  else { form[f]=ev.target.value; if(f==='start'||f==='end') form.slot=form.slot||'custom'; }
   if(f==='memo') return;
   renderForm();
 });
@@ -493,7 +464,31 @@ document.addEventListener('input', function(ev){
   if(f==='dest'||f==='memo') form[f]=ev.target.value;
   if(f==='dest'){ form.destPicked=false; var sg=document.getElementById('dest-sug'); if(sg){ sg.innerHTML=destSug(form.dest); sg.classList.add('open'); } }
 });
-window.addEventListener('popstate', function(){ if(form){ form=null; render(); } else if(sheetId){ sheetId=null; renderSheet(); } });
+window.addEventListener('popstate', function(){ if(form){ form=null; renderForm(); } else if(popup){ popup=null; renderPopup(); } });
+
+// ── 공휴일 (FS 앱과 같은 목록) ──────────────────────────
+var HOLIDAYS = {
+  '2025-01-01':'신정','2025-01-28':'설날 연휴','2025-01-29':'설날','2025-01-30':'설날 연휴',
+  '2025-03-01':'삼일절','2025-03-03':'대체공휴일','2025-05-05':'어린이날','2025-05-06':'대체공휴일',
+  '2025-05-15':'부처님오신날','2025-06-06':'현충일','2025-08-15':'광복절',
+  '2025-10-03':'개천절','2025-10-05':'추석 연휴','2025-10-06':'추석','2025-10-07':'추석 연휴','2025-10-08':'대체공휴일',
+  '2025-07-17':'제헌절','2025-10-09':'한글날','2025-12-25':'크리스마스',
+  '2026-01-01':'신정','2026-02-16':'설날 연휴','2026-02-17':'설날','2026-02-18':'설날 연휴',
+  '2026-03-01':'삼일절','2026-03-02':'대체공휴일','2026-05-01':'노동절',
+  '2026-05-05':'어린이날','2026-05-24':'부처님오신날','2026-05-25':'대체공휴일',
+  '2026-06-03':'지방선거','2026-06-06':'현충일','2026-07-17':'제헌절',
+  '2026-08-15':'광복절','2026-08-17':'대체공휴일',
+  '2026-09-24':'추석 연휴','2026-09-25':'추석','2026-09-26':'추석 연휴',
+  '2026-10-03':'개천절','2026-10-05':'대체공휴일','2026-10-09':'한글날','2026-12-25':'크리스마스',
+  '2027-01-01':'신정','2027-02-06':'설날 연휴','2027-02-07':'설날','2027-02-08':'설날 연휴','2027-02-09':'대체공휴일',
+  '2027-03-01':'삼일절','2027-05-01':'노동절','2027-05-03':'대체공휴일',
+  '2027-05-05':'어린이날','2027-05-13':'부처님오신날','2027-06-06':'현충일',
+  '2027-07-17':'제헌절','2027-07-19':'대체공휴일','2027-08-15':'광복절','2027-08-16':'대체공휴일',
+  '2027-09-14':'추석 연휴','2027-09-15':'추석','2027-09-16':'추석 연휴',
+  '2027-10-03':'개천절','2027-10-04':'대체공휴일','2027-10-09':'한글날','2027-10-11':'대체공휴일',
+  '2027-12-25':'크리스마스','2027-12-27':'대체공휴일'
+};
+function getHoliday(k){ return HOLIDAYS[k]||''; }
 
 // ── 로그인 ──────────────────────────
 function showLogin(step, msg){
@@ -554,4 +549,4 @@ watchAuth(async function(user){
 window.lgLogout=async function(){ await logoutUser(); location.reload(); };
 
 // 1분마다 '지금 상태'와 현재 시각 선 갱신
-setInterval(function(){ if(me&&!form) render(); }, 60000);
+setInterval(function(){ if(me&&!form&&!popup) render(); }, 60000);
