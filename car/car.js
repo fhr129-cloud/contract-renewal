@@ -35,7 +35,7 @@ var sheetId = null;       // 상세 창에 띄운 예약 id
 var form = null;          // 예약 입력 중인 값
 var unsub = null, unsubSites = null;
 var sites = [];           // FS 사업장 이름 목록 (meta/sites)
-var staffNames = [];      // 직원 이름 목록 (meta/staff) — 지원자 선택용
+var staffList = [];       // 동승자 선택용 직원 [{n:이름 직급, g:소속}]
 var unsubStaff = null;
 var loginPhone = '', isNewUser = false;
 
@@ -72,13 +72,37 @@ function listen(){
     render();
   }, function(err){ console.error(err); toast('예약을 불러오지 못했어요 ('+(err.code||'')+')'); });
   if(unsubSites) unsubSites();
-  unsubSites = onSnapshot(doc(db,'meta','sites'), function(snap){
-    sites = snap.exists() ? (snap.data().names||[]) : [];
-  }, function(err){ console.warn('사업장 목록 없음', err.code); });
   if(unsubStaff) unsubStaff();
-  unsubStaff = onSnapshot(doc(db,'meta','staff'), function(snap){
-    staffNames = snap.exists() ? (snap.data().names||[]) : [];
-  }, function(err){ console.warn('직원 목록 없음', err.code); });
+  if(hasApp(me,'fs')){
+    // FS 권한이 있으면 운영지원 일정 등록과 똑같이 사업장·직원 목록을 직접 읽음
+    unsubSites = onSnapshot(collection(db,'contracts'), function(snap){
+      sites = snap.docs.map(function(d){ return d.data().name; }).filter(Boolean).sort(function(a,b){ return a.localeCompare(b,'ko'); });
+      refreshLists();
+    }, function(err){ console.warn('사업장 목록 오류', err.code); });
+    unsubStaff = onSnapshot(collection(db,'staff'), function(snap){
+      staffList = snap.docs.map(function(d){ return d.data(); })
+        .filter(function(x){ return x.active!==false&&hasApp(x,'car'); })
+        .sort(function(a,b){ return (a.order||99)-(b.order||99); })
+        .map(function(x){ return { n:x.title?x.name+' '+x.title:x.name, g:x.group||'운영' }; });
+      refreshLists();
+    }, function(err){ console.warn('직원 목록 오류', err.code); });
+  } else {
+    // 차량만 쓰는 직원은 FS 데이터를 못 읽으므로, 관리자가 복사해둔 이름 목록을 읽음
+    unsubSites = onSnapshot(doc(db,'meta','sites'), function(snap){
+      sites = snap.exists() ? (snap.data().names||[]) : []; refreshLists();
+    }, function(err){ console.warn('사업장 목록 없음', err.code); });
+    unsubStaff = onSnapshot(doc(db,'meta','staff'), function(snap){
+      staffList = (snap.exists() ? (snap.data().names||[]) : []).map(function(n){ return { n:n, g:'' }; }); refreshLists();
+    }, function(err){ console.warn('직원 목록 없음', err.code); });
+  }
+}
+// 목록이 늦게 도착하면 열려 있는 입력 화면에 반영
+function refreshLists(){
+  if(!form) return;
+  var sg=document.getElementById('dest-sug');
+  if(sg&&sg.classList.contains('open')){ sg.innerHTML=destSug(form.destPicked?'':form.dest); return; }
+  var ae=document.activeElement;
+  if(!(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'))) renderForm();
 }
 // 같은 차·같은 날짜의 시간대를 carDays/{차_날짜} 문서 하나에 모아두고, 트랜잭션으로 겹침을 막는다.
 function dayKey(carId,date){ return carId+'_'+date; }
@@ -262,7 +286,7 @@ function renderSheet(){
     '<dl>'+(r.dest?'<dt>업장</dt><dd><b>'+esc(r.dest)+'</b></dd>':'')+
     '<dt>일시</dt><dd><b>'+rangeText(g)+'</b></dd>'+
     '<dt>예약자</dt><dd>'+esc(who(r))+'</dd>'+
-    (riders?'<dt>지원자</dt><dd>'+esc(riders)+'</dd>':'')+
+    (riders?'<dt>동승자</dt><dd>'+esc(riders)+'</dd>':'')+
     (r.memo?'<dt>내용</dt><dd>'+esc(r.memo)+'</dd>':'')+'</dl>'+
     (edit?(others?'<div class="warn">다른 사람 예약이에요. 관리자 권한으로 수정·취소할 수 있어요.</div>':'')+'<div class="btns"><button class="b ghost" data-act="edit" data-id="'+r.id+'">수정</button><button class="b danger" data-act="cancel" data-id="'+r.id+'">예약 취소</button></div>'
          :(r.type!=='maint'&&r.ownerPhone?'<a class="b call" href="tel:'+esc(r.ownerPhone)+'">'+ICON.phone+esc(r.ownerName)+'에게 전화 <small>'+telFmt(r.ownerPhone)+'</small></a><div class="hint">다른 사람 예약은 보기만 가능해요.</div>':''))+
@@ -280,7 +304,7 @@ function openForm(opts){
     date:date, endDate:b?b.date:date, slot:slot,
     start:a?a.start:SLOTS[slot].s, end:b?b.end:SLOTS[slot].e,
     carId:a?a.carId:(opts.car||null), carManual:!!(a||opts.car),
-    dest:a?(a.dest||''):'', purpose:a?(a.purpose||''):'', riders:a?(a.riders||[]).slice():[], memo:a?(a.memo||''):'',
+    dest:a?(a.dest||''):'', destPicked:!!(a&&a.dest), purpose:a?(a.purpose||''):'', riders:a?(a.riders||[]).slice():[], memo:a?(a.memo||''):'',
     maint:a?a.type==='maint':false, busy:false, open:!!a
   };
   pushLayer(); sheetId=null; render();
@@ -311,18 +335,15 @@ function renderForm(){
   var s1=form.open||form.maint||!!form.dest.trim();
   var s2=s1&&!!form.date;
   var s3=s2&&valid&&!!form.carId&&!form.maint;
-  var s4=s3&&(form.open||!!form.purpose);
+  var s4=s3;
   var canSave=valid&&form.carId&&!form.busy&&(form.maint||(form.dest.trim()&&form.purpose));
 
   var h='<header class="top"><button class="back" data-act="fclose">취소</button><div class="ttl c"><div class="t1">'+(form.editIds.length?'예약 수정':'차량 예약')+'</div></div><span style="width:44px"></span></header><main class="pad form">';
 
-  if(isAdmin()&&!(form.editIds.length&&!form.maint)){
-    h+='<label class="adm chk"><input type="checkbox" data-f="maint"'+(form.maint?' checked':'')+(form.editIds.length?' disabled':'')+'> 정비·검사로 막기 <small>관리자</small></label>';
-  }
   if(!form.maint){
-    h+='<div class="lbl">업장 선택 *</div><div class="dest"><input id="f-dest" type="text" autocomplete="off" placeholder="업장명 검색... (없으면 직접 입력)" value="'+esc(form.dest)+'" data-f="dest">'+
-       (form.dest?'<button class="dest-x" data-act="dclear" aria-label="지우기">'+ICON.x+'</button>':'')+'</div>'+
-       '<div id="dest-sug" class="sug">'+destSug(form.dest, true)+'</div>';
+    h+='<div class="lbl">업장 선택 *</div><div class="dest"><input id="f-dest" type="text" autocomplete="off" placeholder="업장명 검색..." value="'+esc(form.dest)+'" data-f="dest">'+
+       (form.dest?'<button class="dest-x" data-act="dclear" aria-label="지우기">'+ICON.x+'</button>':'')+
+       '<div id="dest-sug" class="ss-dropdown"></div></div>';
   }
   if(s1){
     h+='<div class="step"><div class="two">'+
@@ -345,10 +366,14 @@ function renderForm(){
   }
   if(s4){
     var mine=myShort();
-    var people=staffNames.filter(function(n){ return n.split(' ')[0]!==mine; });
-    form.riders.forEach(function(n){ if(people.indexOf(n)<0) people.push(n); });
-    h+='<div class="step"><div class="lbl">지원자 <span>예약자('+esc(mine)+') 외에 같이 가는 사람</span></div>'+
-       (people.length?'<div class="chips">'+people.map(function(n){ return '<button class="chip'+(form.riders.indexOf(n)>=0?' on':'')+'" data-act="rider" data-n="'+esc(n)+'">'+esc(n)+'</button>'; }).join('')+'</div>':'<div class="lbl-sub">직원 목록이 아직 없어요. 상세 내용에 적어주세요.</div>')+
+    var people=staffList.filter(function(x){ return x.n.split(' ')[0]!==mine; });
+    form.riders.forEach(function(n){ if(!people.some(function(x){ return x.n===n; })) people.push({ n:n, g:'' }); });
+    var groups=[]; people.forEach(function(x){ if(groups.indexOf(x.g)<0) groups.push(x.g); });
+    h+='<div class="step"><div class="lbl">동승자 <span>같이 가는 사람이 있으면 선택</span></div>'+
+       (people.length?groups.map(function(g){
+          return (g?'<div style="font-size:11px;color:#8A877F;margin:6px 2px 5px;">'+esc(g)+'팀</div>':'')+'<div class="chips">'+people.filter(function(x){ return x.g===g; }).map(function(x){
+            return '<button class="chip'+(form.riders.indexOf(x.n)>=0?' on':'')+'" data-act="rider" data-n="'+esc(x.n)+'">'+esc(x.n)+'</button>'; }).join('')+'</div>';
+        }).join(''):'<div class="lbl-sub">직원 목록을 불러오는 중이에요…</div>')+
        '<div class="lbl">상세 내용</div><textarea placeholder="용무 간략히 (짐, 특이사항 등)" data-f="memo">'+esc(form.memo)+'</textarea></div>';
   }
   h+='<div style="height:130px"></div></main><footer class="foot"><div class="sum">'+
@@ -358,30 +383,24 @@ function renderForm(){
   var y=el.scrollTop;
   el.className='full on'; el.innerHTML=h; el.scrollTop=y;
 }
-// 업장 검색: FS 사업장 + 지난 행선지. 입력이 없으면 내가 최근 간 곳.
-function destSug(q, firstRender){
+// 업장 선택: 운영지원 일정 등록과 같은 방식. 칸을 누르면 전체 사업장 목록이 펼쳐지고, 글자를 치면 걸러짐.
+// 목록에 없는 곳은 맨 아래 "직접 입력"으로 그대로 쓸 수 있음.
+var FIXED_SITES = ['온정본사','온정CS'];
+function destSug(q){
   q=String(q||'').trim();
-  var focused=document.activeElement&&document.activeElement.id==='f-dest';
-  if(firstRender&&q) return '';   // 다시 그릴 때는 목록을 닫아둠
-  if(!q&&!focused&&!firstRender) return '';
-  var out, head='';
-  if(!q){
-    var recent=[]; list.slice().sort(function(a,b){ return (b.date+b.start).localeCompare(a.date+a.start); }).forEach(function(r){
-      if(r.dest&&r.ownerPhone===me.phone&&recent.indexOf(r.dest)<0) recent.push(r.dest); });
-    out=recent.slice(0,5).map(function(n){ return {n:n,k:'최근'}; }); if(out.length) head='최근 간 곳';
-  } else {
-    var ql=q.replace(/\s/g,'').toLowerCase();
-    var m=function(n){ return n.replace(/\s/g,'').toLowerCase().indexOf(ql)>=0; };
-    var seen={}; out=[];
-    sites.filter(m).forEach(function(n){ if(!seen[n]){ seen[n]=1; out.push({n:n,k:'사업장'}); } });
-    var past=[]; list.forEach(function(r){ if(r.dest&&past.indexOf(r.dest)<0) past.push(r.dest); });
-    past.filter(m).forEach(function(n){ if(!seen[n]){ seen[n]=1; out.push({n:n,k:'지난 행선지'}); } });
-    out=out.slice(0,8);
-    if(!seen[q]) out.push({n:q,k:'직접 입력',direct:true});
-  }
-  if(!out.length) return '';
-  return (head?'<div class="sug-h">'+head+'</div>':'')+out.map(function(o){
-    return '<button class="sug-i'+(o.direct?' direct':'')+'" data-act="dpick" data-v="'+esc(o.n)+'"><span>'+(o.direct?'"'+esc(o.n)+'" 그대로 쓰기':esc(o.n))+'</span><small>'+o.k+'</small></button>'; }).join('');
+  var ql=q.replace(/\s/g,'').toLowerCase();
+  var m=function(n){ return !ql||n.replace(/\s/g,'').toLowerCase().indexOf(ql)>=0; };
+  var names=[]; FIXED_SITES.concat(sites).forEach(function(n){ if(n&&names.indexOf(n)<0) names.push(n); });
+  var past=[]; list.forEach(function(r){ if(r.dest&&names.indexOf(r.dest)<0&&past.indexOf(r.dest)<0) past.push(r.dest); });
+  function opt(n,k,direct){ return '<button class="ss-option'+(direct?' direct':'')+'" data-act="dpick" data-v="'+esc(n)+'"><span>'+(direct?'"'+esc(n)+'" 직접 입력':esc(n))+'</span>'+(k?'<small>'+k+'</small>':'')+'</button>'; }
+  var html=names.filter(m).map(function(n){ return opt(n,''); }).join('')+past.filter(m).map(function(n){ return opt(n,'지난 행선지'); }).join('');
+  if(q&&names.indexOf(q)<0&&past.indexOf(q)<0) html+=opt(q,'',true);
+  return html||'<div class="ss-none">없음</div>';
+}
+function openSug(){
+  var sg=document.getElementById('dest-sug'); if(!sg||!form) return;
+  // 이미 고른 업장이면 전체 목록을 다시 보여줌 (운영지원과 동일)
+  sg.innerHTML=destSug(form.destPicked?'':form.dest); sg.classList.add('open'); sg.scrollTop=0;
 }
 async function submitForm(){
   if(!form||!form.carId||!formValid()) return;
@@ -404,7 +423,7 @@ async function submitForm(){
 
 // ── 이벤트 (화면 전체에서 data-act 하나로 처리) ──────────────────
 // 검색 목록을 누를 때 입력칸 포커스가 먼저 빠지면서 화면이 다시 그려지는 걸 막음
-document.addEventListener('pointerdown', function(ev){ if(ev.target.closest('.sug-i,.dest-x')) ev.preventDefault(); });
+document.addEventListener('pointerdown', function(ev){ if(ev.target.closest('.ss-option,.dest-x')) ev.preventDefault(); });
 document.addEventListener('click', async function(ev){
   var t=ev.target.closest('[data-act]'); if(!t) return;
   var a=t.getAttribute('data-act');
@@ -431,8 +450,8 @@ document.addEventListener('click', async function(ev){
   else if(a==='purpose'){ var p=t.getAttribute('data-p'); form.purpose=form.purpose===p?'':p; renderForm(); }
   else if(a==='rider'){ var n=t.getAttribute('data-n'), ix=form.riders.indexOf(n); if(ix>=0) form.riders.splice(ix,1); else form.riders.push(n); renderForm(); }
   else if(a==='save'){ submitForm(); }
-  else if(a==='dpick'){ form.dest=t.getAttribute('data-v'); var inp=document.getElementById('f-dest'); if(inp){ inp.value=form.dest; inp.blur(); } renderForm(); }
-  else if(a==='dclear'){ form.dest=''; renderForm(); var i=document.getElementById('f-dest'); if(i){ i.focus(); var sg=document.getElementById('dest-sug'); if(sg) sg.innerHTML=destSug(''); } }
+  else if(a==='dpick'){ form.dest=t.getAttribute('data-v'); form.destPicked=true; var inp=document.getElementById('f-dest'); if(inp){ inp.value=form.dest; inp.blur(); } renderForm(); }
+  else if(a==='dclear'){ form.dest=''; form.destPicked=false; renderForm(); var i=document.getElementById('f-dest'); if(i) i.focus(); }
 });
 document.addEventListener('click', function(ev){ if(ev.target.id==='sheet'){ sheetId=null; renderSheet(); popLayer(); } });
 document.addEventListener('change', function(ev){
@@ -444,13 +463,14 @@ document.addEventListener('change', function(ev){
   if(f==='memo') return;
   renderForm();
 });
-document.addEventListener('focusin', function(ev){
-  if(form&&ev.target.id==='f-dest'){ var sg=document.getElementById('dest-sug'); if(sg) sg.innerHTML=destSug(form.dest); }
+document.addEventListener('focusin', function(ev){ if(form&&ev.target.id==='f-dest') openSug(); });
+document.addEventListener('focusout', function(ev){
+  if(ev.target.id==='f-dest') setTimeout(function(){ var sg=document.getElementById('dest-sug'); if(sg) sg.classList.remove('open'); },150);
 });
 document.addEventListener('input', function(ev){
   var f=ev.target.getAttribute&&ev.target.getAttribute('data-f'); if(!form) return;
   if(f==='dest'||f==='memo') form[f]=ev.target.value;
-  if(f==='dest'){ var sg=document.getElementById('dest-sug'); if(sg) sg.innerHTML=destSug(form.dest); }
+  if(f==='dest'){ form.destPicked=false; var sg=document.getElementById('dest-sug'); if(sg){ sg.innerHTML=destSug(form.dest); sg.classList.add('open'); } }
 });
 window.addEventListener('popstate', function(){ if(form){ form=null; render(); } else if(sheetId){ sheetId=null; renderSheet(); } });
 
