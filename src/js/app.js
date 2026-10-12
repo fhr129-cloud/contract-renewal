@@ -794,7 +794,14 @@ async function init() {
     applyStaff(list.length?list:DEFAULT_STAFF);
     var modalOpen=document.getElementById('modal-overlay').classList.contains('open');
     if(currentPage&&!modalOpen) renderPage(currentPage);
-    if(window.renderStaffAdmin) window.renderStaffAdmin();
+        if(window.renderStaffAdmin) window.renderStaffAdmin();
+    // 관리자가 접속해 있으면 직원 이름을 차량 예약 앱 '지원자' 목록으로 복사
+    if(isAdmin()&&list.length){
+      var carStaff=list.filter(function(s){ return s.active!==false&&(!s.apps||s.apps.indexOf('car')>=0); })
+        .sort(function(a,b){ return (a.order||99)-(b.order||99); })
+        .map(function(s){ return s.title?s.name+' '+s.title:s.name; });
+      syncSiteNames(carStaff,'staff').catch(function(e){ console.warn('직원 목록 동기화 실패',e); });
+    }
   });
 
   listenContracts(function(data){
