@@ -167,6 +167,14 @@ export async function ensureAllowedUser(phone, name, apps){
   await setDoc(ref,Object.assign({role:'staff', registered:false, createdAt: serverTimestamp()},patch));
   return 'created';
 }
+// 차량 예약 앱의 행선지 목록용: 사업장 이름만 meta/sites 에 복사 (관리자 접속 시 자동)
+export async function syncSiteNames(names){
+  var ref=doc(db,'meta','sites'), snap=await getDoc(ref);
+  var cur=snap.exists()?(snap.data().names||[]):[];
+  if(cur.join('|')===names.join('|')) return false;
+  await setDoc(ref,{names:names, updatedAt: serverTimestamp()});
+  return true;
+}
 export function removeAllowedUser(phone){
   var p=String(phone||'').replace(/[^0-9]/g,''); if(!p) return Promise.resolve();
   return deleteDoc(doc(db,'allowedUsers',p));

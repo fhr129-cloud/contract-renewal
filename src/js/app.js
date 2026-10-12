@@ -1,4 +1,4 @@
-import { listenContracts, listenHistory, listenSupports, addContract, updateContract, deleteContract, addHistory, addSupport, updateSupport, updateSupportBizName, deleteSupport,  saveHistoryRecords, updateHistoryName, checkAllowedUser, loginUser, registerUser, watchAuth, logoutUser, fetchAllForBackup, listenStaff } from './db.js';
+import { listenContracts, listenHistory, listenSupports, addContract, updateContract, deleteContract, addHistory, addSupport, updateSupport, updateSupportBizName, deleteSupport,  saveHistoryRecords, updateHistoryName, checkAllowedUser, loginUser, registerUser, watchAuth, logoutUser, fetchAllForBackup, listenStaff, syncSiteNames } from './db.js';
 import { calcStatus, STATUS_META, fmtDate, toInputDate, dDiff, dDayLabel, priceLabel } from './utils.js';
 import { COORDS } from './coords.js';
 import { STAFF_MAP, STAFF_ORDER, DEFAULT_STAFF, applyStaff, teamLead, getStaffColor, getStaffBorderColor, getStaffBg } from './staff.js';
@@ -801,6 +801,14 @@ async function init() {
     contracts=data;
     if(window.syncDashData) window.syncDashData(contracts,historyData,supports);
     ssOptions=data.slice().sort(function(a,b){ return a.name.localeCompare(b.name,'ko'); });
+    // 관리자가 접속해 있으면 사업장 이름을 차량 예약 앱 행선지 목록으로 복사
+    if(isAdmin()){
+      clearTimeout(window._siteSyncT);
+      window._siteSyncT=setTimeout(function(){
+        var names=ssOptions.filter(function(c){ return !c.terminated&&c.name; }).map(function(c){ return c.name; });
+        syncSiteNames(names).catch(function(e){ console.warn('사업장 목록 동기화 실패',e); });
+      },3000);
+    }
     // 모달이 열려있으면 renderPage 스킵 (히스토리 탭 버튼 중복 방지)
     var modalOpen=document.getElementById('modal-overlay').classList.contains('open');
     if(currentPage&&!modalOpen) renderPage(currentPage);
