@@ -53,7 +53,12 @@ function hasApp(info,a){ return !info||!info.apps||info.apps.indexOf(a)>=0; }
 function isAdmin(){ return !!(me&&me.role==='admin'); }
 function canEdit(r){ return isAdmin()||(r&&r.type!=='maint'&&r.ownerPhone===me.phone); }
 function telFmt(p){ p=String(p||''); return p.length===11?p.slice(0,3)+'-'+p.slice(3,7)+'-'+p.slice(7):p; }
-function who(r){ return r.type==='maint'?'정비':(r.ownerName||'')+(r.ownerPhone===me.phone?' (나)':''); }
+// 예약자: 등록할 때 고른 사람(최대 2명). 예전 예약은 등록한 사람.
+function users(r){ return r.riders&&r.riders.length?r.riders:(r.ownerName?[r.ownerName]:[]); }
+function short1(n){ return String(n||'').split(' ')[0]; }
+function who(r){ if(r.type==='maint') return '정비'; var u=users(r); return u.length>1?short1(u[0])+' 외'+(u.length-1):short1(u[0]); }
+function whoFull(r){ return users(r).join(', '); }
+function isMine(r){ var m=short1(me.name); return r.ownerPhone===me.phone||users(r).some(function(n){ return short1(n)===m; }); }
 function toast(msg){ var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toast._t); toast._t=setTimeout(function(){ t.classList.remove('on'); },2600); }
 
 function itemsOn(date,carId){ return list.filter(function(r){ return r.date===date&&(!carId||r.carId===carId); }).sort(function(a,b){ return a.start.localeCompare(b.start); }); }
@@ -147,7 +152,7 @@ async function saveReservation(r, olds){
         dest:r.dest||'', purpose:r.purpose||'', riders:r.riders||[], memo:r.memo||'',
         createdAt:(olds[i]&&olds[i].createdAt)||serverTimestamp(), updatedAt:serverTimestamp(), updatedBy:me.phone
       });
-      ranges[dayKey(r.carId,s.date)].push({ id:refs[i].id, start:s.start, end:s.end, who:r.type==='maint'?'정비':owner.ownerName });
+      ranges[dayKey(r.carId,s.date)].push({ id:refs[i].id, start:s.start, end:s.end, who:r.type==='maint'?'정비':(r.riders&&r.riders[0]?short1(r.riders[0]):owner.ownerName) });
     });
     olds.slice(r.segs.length).forEach(function(o){ tx.delete(doc(db,'reservations',o.id)); });
     keys.forEach(function(k){ var j=k.indexOf('_'); tx.set(doc(db,'carDays',k), { carId:k.slice(0,j), date:k.slice(j+1), ranges:ranges[k] }); });
@@ -190,7 +195,7 @@ function statusRow(){
     if(cur){
       var g=group(cur), last=g[g.length-1];
       cls='busy'; state='사용 중';
-      sub=esc(String(cur.ownerName||'').split(' ')[0])+' · ~'+(last.date!==t?(parseYmd(last.date).getMonth()+1)+'/'+parseYmd(last.date).getDate()+' ':'')+last.end;
+      sub=esc(who(cur))+' · ~'+(last.date!==t?(parseYmd(last.date).getMonth()+1)+'/'+parseYmd(last.date).getDate()+' ':'')+last.end;
     } else {
       cls='free'; state='사용 가능';
       sub=next?'다음 '+(next.date===t?'오늘':(parseYmd(next.date).getMonth()+1)+'/'+parseYmd(next.date).getDate())+' '+next.start:'예약 없음';
@@ -200,7 +205,7 @@ function statusRow(){
       '<div class="cs-state">'+state+'</div><div class="cs-sub">'+sub+'</div></div>';
   }).join('')+'</div>'+(NOTICE?'<div class="notice">'+esc(NOTICE)+'</div>':'');
 }
-function evLabel(r){ return r.type==='maint'?'정비':String(r.ownerName||'').split(' ')[0]+(r.dest?' '+r.dest:''); }
+function evLabel(r){ return r.type==='maint'?'정비':who(r)+(r.dest?' '+r.dest:''); }
 function monthView(){
   var m=monthCursor, y=m.getFullYear(), mo=m.getMonth(), t=ymd(new Date());
   var first=new Date(y,mo,1).getDay(), last=new Date(y,mo+1,0).getDate();
@@ -230,14 +235,14 @@ function monthView(){
 }
 function myList(){
   var t=ymd(new Date()), n=nowHM(), seenG={};
-  var mine=list.filter(function(r){ return r.ownerPhone===me.phone&&r.type!=='maint'&&(r.date>t||(r.date===t&&r.end>n)); })
+  var mine=list.filter(function(r){ return isMine(r)&&r.type!=='maint'&&(r.date>t||(r.date===t&&r.end>n)); })
     .sort(function(a,b){ return (a.date+a.start).localeCompare(b.date+b.start); })
     .filter(function(r){ if(!r.groupId) return true; if(seenG[r.groupId]) return false; seenG[r.groupId]=1; return true; }).slice(0,5);
   if(!mine.length) return '';
   return '<div class="card-title">내 예약</div><div class="dash-list-wrap">'+mine.map(function(r){ var c=car(r.carId);
     return '<div class="sup-row" data-act="open" data-id="'+r.id+'"><div class="sup-row-top"><span class="sup-biz">'+esc(r.dest||'-')+'</span>'+
       '<span class="badge-cat" style="background:'+c.bg+';color:'+c.color+'">'+c.short+'</span></div>'+
-      '<div class="sup-row-sub">'+esc(shortRangeFull(r))+(r.purpose?' · '+esc(r.purpose):'')+(r.riders&&r.riders.length?' · 동승 '+esc(r.riders.join(', ')):'')+'</div></div>'; }).join('')+'</div>';
+      '<div class="sup-row-sub">'+esc(shortRangeFull(r))+(r.purpose?' · '+esc(r.purpose):'')+' · '+esc(whoFull(r))+'</div></div>'; }).join('')+'</div>';
 }
 function shortRangeFull(r){
   var g=group(r), a=g[0], b=g[g.length-1];
@@ -259,8 +264,8 @@ function renderPopup(){
       '<div class="cal-popup-body"><div class="dl">'+
       '<div><span>업장</span><b>'+esc(r.dest||'-')+'</b></div>'+
       '<div><span>일시</span><b>'+esc(rangeText(g))+'</b></div>'+
-      '<div><span>예약자</span>'+esc(who(r))+'</div>'+
-      (r.riders&&r.riders.length?'<div><span>동승자</span>'+esc(r.riders.join(', '))+'</div>':'')+
+      '<div><span>예약자</span><b>'+esc(whoFull(r))+'</b></div>'+
+      (r.riders&&r.riders.length&&r.ownerName?'<div><span>등록</span>'+esc(r.ownerName)+(r.ownerPhone===me.phone?' (나)':'')+'</div>':'')+
       (r.memo?'<div><span>상세 내용</span>'+esc(r.memo)+'</div>':'')+'</div>'+
       (edit?(others?'<div class="warn">다른 사람 예약이에요. 관리자 권한으로 수정·취소할 수 있어요.</div>':'')+
         '<div class="pbtns"><button class="btn" data-act="edit" data-id="'+r.id+'"><i class="ti ti-pencil"></i> 수정</button><button class="btn danger" data-act="cancel" data-id="'+r.id+'"><i class="ti ti-trash"></i> 예약 취소</button></div>'
@@ -289,7 +294,7 @@ function openForm(opts){
     start:a?a.start:'', end:b?b.end:'',
     carId:a?a.carId:(opts.car||null),
     dest:a?(a.dest||''):'', destPicked:!!(a&&a.dest), purpose:a?(a.purpose||''):'',
-    rider:a&&a.riders&&a.riders[0]||'', memo:a?(a.memo||''):'',
+    riders:a&&a.riders?a.riders.slice(0,2):[], memo:a?(a.memo||''):'',
     maint:a?a.type==='maint':false, busy:false, open:!!a, _n:0
   };
   pushLayer(); popup=null; renderPopup(); renderForm();
@@ -321,8 +326,9 @@ function renderForm(){
   var s3=s2&&(op||multi||!!form.slot);                   // 출발·반납 시간
   var s4=s3&&valid;                                      // 차량
   var s5=s4&&!!form.carId;                               // 업장
-  var s6=s5&&!!form.dest.trim();                         // 동승자 + 카테고리
-  var s7=s6&&!!form.purpose;                             // 상세 내용
+  var s6=s5&&!!form.dest.trim();                         // 예약자 (최대 2명)
+  var s6u=s6&&form.riders.length>0;                      // 카테고리
+  var s7=s6u&&!!form.purpose;                            // 상세 내용
   var canSave=s7&&!form.busy;
 
   var h='<div class="sup-modal-inner"><div class="sup-modal-header"><h3>'+(form.editIds.length?'차량 예약 수정':'차량 예약 등록')+'</h3><button class="btn sm" data-act="fclose"><i class="ti ti-x"></i></button></div><div class="sup-modal-body" id="form-body">';
@@ -350,20 +356,21 @@ function renderForm(){
     h+='<div class="step">'+grp('업장 선택 *','<div class="searchable-select"><input id="f-dest" type="text" autocomplete="off" placeholder="업장명 검색..." value="'+esc(form.dest)+'" data-f="dest"><div id="dest-sug" class="ss-dropdown"></div></div>')+'</div>';
   }
   if(s6){
-    var mine=myShort();
-    var people=staffList.filter(function(x){ return x.n.split(' ')[0]!==mine; });
-    if(form.rider&&!people.some(function(x){ return x.n===form.rider; })) people.push({ n:form.rider, g:'' });
+    var people=staffList.slice();
+    form.riders.forEach(function(n){ if(!people.some(function(x){ return x.n===n; })) people.push({ n:n, g:'' }); });
     var groups=[]; people.forEach(function(x){ if(groups.indexOf(x.g)<0) groups.push(x.g); });
-    h+='<div class="step">'+grp('동승자', people.length?groups.map(function(g){
+    h+='<div class="step">'+grp('예약자 *', people.length?groups.map(function(g){
           return (g?'<div class="chip-grp">'+esc(g)+'팀</div>':'')+'<div class="chips">'+people.filter(function(x){ return x.g===g; }).map(function(x){
-            return '<div class="staff-chip'+(form.rider===x.n?' selected':'')+'" data-act="rider" data-n="'+esc(x.n)+'">'+esc(x.n)+'</div>'; }).join('')+'</div>';
-        }).join(''):'<div class="hint l">직원 목록을 불러오는 중이에요…</div>','(1명 · 없으면 선택 안 함)')+
-       grp('카테고리 *','<div class="chips">'+PURPOSES.map(function(p){ return '<div class="staff-chip'+(form.purpose===p?' selected':'')+'" data-act="purpose" data-p="'+p+'">'+p+'</div>'; }).join('')+'</div>')+'</div>';
+            return '<div class="staff-chip'+(form.riders.indexOf(x.n)>=0?' selected':'')+'" data-act="rider" data-n="'+esc(x.n)+'">'+esc(x.n)+'</div>'; }).join('')+'</div>';
+        }).join(''):'<div class="hint l">직원 목록을 불러오는 중이에요…</div>','(차를 쓰는 사람 · 최대 2명)')+'</div>';
+  }
+  if(s6u){
+    h+='<div class="step">'+grp('카테고리 *','<div class="chips">'+PURPOSES.map(function(p){ return '<div class="staff-chip'+(form.purpose===p?' selected':'')+'" data-act="purpose" data-p="'+p+'">'+p+'</div>'; }).join('')+'</div>')+'</div>';
   }
   if(s7){
     h+='<div class="step">'+grp('상세 내용','<textarea placeholder="용무 간략히 (짐, 특이사항 등)" data-f="memo">'+esc(form.memo)+'</textarea>')+'</div>';
   }
-  var hint=!s2?'시작일을 골라주세요.':!s3?'시간을 골라주세요.':!s4?'출발·반납 시간을 확인해주세요.':!s5?'차량을 골라주세요.':!s6?'업장을 골라주세요.':!s7?'카테고리를 골라주세요.':esc(rangeText(formSegs()))+' · '+car(form.carId).name;
+  var hint=!s2?'시작일을 골라주세요.':!s3?'시간을 골라주세요.':!s4?'출발·반납 시간을 확인해주세요.':!s5?'차량을 골라주세요.':!s6?'업장을 골라주세요.':!s6u?'예약자를 골라주세요. (최대 2명)':!s7?'카테고리를 골라주세요.':esc(rangeText(formSegs()))+' · '+car(form.carId).name;
   h+='</div><div class="sup-modal-footer"><span class="foot-hint">'+hint+'</span><button class="btn" data-act="fclose">취소</button><button class="btn primary" data-act="save"'+(canSave?'':' disabled')+'>'+(form.busy?'저장 중…':form.editIds.length?'수정 저장':'등록')+'</button></div></div>';
   var prev=document.getElementById('form-body'), y=prev?prev.scrollTop:0, before=form._n||0;
   el.className='sup-modal open'; el.innerHTML=h;
@@ -399,7 +406,7 @@ function openSug(){
 async function submitForm(){
   if(!form||!form.carId||!formValid()) return;
   var r={ carId:form.carId, segs:formSegs(), type:'use',
-          dest:form.dest.trim(), purpose:form.purpose, riders:form.rider?[form.rider]:[], memo:form.memo.trim() };
+          dest:form.dest.trim(), purpose:form.purpose, riders:form.riders.slice(0,2), memo:form.memo.trim() };
   var olds=form.olds; form.busy=true; renderForm();
   try{
     await saveReservation(r, olds);
@@ -439,7 +446,11 @@ document.addEventListener('click', async function(ev){
   else if(a==='slot'){ var k=t.getAttribute('data-k'); form.slot=k; form.start=SLOTS[k].s; form.end=SLOTS[k].e; renderForm(); }
   else if(a==='car'){ if(t.classList.contains('no')) return; form.carId=t.getAttribute('data-car'); renderForm(); }
   else if(a==='purpose'){ var p=t.getAttribute('data-p'); form.purpose=form.purpose===p?'':p; renderForm(); }
-  else if(a==='rider'){ var n=t.getAttribute('data-n'); form.rider=form.rider===n?'':n; renderForm(); }
+  else if(a==='rider'){ var n=t.getAttribute('data-n'), ix=form.riders.indexOf(n);
+    if(ix>=0) form.riders.splice(ix,1);
+    else if(form.riders.length>=2){ toast('예약자는 최대 2명까지 고를 수 있어요.'); return; }
+    else form.riders.push(n);
+    renderForm(); }
   else if(a==='save'){ submitForm(); }
   else if(a==='dpick'){ form.dest=t.getAttribute('data-v'); form.destPicked=true; var inp=document.getElementById('f-dest'); if(inp){ inp.value=form.dest; inp.blur(); } renderForm(); }
 });
