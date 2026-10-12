@@ -157,12 +157,14 @@ export async function importStaff(list){
   list.forEach(function(s){ batch.set(doc(collection(db,'staff')), Object.assign({}, s, {createdAt: serverTimestamp(), updatedAt: serverTimestamp()})); });
   await batch.commit();
 }
-// 로그인 허용 목록에 번호 등록 (이미 있으면 이름만 갱신)
-export async function ensureAllowedUser(phone, name){
+// 로그인 허용 목록에 번호 등록 (이미 있으면 이름·사용 앱만 갱신. 역할(관리자)은 건드리지 않음)
+// apps: ['fs','car'] 중 사용할 앱. 생략하면 기존 값 유지.
+export async function ensureAllowedUser(phone, name, apps){
   var p=String(phone||'').replace(/[^0-9]/g,''); if(p.length<10) return false;
   var ref=doc(db,'allowedUsers',p), snap=await getDoc(ref);
-  if(snap.exists()){ await updateDoc(ref,{name:name}); return 'updated'; }
-  await setDoc(ref,{name:name, role:'staff', registered:false, createdAt: serverTimestamp()});
+  var patch={name:name}; if(apps) patch.apps=apps;
+  if(snap.exists()){ await updateDoc(ref,patch); return 'updated'; }
+  await setDoc(ref,Object.assign({role:'staff', registered:false, createdAt: serverTimestamp()},patch));
   return 'created';
 }
 export function removeAllowedUser(phone){
@@ -171,7 +173,7 @@ export function removeAllowedUser(phone){
 }
 export async function fetchAllForBackup(){
   var result={};
-  var cols=['contracts','history','supports','allowedUsers','staff'];
+  var cols=['contracts','history','supports','allowedUsers','staff','reservations'];
   for(var i=0;i<cols.length;i++){
     var snap=await getDocs(collection(db,cols[i]));
     result[cols[i]]=snap.docs.map(function(d){ return {_id:d.id,data:d.data()}; });

@@ -1,6 +1,6 @@
 // admin.js — 관리자 기능 (엑셀/백업/동기화)
-import { fetchAllForBackup, updateContract, saveStaff, deleteStaff, importStaff, ensureAllowedUser } from './db.js';
-import { DEFAULT_STAFF, COLOR_PALETTE, fullName } from './staff.js';
+import { fetchAllForBackup, updateContract, saveStaff, deleteStaff, importStaff, ensureAllowedUser, auth } from './db.js';
+import { DEFAULT_STAFF, COLOR_PALETTE, fullName, hasApp } from './staff.js';
 import { calcStatus, STATUS_META, fmtDate, dDiff, priceLabel } from './utils.js';
 
 export function initAdmin(ctx){
@@ -110,7 +110,9 @@ export function initAdmin(ctx){
       return '<div class="staff-row'+(s.active===false?' retired':'')+'" onclick="openStaffModal(\''+s.id+'\')">'+
         '<span class="staff-swatch" style="background:'+esc(s.bg||'#f0f0ec')+';border-color:'+esc(s.border||'#ccc')+';color:'+esc(s.color||'#444')+'">'+esc(s.name.slice(0,1))+'</span>'+
         '<span class="staff-name">'+esc(fullName(s))+'</span>'+
-        '<span class="staff-meta">'+esc(s.group||'운영')+'팀'+(s.team?' · '+s.team+'팀'+(s.lead?' 팀장':''):'')+(s.phone?' · '+esc(s.phone):'')+'</span>'+
+        '<span class="staff-meta">'+(hasApp(s,'fs')
+            ? esc(s.group||'운영')+'팀'+(s.team?' · '+s.team+'팀'+(s.lead?' 팀장':''):'')+(hasApp(s,'car')?'':' · FS만')
+            : '<b class="staff-caronly">차량만</b>'+(s.dept?' · '+esc(s.dept):''))+(s.phone?' · '+esc(s.phone):'')+'</span>'+
         '<i class="ti ti-chevron-right"></i></div>';
     }
     el.innerHTML='<div class="staff-list">'+active.map(row).join('')+'</div>'+
@@ -135,6 +137,10 @@ export function initAdmin(ctx){
     document.getElementById('sf-phone').value=s?(s.phone||''):'';
     document.getElementById('sf-order').value=s?(s.order||''):((window.STAFF_ALL||[]).length+1);
     document.getElementById('sf-active').checked=s?s.active!==false:true;
+    document.getElementById('sf-app-fs').checked=hasApp(s,'fs');
+    document.getElementById('sf-app-car').checked=hasApp(s,'car');
+    document.getElementById('sf-dept').value=s?(s.dept||''):'';
+    syncStaffAppUI();
     var pal=document.getElementById('sf-palette');
     var cur=s&&s.color?s.color:COLOR_PALETTE[(window.STAFF_ALL||[]).length%COLOR_PALETTE.length].color;
     pal.innerHTML=COLOR_PALETTE.map(function(c){ return '<span class="sf-sw'+(c.color===cur?' on':'')+'" data-color="'+c.color+'" data-bg="'+c.bg+'" data-border="'+c.border+'" style="background:'+c.bg+';border-color:'+c.border+';color:'+c.color+'" onclick="pickStaffColor(this)">가</span>'; }).join('');
@@ -143,6 +149,12 @@ export function initAdmin(ctx){
     ov.classList.add('open');
     if(window.pushModalState) window.pushModalState();
   };
+  // FS를 안 쓰는 직원이면 팀·팀장 칸 대신 부서 칸을 보여줌
+  window.syncStaffAppUI=function(){
+    var fs=document.getElementById('sf-app-fs').checked;
+    document.querySelectorAll('.sf-fs-only').forEach(function(el){ el.style.display=fs?'':'none'; });
+    document.getElementById('sf-dept-wrap').style.display=fs?'none':'';
+  };
   window.pickStaffColor=function(el){ document.querySelectorAll('#sf-palette .sf-sw').forEach(function(x){ x.classList.remove('on'); }); el.classList.add('on'); };
   window.closeStaffModal=function(){ var ov=document.getElementById('staff-modal'); if(ov) ov.classList.remove('open'); };
   window.saveStaffForm=async function(){
@@ -150,17 +162,23 @@ export function initAdmin(ctx){
     if(!name){ showToast('이름을 입력해주세요.'); return; }
     var sw=document.querySelector('#sf-palette .sf-sw.on')||document.querySelector('#sf-palette .sf-sw');
     var phone=document.getElementById('sf-phone').value.replace(/[^0-9]/g,'');
+    var apps=[]; if(document.getElementById('sf-app-fs').checked) apps.push('fs'); if(document.getElementById('sf-app-car').checked) apps.push('car');
+    if(!apps.length){ showToast('사용 앱을 하나 이상 골라주세요.'); return; }
+    var myPhone=auth.currentUser&&auth.currentUser.email?auth.currentUser.email.split('@')[0]:'';
+    if(phone&&phone===myPhone&&apps.indexOf('fs')<0){ showToast('내 계정의 FS 권한은 끌 수 없어요.'); return; }
+    if(apps.indexOf('fs')<0&&!phone){ showToast('차량만 쓰는 직원은 휴대폰 번호가 꼭 필요해요 (로그인용).'); return; }
     var data={
       name:name, title:document.getElementById('sf-jobtitle').value.trim(),
       group:document.getElementById('sf-group').value, team:parseInt(document.getElementById('sf-team').value)||0,
       lead:document.getElementById('sf-lead').checked, phone:phone,
       order:parseInt(document.getElementById('sf-order').value)||99, active:document.getElementById('sf-active').checked,
-      color:sw.getAttribute('data-color'), bg:sw.getAttribute('data-bg'), border:sw.getAttribute('data-border')
+      color:sw.getAttribute('data-color'), bg:sw.getAttribute('data-bg'), border:sw.getAttribute('data-border'),
+      apps:apps, dept:document.getElementById('sf-dept').value.trim()
     };
     try{
       await saveStaff(editingStaffId,data);
       var msg='저장되었습니다.';
-      if(phone&&data.active){ var r=await ensureAllowedUser(phone,name); if(r==='created') msg='저장 + 로그인 번호 등록 완료. 본인이 앱에서 비밀번호를 만들면 돼요.'; }
+      if(phone&&data.active){ var r=await ensureAllowedUser(phone,name,apps); if(r==='created') msg='저장 + 로그인 번호 등록 완료. 본인이 앱에서 비밀번호를 만들면 돼요.'; }
       showToast(msg); closeStaffModal();
     }catch(e){ console.error(e); showToast('저장 실패: '+(e.message||'')); }
   };

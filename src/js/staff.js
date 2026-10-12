@@ -27,6 +27,8 @@ export var STAFF=[];            // 재직 중 직원 배열 (order 순)
 export var STAFF_MAP={};        // { '박주형': {cls,border,bg,color,...} }
 export var STAFF_ORDER=[];      // ['박주형 본부장', ...]
 
+// apps 필드가 없으면(기존 직원) FS·차량 모두 사용
+export function hasApp(s,app){ return !s||!s.apps||s.apps.indexOf(app)>=0; }
 export function fullName(s){ return s.title?s.name+' '+s.title:s.name; }
 export function getStaffColor(name){ if(!name) return ''; for(var k in STAFF_MAP){ if(name.includes(k)) return STAFF_MAP[k].cls; } return ''; }
 export function getStaffBorderColor(name){ if(!name) return '#ccc'; for(var k in STAFF_MAP){ if(name.includes(k)) return STAFF_MAP[k].border; } return '#ccc'; }
@@ -40,7 +42,8 @@ function attr(s){ return String(s==null?'':s).replace(/'/g,'').replace(/"/g,'');
 // list: Firestore에서 온 전체 직원(퇴사자 포함). 화면에는 재직자만.
 export function applyStaff(list){
   var all=(list||[]).slice().sort(function(a,b){ return (a.order||99)-(b.order||99)||a.name.localeCompare(b.name,'ko'); });
-  var active=all.filter(function(s){ return s.active!==false; });
+  // FS 화면(담당자 선택 등)에는 FS를 쓰는 재직자만. 차량 전용 직원은 빠진다.
+  var active=all.filter(function(s){ return s.active!==false&&hasApp(s,'fs'); });
   STAFF.length=0; active.forEach(function(s){ STAFF.push(s); });
   Object.keys(STAFF_MAP).forEach(function(k){ delete STAFF_MAP[k]; });
   STAFF_ORDER.length=0;

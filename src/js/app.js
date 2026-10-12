@@ -838,6 +838,11 @@ window.checkPhone=async function(){
   try{
     var allowed=await checkAllowedUser(phone);
     if(!allowed){ showLoginError('등록되지 않은 번호예요. 관리자에게 문의하세요.'); return; }
+    if(!hasAppAccess(allowed,'fs')){
+      if(hasAppAccess(allowed,'car')) showLoginError('차량 예약만 사용할 수 있는 번호예요. <a href="./car/" style="color:#185FA5;font-weight:600;">차량 예약으로 이동 →</a>',true);
+      else showLoginError('FS 사업장 관리 권한이 없는 번호예요. 관리자에게 문의하세요.');
+      return;
+    }
     _loginPhone=phone;
     hideLoginError();
     document.getElementById('login-step-phone').style.display='none';
@@ -890,7 +895,7 @@ window.backToPhone=function(){
   document.getElementById('login-pw2').value='';
   hideLoginError();
 };
-function showLoginError(msg){ var el=document.getElementById('login-error'); el.textContent=msg; el.style.display='block'; }
+function showLoginError(msg,html){ var el=document.getElementById('login-error'); if(html) el.innerHTML=msg; else el.textContent=msg; el.style.display='block'; }
 function hideLoginError(){ document.getElementById('login-error').style.display='none'; }
 window.currentUserRole='staff';
 function isAdmin(){ return window.currentUserRole==='admin'; }
@@ -930,23 +935,42 @@ watchAuth(function(user){
   var loginEl=document.getElementById('login-screen');
   if(user){
     loginEl.style.display='none';
-    if(!_appStarted){ _appStarted=true; init(); }
     var phone=(user.email||'').split('@')[0];
-    if(phone){
-      checkAllowedUser(phone).then(function(info){
-        window.currentUserRole=(info&&info.role)||'staff';
-        window.currentUserName=(info&&info.name)||'';
-        var el=document.getElementById('home-welcome');
-        if(el&&info&&info.name) el.innerHTML='<span style="font-weight:600;color:#185FA5;">'+info.name+'</span>님, 반갑습니다 👋';
-        applyRoleUI();
-      }).catch(function(){ window.currentUserRole='staff'; applyRoleUI(); });
-    }
+    // 권한 확인을 먼저 하고, FS 권한이 있을 때만 데이터를 불러온다 (차량 전용 직원 보호)
+    checkAllowedUser(phone).then(function(info){
+      if(!info||!hasAppAccess(info,'fs')){ showNoFsAccess(info); return; }
+      window.currentUserRole=(info&&info.role)||'staff';
+      window.currentUserName=(info&&info.name)||'';
+      window.currentUserApps=info.apps||null;
+      if(!hasAppAccess(info,'car')){ var hl=document.querySelector('.home-link'); if(hl) hl.style.display='none'; }
+      if(!_appStarted){ _appStarted=true; init(); }
+      var el=document.getElementById('home-welcome');
+      if(el&&info&&info.name) el.innerHTML='<span style="font-weight:600;color:#185FA5;">'+escHtml(info.name)+'</span>님, 반갑습니다 👋';
+      applyRoleUI();
+    }).catch(function(e){ console.error(e); showNoFsAccess(null); });
   } else {
     var splash=document.getElementById('splash-screen');
     if(splash) splash.remove();
     loginEl.style.display='flex';
   }
 });
+// apps 필드가 없으면(기존 직원) 모든 앱 허용
+function hasAppAccess(info,app){ return !info||!info.apps||info.apps.indexOf(app)>=0; }
+function escHtml(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function showNoFsAccess(info){
+  var splash=document.getElementById('splash-screen'); if(splash) splash.remove();
+  var car=info&&hasAppAccess(info,'car');
+  var d=document.createElement('div');
+  d.id='no-fs-access';
+  d.style.cssText='position:fixed;inset:0;z-index:9500;background:#f0f0ee;display:flex;align-items:center;justify-content:center;padding:20px;';
+  d.innerHTML='<div style="background:#fff;border-radius:14px;padding:28px 22px;max-width:340px;width:100%;text-align:center;border:.5px solid #ddd;">'+
+    '<div style="font-size:15px;font-weight:600;margin-bottom:8px;">FS 사업장 관리 권한이 없어요</div>'+
+    '<div style="font-size:13px;color:#777;line-height:1.6;margin-bottom:18px;">'+(car?'차량 예약만 사용할 수 있는 계정이에요.':'관리자에게 권한을 요청해주세요.')+'</div>'+
+    (car?'<a href="./car/" class="btn primary" style="width:100%;justify-content:center;padding:11px;text-decoration:none;margin-bottom:8px;">차량 예약으로 이동</a>':'')+
+    '<button class="btn" style="width:100%;justify-content:center;padding:10px;" onclick="logoutNoConfirm()">다른 번호로 로그인</button></div>';
+  document.body.appendChild(d);
+}
+window.logoutNoConfirm=async function(){ await logoutUser(); location.reload(); };
 
 function updateHomeBadge() {
   var urgent=contracts.filter(function(c){ return !c.terminated&&calcStatus(c)==='urgent'; }).length;
