@@ -57,6 +57,13 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f0ee;color:#1a1a18;min-
 .home-btn i{font-size:30px;}
 .home-btn .lbl{font-size:14px;font-weight:600;}
 .home-btn .desc{font-size:11px;color:#999;}
+.home-link{display:flex;align-items:center;gap:12px;width:100%;max-width:440px;margin-top:14px;padding:14px 16px;background:#fff;border:.5px solid #e8e8e4;border-radius:14px;text-decoration:none;color:#1a1a18;opacity:0;animation:fadeSlideUp .4s ease 1.3s forwards;transition:box-shadow .15s,transform .15s;}
+.home-link:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);transform:translateY(-2px);}
+.home-link>i{font-size:24px;color:#185FA5;}
+.hl-txt{flex:1;display:flex;flex-direction:column;gap:1px;}
+.hl-txt b{font-size:14px;font-weight:600;}
+.hl-txt small{font-size:11px;color:#999;}
+.home-link .hl-chev{font-size:16px;color:#bbb;}
 .home-btn.blue i{color:#185FA5;}.home-btn.green i{color:#3B6D11;}
 .home-btn.amber i{color:#854F0B;}.home-btn.red i{color:#A32D2D;}
 .home-badge{position:absolute;top:10px;right:10px;background:#A32D2D;color:#fff;font-size:11px;font-weight:600;padding:2px 7px;border-radius:99px;min-width:20px;text-align:center;}
@@ -440,6 +447,9 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 .staff-swatch{width:28px;height:28px;border-radius:8px;border:1px solid;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
 .staff-name{font-size:13px;font-weight:600;}
 .staff-meta{font-size:11px;color:#888;flex:1;}
+.staff-caronly{font-weight:600;color:#185FA5;background:#E6F1FB;padding:1px 6px;border-radius:99px;font-size:10px;}
+.sf-apps{display:flex;gap:8px;margin-top:4px;}
+.sf-apps label{flex:1;display:flex;align-items:center;gap:8px;padding:9px 11px;border:.5px solid #ccc;border-radius:8px;font-size:13px;cursor:pointer;}
 .staff-row i{color:#bbb;}
 .staff-sub{font-size:11px;color:#888;margin:12px 0 6px;}
 .staff-hint{font-size:11px;color:#999;margin-top:10px;}
@@ -527,6 +537,11 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
       <div class="desc">계약 추가 · 수정 · 삭제</div>
     </div>
   </div>
+  <a class="home-link" href="./car/">
+    <i class="ti ti-car"></i>
+    <span class="hl-txt"><b>차량 예약</b><small>레이 2대 · 지금 비어 있는 차 확인</small></span>
+    <i class="ti ti-chevron-right hl-chev"></i>
+  </a>
 </div>
 
 <div id="app">
@@ -1037,27 +1052,34 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
-<script type="module" src="./src/js/app.js?v=20260928e"></script>
+<script type="module" src="./src/js/app.js?v=20261012a"></script>
 
 <!-- 직원 추가/수정 -->
 <div id="staff-modal" class="sup-modal">
   <div class="sup-modal-inner">
     <div class="sup-modal-header"><h3 id="sf-title">직원 추가</h3><button class="btn sm" onclick="closeStaffModal()"><i class="ti ti-x"></i></button></div>
     <div class="sup-modal-body">
+      <div class="sup-form-group" style="margin-bottom:10px;"><label>사용 앱</label>
+        <div class="sf-apps">
+          <label><input type="checkbox" id="sf-app-fs" checked onchange="syncStaffAppUI()"> FS 사업장 관리</label>
+          <label><input type="checkbox" id="sf-app-car" checked> 차량 예약</label>
+        </div>
+      </div>
       <div class="sf-grid">
         <div class="sup-form-group"><label>이름 *</label><input type="text" id="sf-name" placeholder="홍길동"></div>
         <div class="sup-form-group"><label>직급</label><input type="text" id="sf-jobtitle" placeholder="주임 / 대리 / 과장 …"></div>
-        <div class="sup-form-group"><label>소속</label><select id="sf-group"><option value="운영">운영팀</option><option value="지원">지원팀</option></select></div>
-        <div class="sup-form-group"><label>담당 팀</label><select id="sf-team"><option value="0">없음</option><option value="1">1팀</option><option value="2">2팀</option><option value="3">3팀</option></select></div>
+        <div class="sup-form-group" id="sf-dept-wrap" style="display:none;"><label>부서</label><input type="text" id="sf-dept" placeholder="예: 경영지원팀"></div>
+        <div class="sup-form-group sf-fs-only"><label>소속</label><select id="sf-group"><option value="운영">운영팀</option><option value="지원">지원팀</option></select></div>
+        <div class="sup-form-group sf-fs-only"><label>담당 팀</label><select id="sf-team"><option value="0">없음</option><option value="1">1팀</option><option value="2">2팀</option><option value="3">3팀</option></select></div>
         <div class="sup-form-group"><label>휴대폰 (로그인용)</label><input type="tel" id="sf-phone" placeholder="01012345678"></div>
         <div class="sup-form-group"><label>표시 순서</label><input type="number" id="sf-order" min="1"></div>
       </div>
       <div class="sf-checks">
-        <label><input type="checkbox" id="sf-lead"> 팀장 (사업장 현황 팀 제목에 표시)</label>
+        <label class="sf-fs-only"><input type="checkbox" id="sf-lead"> 팀장 (사업장 현황 팀 제목에 표시)</label>
         <label><input type="checkbox" id="sf-active" checked> 재직 중</label>
       </div>
-      <div class="sup-form-group"><label>색상</label><div id="sf-palette" class="sf-palette"></div></div>
-      <div class="sf-note">휴대폰을 넣고 저장하면 로그인 허용 목록에 자동 등록돼요. 본인이 앱에서 번호 입력 → 비밀번호 만들기만 하면 됩니다.</div>
+      <div class="sup-form-group sf-fs-only"><label>색상</label><div id="sf-palette" class="sf-palette"></div></div>
+      <div class="sf-note">휴대폰을 넣고 저장하면 로그인 허용 목록에 자동 등록돼요. 본인이 앱에서 번호 입력 → 비밀번호 만들기만 하면 됩니다.<br>FS 체크를 끄면 "차량만" 직원이 되어 사업장·일정 데이터는 볼 수 없고 차량 예약만 쓸 수 있어요.</div>
     </div>
     <div class="sup-modal-footer">
       <button class="btn" id="sf-delete" onclick="deleteStaffForm()" style="color:#A32D2D;">삭제</button>
