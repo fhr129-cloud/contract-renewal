@@ -177,6 +177,18 @@ dd{line-height:1.45;word-break:keep-all;}
 .foot{position:fixed;left:0;right:0;bottom:0;z-index:41;background:#fff;border-top:.5px solid #E2E0DA;padding:10px 14px calc(12px + env(safe-area-inset-bottom));}
 .sum{font-size:12px;color:#55524B;text-align:center;margin-bottom:8px;min-height:16px;line-height:1.4;}
 
+/* 단계형 입력 (운영지원 등록과 같은 흐름) */
+.step{animation:stepIn .25s ease;}
+@keyframes stepIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.two .lbl{display:flex;align-items:center;min-height:22px;white-space:nowrap;}
+.lnk{font-size:11px;color:#185FA5;font-weight:500;margin-left:6px;padding:2px 0;}
+.lbl-sub{font-size:12px;color:#185FA5;margin:6px 2px 0;}
+.form textarea{width:100%;min-height:76px;padding:12px;border:.5px solid #D4D1CA;border-radius:11px;background:#fff;font-family:inherit;font-size:15px;resize:vertical;}
+.form .adm.chk{display:flex;align-items:center;gap:8px;margin:4px 0 0;padding:10px 12px;border:1px dashed #C9C5BC;border-radius:11px;background:#FAF9F6;font-size:13px;}
+.form .adm.chk small{margin-left:auto;font-size:10px;color:#9A968E;}
+.sug-i.direct span{color:#185FA5;}
+
 /* 행선지 추천 */
 .dest{position:relative;}
 .dest input{padding-right:42px !important;}
@@ -190,7 +202,7 @@ dd{line-height:1.45;word-break:keep-all;}
 .sug-none{font-size:11px;color:#9A968E;margin:2px 4px;}
 
 /* 토스트 */
-#toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translate(-50%,20px);z-index:100;background:#1a1a18;color:#fff;font-size:13px;padding:11px 16px;border-radius:12px;max-width:calc(100% - 32px);width:max-content;line-height:1.45;opacity:0;pointer-events:none;transition:all .25s;}
+#toast{position:fixed;left:50%;top:calc(70px + env(safe-area-inset-top));transform:translate(-50%,-20px);z-index:100;background:#1a1a18;color:#fff;font-size:13px;padding:11px 16px;border-radius:12px;max-width:calc(100% - 32px);width:max-content;line-height:1.45;opacity:0;pointer-events:none;transition:all .25s;}
 #toast.on{opacity:1;transform:translate(-50%,0);}
 
 /* 로그인 */
@@ -243,6 +255,6 @@ dd{line-height:1.45;word-break:keep-all;}
 <div id="form" class="full"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script type="module" src="./car.js?v=20261012b"></script>
+<script type="module" src="./car.js?v=20261012c"></script>
 </body>
 </html>
