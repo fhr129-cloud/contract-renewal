@@ -30,7 +30,7 @@ var monthCursor = firstOfMonth(new Date());
 var form = null;          // 예약 입력 중인 값
 var unsub = null, unsubSites = null;
 var sites = [];           // FS 사업장 이름 목록 (meta/sites)
-var staffList = [];       // 동승자 선택용 직원 [{n:이름 직급, g:소속}]
+var staffList = [];       // 예약자 선택용 직원 [{n:이름 직급, g:소속, p:휴대폰}]
 var unsubStaff = null;
 var loginPhone = '', isNewUser = false;
 
@@ -51,14 +51,16 @@ function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){ ret
 function car(id){ return CARS.filter(function(c){ return c.id===id; })[0]||CARS[0]; }
 function hasApp(info,a){ return !info||!info.apps||info.apps.indexOf(a)>=0; }
 function isAdmin(){ return !!(me&&me.role==='admin'); }
-function canEdit(r){ return isAdmin()||(r&&r.type!=='maint'&&r.ownerPhone===me.phone); }
+// 수정·취소·반납: 등록한 사람, 예약자로 선택된 사람, 관리자
+function canEdit(r){ return isAdmin()||(r&&r.type!=='maint'&&(r.ownerPhone===me.phone||(r.riderPhones||[]).indexOf(me.phone)>=0)); }
 function telFmt(p){ p=String(p||''); return p.length===11?p.slice(0,3)+'-'+p.slice(3,7)+'-'+p.slice(7):p; }
 // 예약자: 등록할 때 고른 사람(최대 2명). 예전 예약은 등록한 사람.
 function users(r){ return r.riders&&r.riders.length?r.riders:(r.ownerName?[r.ownerName]:[]); }
 function short1(n){ return String(n||'').split(' ')[0]; }
 function who(r){ if(r.type==='maint') return '정비'; var u=users(r); return u.length>1?short1(u[0])+' 외'+(u.length-1):short1(u[0]); }
 function whoFull(r){ return users(r).join(', '); }
-function isMine(r){ var m=short1(me.name); return r.ownerPhone===me.phone||users(r).some(function(n){ return short1(n)===m; }); }
+function isMine(r){ var m=short1(me.name); return r.ownerPhone===me.phone||(r.riderPhones||[]).indexOf(me.phone)>=0||users(r).some(function(n){ return short1(n)===m; }); }
+function phoneOf(n){ var x=staffList.filter(function(s){ return s.n===n; })[0]; return x&&x.p||''; }
 function toast(msg){ var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toast._t); toast._t=setTimeout(function(){ t.classList.remove('on'); },2600); }
 
 function itemsOn(date,carId){ return list.filter(function(r){ return r.date===date&&(!carId||r.carId===carId); }).sort(function(a,b){ return a.start.localeCompare(b.start); }); }
@@ -83,7 +85,7 @@ function listen(){
       staffList = snap.docs.map(function(d){ return d.data(); })
         .filter(function(x){ return x.active!==false&&hasApp(x,'car'); })
         .sort(function(a,b){ return (a.order||99)-(b.order||99); })
-        .map(function(x){ return { n:x.title?x.name+' '+x.title:x.name, g:x.group||'운영' }; });
+        .map(function(x){ return { n:x.title?x.name+' '+x.title:x.name, g:x.group||'운영', p:String(x.phone||'').replace(/[^0-9]/g,'') }; });
       refreshLists();
     }, function(err){ console.warn('직원 목록 오류', err.code); });
   } else {
@@ -92,7 +94,8 @@ function listen(){
       sites = snap.exists() ? (snap.data().names||[]) : []; refreshLists();
     }, function(err){ console.warn('사업장 목록 없음', err.code); });
     unsubStaff = onSnapshot(doc(db,'meta','staff'), function(snap){
-      staffList = (snap.exists() ? (snap.data().names||[]) : []).map(function(n){ return { n:n, g:'' }; }); refreshLists();
+      // 형식: '이름 직급|휴대폰|소속'
+      staffList = (snap.exists() ? (snap.data().names||[]) : []).map(function(v){ var a=String(v).split('|'); return { n:a[0], p:a[1]||'', g:a[2]||'' }; }); refreshLists();
     }, function(err){ console.warn('직원 목록 없음', err.code); });
   }
 }
@@ -149,7 +152,7 @@ async function saveReservation(r, olds){
       tx.set(refs[i], {
         carId:r.carId, date:s.date, start:s.start, end:s.end, type:r.type, groupId:gid,
         ownerPhone:owner.ownerPhone, ownerName:owner.ownerName,
-        dest:r.dest||'', purpose:r.purpose||'', riders:r.riders||[], memo:r.memo||'',
+        dest:r.dest||'', purpose:r.purpose||'', riders:r.riders||[], riderPhones:r.riderPhones||[], memo:r.memo||'', returnedAt:r.returnedAt||'',
         createdAt:(olds[i]&&olds[i].createdAt)||serverTimestamp(), updatedAt:serverTimestamp(), updatedBy:me.phone
       });
       ranges[dayKey(r.carId,s.date)].push({ id:refs[i].id, start:s.start, end:s.end, who:r.type==='maint'?'정비':(r.riders&&r.riders[0]?short1(r.riders[0]):owner.ownerName) });
@@ -259,17 +262,20 @@ function renderPopup(){
   if(popup.type==='detail'){
     var r=list.filter(function(x){ return x.id===popup.id; })[0];
     if(!r){ popup=null; el.className='cal-popup'; el.innerHTML=''; return; }
-    var g=group(r), c=car(r.carId), edit=canEdit(r), others=isAdmin()&&r.ownerPhone!==me.phone;
+    var g=group(r), c=car(r.carId), edit=canEdit(r), others=isAdmin()&&r.ownerPhone!==me.phone&&(r.riderPhones||[]).indexOf(me.phone)<0;
+    var inUse=g.some(function(x){ var t=ymd(new Date()), n=nowHM(); return x.date===t&&x.start<=n&&n<x.end; });
+    var callP=(r.riderPhones&&r.riderPhones[0])||r.ownerPhone, callN=r.riders&&r.riders[0]?short1(r.riders[0]):short1(r.ownerName);
     h='<div class="cal-popup-inner"><div class="cal-popup-header"><h4><span class="cs-dot" style="background:'+c.color+'"></span>'+c.name+(r.purpose?' <span class="badge-cat">'+esc(r.purpose)+'</span>':'')+'</h4><button class="btn sm" data-act="pclose"><i class="ti ti-x"></i></button></div>'+
       '<div class="cal-popup-body"><div class="dl">'+
       '<div><span>업장</span><b>'+esc(r.dest||'-')+'</b></div>'+
-      '<div><span>일시</span><b>'+esc(rangeText(g))+'</b></div>'+
+      '<div><span>일시</span><div><b>'+esc(rangeText(g))+'</b>'+(r.returnedAt?' <span class="badge-cat" style="background:#EAF3DE;color:#3B6D11">'+esc(r.returnedAt)+' 반납 완료</span>':'')+'</div></div>'+
       '<div><span>예약자</span><b>'+esc(whoFull(r))+'</b></div>'+
       (r.riders&&r.riders.length&&r.ownerName?'<div><span>등록</span>'+esc(r.ownerName)+(r.ownerPhone===me.phone?' (나)':'')+'</div>':'')+
       (r.memo?'<div><span>상세 내용</span>'+esc(r.memo)+'</div>':'')+'</div>'+
       (edit?(others?'<div class="warn">다른 사람 예약이에요. 관리자 권한으로 수정·취소할 수 있어요.</div>':'')+
+        (inUse?'<button class="btn primary full" style="margin:0 0 8px" data-act="return" data-id="'+r.id+'"><i class="ti ti-key"></i> 지금 반납 완료</button>':'')+
         '<div class="pbtns"><button class="btn" data-act="edit" data-id="'+r.id+'"><i class="ti ti-pencil"></i> 수정</button><button class="btn danger" data-act="cancel" data-id="'+r.id+'"><i class="ti ti-trash"></i> 예약 취소</button></div>'
-        :(r.ownerPhone?'<div class="pbtns"><a class="btn" href="tel:'+esc(r.ownerPhone)+'"><i class="ti ti-phone"></i> '+esc(String(r.ownerName||'').split(' ')[0])+'에게 전화 ('+telFmt(r.ownerPhone)+')</a></div><div class="hint">다른 사람 예약은 보기만 가능해요.</div>':''))+
+        :(callP?'<div class="pbtns"><a class="btn" href="tel:'+esc(callP)+'"><i class="ti ti-phone"></i> '+esc(callN)+'에게 전화 ('+telFmt(callP)+')</a></div><div class="hint">다른 사람 예약은 보기만 가능해요.</div>':''))+
       '</div></div>';
   } else {
     var its=itemsOn(popup.date), past=popup.date<ymd(new Date());
@@ -413,7 +419,7 @@ function openSug(){
 async function submitForm(){
   if(!form||!form.carId||!formValid()) return;
   var r={ carId:form.carId, segs:formSegs(), type:'use',
-          dest:form.dest.trim(), purpose:form.purpose, riders:form.riders.slice(0,2), memo:form.memo.trim() };
+          dest:form.dest.trim(), purpose:form.purpose, riders:form.riders.slice(0,2), riderPhones:form.riders.slice(0,2).map(phoneOf).filter(Boolean), memo:form.memo.trim() };
   var olds=form.olds; form.busy=true; renderForm();
   try{
     await saveReservation(r, olds);
@@ -448,6 +454,18 @@ document.addEventListener('click', async function(ev){
     if(!confirm(rangeText(g)+' '+car(r2.carId).name+' 예약을 취소할까요?')) return;
     try{ await cancelReservation(g); popup=null; renderPopup(); popLayer(); toast('예약을 취소했어요.'); }
     catch(e){ console.error(e); toast(e.code==='permission-denied'?'본인 예약만 취소할 수 있어요.':'취소하지 못했어요.'); }
+  }
+  else if(a==='return'){
+    var r3=list.filter(function(x){ return x.id===t.getAttribute('data-id'); })[0]; if(!r3) return;
+    var g3=group(r3), td=ymd(new Date()), now=nowHM();
+    if(!confirm('지금('+now+') 반납 완료로 처리할까요?\n이후 시간은 다른 사람이 예약할 수 있게 비워져요.')) return;
+    var segs=g3.filter(function(x){ return x.date<=td; }).map(function(x){ return { date:x.date, start:x.start, end:x.date===td?now:x.end }; })
+      .filter(function(x){ return x.end>x.start; });
+    if(!segs.length) return;
+    try{
+      await saveReservation({ carId:r3.carId, segs:segs, type:'use', dest:r3.dest, purpose:r3.purpose, riders:r3.riders||[], riderPhones:r3.riderPhones||[], memo:r3.memo, returnedAt:now }, g3);
+      popup=null; renderPopup(); popLayer(); toast('반납 완료! '+car(r3.carId).name+', 이제 다른 사람이 쓸 수 있어요.');
+    }catch(e){ console.error(e); toast(e.code==='permission-denied'?'반납 처리 권한이 없어요.':'반납 처리하지 못했어요.'); }
   }
   else if(a==='fclose'){ form=null; renderForm(); popLayer(); }
   else if(a==='slot'){ var k=t.getAttribute('data-k'); form.slot=k; form.start=SLOTS[k].s; form.end=SLOTS[k].e; renderForm(); }
