@@ -312,6 +312,13 @@ function conflictsFor(carId){
   }
   return null;
 }
+// 30분 단위 시간 선택 (06:00 ~ 22:00)
+var TIME_OPTS=(function(){ var o=[]; for(var m=6*60;m<=22*60;m+=30) o.push(pad(Math.floor(m/60))+':'+pad(m%60)); return o; })();
+function timeSelect(f,v){
+  var opts=TIME_OPTS.slice(); if(v&&opts.indexOf(v)<0){ opts.push(v); opts.sort(); }
+  return '<select data-f="'+f+'" style="padding:8px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;width:100%;background:#fff;color:#1a1a18;font-family:inherit;">'+
+    (v?'':'<option value="">선택</option>')+opts.map(function(t){ return '<option'+(t===v?' selected':'')+'>'+t+'</option>'; }).join('')+'</select>';
+}
 function myShort(){ return String(me.name||'').split(' ')[0]; }
 function grp(label, body, opt){ return '<div class="sup-form-group"><label>'+label+(opt?' <span class="opt">'+opt+'</span>':'')+'</label>'+body+'</div>'; }
 function renderForm(){
@@ -341,8 +348,8 @@ function renderForm(){
   }
   if(s3){
     h+='<div class="step"><div class="g2">'+
-       grp('출발 시간 *'+(multi?' (첫날)':''),'<input type="time" step="1800" value="'+form.start+'" data-f="start">')+
-       grp('반납 시간 *'+(multi?' (마지막 날)':''),'<input type="time" step="1800" value="'+form.end+'" data-f="end">')+'</div>'+
+       grp('출발 시간 *'+(multi?' (첫날)':''),timeSelect('start',form.start))+
+       grp('반납 시간 *'+(multi?' (마지막 날)':''),timeSelect('end',form.end))+'</div>'+
        (form.start&&form.end&&!valid?'<div class="err">반납 시간이 출발보다 늦어야 해요.</div>':'')+'</div>';
   }
   if(s4){
