@@ -799,7 +799,7 @@ async function init() {
     if(isAdmin()&&list.length){
       var carStaff=list.filter(function(s){ return s.active!==false&&(!s.apps||s.apps.indexOf('car')>=0); })
         .sort(function(a,b){ return (a.order||99)-(b.order||99); })
-        .map(function(s){ return s.title?s.name+' '+s.title:s.name; });
+                .map(function(s){ return (s.title?s.name+' '+s.title:s.name)+'|'+String(s.phone||'').replace(/[^0-9]/g,'')+'|'+(s.group||''); });
       syncSiteNames(carStaff,'staff').catch(function(e){ console.warn('직원 목록 동기화 실패',e); });
     }
   });
