@@ -61,21 +61,21 @@ input{font-family:inherit;font-size:15px;}
 .legend i.hatch{background:repeating-linear-gradient(135deg,#9A968E 0 3px,#D9D6CF 3px 6px);}
 .legend.m{flex-wrap:wrap;margin:8px 2px 0;}
 .legend.m span{width:100%;margin-top:3px;color:#9A968E;font-size:10px;}
-.tl{padding:4px 0 2px;}
-.tl-axis{display:grid;grid-template-columns:52px 1fr;padding:4px 10px 2px 0;}
+.tl{padding:2px 0 0;}
+.tl-axis{display:grid;grid-template-columns:44px 1fr;padding:6px 12px 4px 0;}
 .tl-axis>div{position:relative;height:14px;}
-.tl-axis>div span{position:absolute;transform:translateX(-50%);font-size:10px;color:#9A968E;}
-.tl-row{display:grid;grid-template-columns:52px 1fr;align-items:center;padding:3px 10px 3px 0;border-top:.5px solid #F0EEE9;cursor:pointer;}
-.tl-row.today{background:#F3F8FD;}
-.tl-day{font-size:12px;font-weight:500;padding-left:12px;display:flex;flex-direction:column;line-height:1.25;}
-.tl-day.red{color:#B54040;}
-.tl-day em{font-style:normal;font-size:9px;color:#185FA5;font-weight:600;}
-.tl-track{position:relative;height:34px;background:repeating-linear-gradient(90deg,transparent 0,transparent calc(21.428% - .5px),#F0EEE9 calc(21.428% - .5px),#F0EEE9 21.428%);border-radius:6px;}
-.bar{position:absolute;height:14px;border-radius:4px;color:#fff;font-size:9px;font-weight:600;padding:0 4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:14px;text-align:left;}
+.tl-axis>div span{position:absolute;transform:translateX(-50%);font-size:10px;color:#9A968E;white-space:nowrap;}
+.tl-row{display:grid;grid-template-columns:44px 1fr;align-items:stretch;padding:0 12px 0 0;border-top:.5px solid #F0EEE9;cursor:pointer;}
+.tl-row.today{background:#F3F8FD;box-shadow:inset 3px 0 0 #185FA5;}
+.tl-day{display:flex;align-items:center;justify-content:center;gap:3px;font-size:12px;color:#3D3B36;}
+.tl-day b{font-weight:500;color:#8A877F;font-size:11px;}
+.tl-day.red,.tl-day.red b{color:#B54040;}
+.tl-row.today .tl-day span{color:#185FA5;font-weight:700;}
+.tl-track{position:relative;height:46px;}
+.tl-line{position:absolute;top:0;bottom:0;width:0;border-left:1px dashed #E8E6E0;pointer-events:none;}
+.bar{position:absolute;height:16px;border-radius:5px;color:#fff;font-size:10px;font-weight:600;padding:0 5px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:16px;text-align:left;}
 .bar.maint{background:repeating-linear-gradient(135deg,#9A968E 0 3px,#B9B5AD 3px 6px);}
-.bar.mine{box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.85);font-weight:700;}
-.now{position:absolute;top:-3px;bottom:-3px;width:2px;background:#D85A30;border-radius:2px;pointer-events:none;}
-.empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#BDBAB2;pointer-events:none;}
+.bar.mine{box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.9);}
 
 /* 내 예약 */
 .mine-row{display:flex;align-items:center;gap:12px;width:100%;padding:11px 14px;border-top:.5px solid #F0EEE9;}
@@ -177,6 +177,18 @@ dd{line-height:1.45;word-break:keep-all;}
 .foot{position:fixed;left:0;right:0;bottom:0;z-index:41;background:#fff;border-top:.5px solid #E2E0DA;padding:10px 14px calc(12px + env(safe-area-inset-bottom));}
 .sum{font-size:12px;color:#55524B;text-align:center;margin-bottom:8px;min-height:16px;line-height:1.4;}
 
+/* 행선지 추천 */
+.dest{position:relative;}
+.dest input{padding-right:42px !important;}
+.dest-x{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#8A877F;}
+.sug{margin-top:6px;}
+.sug:empty{display:none;}
+.sug-h{font-size:11px;color:#9A968E;margin:2px 4px 4px;}
+.sug-i{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:11px 12px;background:#fff;border:.5px solid #E2E0DA;border-radius:10px;margin-bottom:5px;font-size:14px;}
+.sug-i span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sug-i small{font-size:10px;color:#9A968E;flex-shrink:0;}
+.sug-none{font-size:11px;color:#9A968E;margin:2px 4px;}
+
 /* 토스트 */
 #toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translate(-50%,20px);z-index:100;background:#1a1a18;color:#fff;font-size:13px;padding:11px 16px;border-radius:12px;max-width:calc(100% - 32px);width:max-content;line-height:1.45;opacity:0;pointer-events:none;transition:all .25s;}
 #toast.on{opacity:1;transform:translate(-50%,0);}
@@ -231,6 +243,6 @@ dd{line-height:1.45;word-break:keep-all;}
 <div id="form" class="full"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script type="module" src="./car.js?v=20261012a"></script>
+<script type="module" src="./car.js?v=20261012b"></script>
 </body>
 </html>
