@@ -1,5 +1,5 @@
 // admin.js — 관리자 기능 (엑셀/백업/동기화)
-import { fetchAllForBackup, updateContract, saveStaff, deleteStaff, importStaff, ensureAllowedUser, removeAllowedUser, listAllowedRoles, saveStaffOrder, auth } from './db.js';
+import { fetchAllForBackup, getBackupInfo, setBackupInfo, updateContract, saveStaff, deleteStaff, importStaff, ensureAllowedUser, removeAllowedUser, listAllowedRoles, saveStaffOrder, auth } from './db.js';
 import { DEFAULT_STAFF, COLOR_PALETTE, fullName, hasApp } from './staff.js';
 import { calcStatus, STATUS_META, fmtDate, dDiff, priceLabel } from './utils.js';
 
@@ -37,7 +37,27 @@ export function initAdmin(ctx){
       a.click();
       URL.revokeObjectURL(url);
       showToast('백업 파일이 다운로드됐어요!');
+      try{ await setBackupInfo(window.currentUserName||''); backupInfo=null; window.renderBackupNote(); }catch(e2){ console.warn(e2); }
     } catch(e){ showToast('백업 실패: '+(e.message||'')); }
+  };
+  // 관리자 화면 위쪽: 마지막 백업 날짜 표시 (7일 넘으면 노란 경고)
+  var backupInfo=null, backupLoading=false;
+  window.renderBackupNote=function(){
+    var wrap=document.getElementById('admin-contracts'); if(!wrap) return;
+    var el=document.getElementById('backup-note');
+    if(!el){ el=document.createElement('div'); el.id='backup-note'; wrap.insertBefore(el,wrap.firstChild); }
+    if(!backupInfo){
+      if(backupLoading) return; backupLoading=true;
+      getBackupInfo().then(function(i){ backupInfo=i||{none:true}; backupLoading=false; window.renderBackupNote(); })
+        .catch(function(){ backupLoading=false; });
+      return;
+    }
+    var days=backupInfo.at?Math.floor((Date.now()-new Date(backupInfo.at).getTime())/86400000):null;
+    var old=days===null||days>=7;
+    var when=days===null?'기록 없음':days===0?'오늘':days+'일 전';
+    el.className='backup-note'+(old?' warn':'');
+    el.innerHTML='<i class="ti ti-database'+(old?'-exclamation':'')+'"></i><span>마지막 백업: <b>'+when+'</b>'+(backupInfo.by?' ('+String(backupInfo.by).replace(/[<>&"]/g,'')+')':'')+
+      (old?' · 일주일에 한 번은 백업해 두세요.':'')+'</span>'+(old?'<button class="btn sm" onclick="downloadBackup()">지금 백업</button>':'');
   };
   window.syncContractsFromHistory=async function(){
     if(!confirm('히스토리 마지막 record 기준으로 전체 계약정보를 업데이트할까요?')) return;
