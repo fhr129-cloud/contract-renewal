@@ -340,11 +340,12 @@ function conflictsFor(carId){
   }
   return null;
 }
+var SEL_STYLE='padding:8px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;width:100%;background:#fff;color:#1a1a18;font-family:inherit;';
 // 30분 단위 시간 선택 (06:00 ~ 22:00)
 var TIME_OPTS=(function(){ var o=[]; for(var m=6*60;m<=22*60;m+=30) o.push(pad(Math.floor(m/60))+':'+pad(m%60)); return o; })();
 function timeSelect(f,v){
   var opts=TIME_OPTS.slice(); if(v&&opts.indexOf(v)<0){ opts.push(v); opts.sort(); }
-  return '<select data-f="'+f+'" style="padding:8px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;width:100%;background:#fff;color:#1a1a18;font-family:inherit;">'+
+  return '<select data-f="'+f+'" style="'+SEL_STYLE+'">'+
     (v?'':'<option value="">선택</option>')+opts.map(function(t){ return '<option'+(t===v?' selected':'')+'>'+t+'</option>'; }).join('')+'</select>';
 }
 // 소속 이름 (FS 앱 직원 관리와 같은 순서)
@@ -375,7 +376,9 @@ function renderForm(){
      grp('종료일','<input type="date" min="'+form.date+'" value="'+(multi?form.endDate:'')+'" data-f="endDate"'+(form.date?'':' disabled')+'>','(기간 사용 시)')+'</div>'+
      (form.date?'<div class="dayb">'+dayLabel(form.date)+(multi?' ~ '+dayLabel(form.endDate)+' · '+datesBetween(form.date,form.endDate).length+'일':'')+dayBookings()+'</div>':'');
   if(s2&&!multi){
-    h+='<div class="step">'+grp('시간 *','<div class="chips">'+Object.keys(SLOTS).map(function(k){ var t=SLOTS[k]; return '<div class="staff-chip'+(form.slot===k?' selected':'')+'" data-act="slot" data-k="'+k+'">'+t.label+' <small>'+t.s+'–'+t.e+'</small></div>'; }).join('')+'</div>')+'</div>';
+    h+='<div class="step"><div class="g2">'+grp('시간대 *','<select data-f="slotSel" style="'+SEL_STYLE+'">'+(form.slot?'':'<option value="">선택...</option>')+
+      Object.keys(SLOTS).map(function(k){ var t=SLOTS[k]; return '<option value="'+k+'"'+(form.slot===k?' selected':'')+'>'+t.label+' ('+t.s+'–'+t.e+')</option>'; }).join('')+
+      '<option value="custom"'+(form.slot==='custom'?' selected':'')+'>직접 선택</option></select>')+'<div></div></div></div>';
   }
   if(s3){
     h+='<div class="step"><div class="g2">'+
@@ -404,7 +407,8 @@ function renderForm(){
         }).join(''):'<div class="hint l">직원 목록을 불러오는 중이에요…</div>','(차를 쓰는 사람 · 최대 2명)')+'</div>';
   }
   if(s6u){
-    h+='<div class="step">'+grp('카테고리 *','<div class="chips">'+PURPOSES.map(function(p){ return '<div class="staff-chip'+(form.purpose===p?' selected':'')+'" data-act="purpose" data-p="'+p+'">'+p+'</div>'; }).join('')+'</div>')+'</div>';
+    h+='<div class="step"><div class="g2">'+grp('카테고리 *','<select data-f="purpose" style="'+SEL_STYLE+'">'+(form.purpose?'':'<option value="">선택...</option>')+
+      PURPOSES.map(function(p){ return '<option'+(form.purpose===p?' selected':'')+'>'+p+'</option>'; }).join('')+'</select>')+'<div></div></div></div>';
   }
   if(s7){
     h+='<div class="step">'+grp('상세 내용','<textarea placeholder="용무 간략히 (짐, 특이사항 등)" data-f="memo">'+esc(form.memo)+'</textarea>')+'</div>';
@@ -497,9 +501,7 @@ document.addEventListener('click', async function(ev){
     }catch(e){ console.error(e); toast(e.code==='permission-denied'?'반납 처리 권한이 없어요.':'반납 처리하지 못했어요.'); }
   }
   else if(a==='fclose'){ form=null; renderForm(); popLayer(); }
-  else if(a==='slot'){ var k=t.getAttribute('data-k'); form.slot=k; form.start=SLOTS[k].s; form.end=SLOTS[k].e; renderForm(); }
   else if(a==='car'){ if(t.classList.contains('no')) return; form.carId=t.getAttribute('data-car'); renderForm(); }
-  else if(a==='purpose'){ var p=t.getAttribute('data-p'); form.purpose=form.purpose===p?'':p; renderForm(); }
   else if(a==='rider'){ var n=t.getAttribute('data-n'), ix=form.riders.indexOf(n);
     if(ix>=0) form.riders.splice(ix,1);
     else if(form.riders.length>=2){ toast('예약자는 최대 2명까지 고를 수 있어요.'); return; }
@@ -516,7 +518,12 @@ document.addEventListener('change', function(ev){
   var f=ev.target.getAttribute&&ev.target.getAttribute('data-f'); if(!f||!form) return;
   if(f==='date'){ if(!ev.target.value) return; var len=form.date?datesBetween(form.date,form.endDate).length-1:0; form.date=ev.target.value; form.endDate=ymd(addDays(parseYmd(form.date),len)); }
   else if(f==='endDate'){ var v=ev.target.value; form.endDate=v&&v>form.date?v:form.date; }
-  else { form[f]=ev.target.value; if(f==='start'||f==='end') form.slot=form.slot||'custom'; }
+  else if(f==='slotSel'){ var k=ev.target.value; if(!k) return; form.slot=k; if(SLOTS[k]){ form.start=SLOTS[k].s; form.end=SLOTS[k].e; } }
+  else {
+    form[f]=ev.target.value;
+    // 시간을 직접 바꾸면 그에 맞는 시간대로 표시 (안 맞으면 "직접 선택")
+    if(f==='start'||f==='end'){ var m=Object.keys(SLOTS).filter(function(k){ return SLOTS[k].s===form.start&&SLOTS[k].e===form.end; })[0]; form.slot=m||'custom'; }
+  }
   if(f==='memo') return;
   renderForm();
 });
