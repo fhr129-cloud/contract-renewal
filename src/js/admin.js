@@ -7,8 +7,13 @@ export function initAdmin(ctx){
   // ctx: { getContracts, getHistory, showToast, mealsDisplay }
   var showToast=ctx.showToast;
 
-  window.exportExcel=function(){
-    if(!window.XLSX){ showToast('잠시 후 다시 시도해 주세요.'); return; }
+   window.exportExcel=async function(){
+    // 엑셀 기능(약 1MB)은 처음 누를 때만 불러옴
+    if(!window.XLSX){
+      showToast('엑셀 준비 중…');
+      try{ await window.loadScriptOnce('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'); }
+      catch(e){ showToast('엑셀 기능을 불러오지 못했어요. 인터넷 연결을 확인해주세요.'); return; }
+    }
     var contracts=ctx.getContracts();
     var rows=[['번호','사업장','소재지','팀','책임','담당 영양사','담당자','연락처','시작일','종료일','D-day','단가','평균식수','운영끼니','상태','비고']];
     contracts.slice().sort(function(a,b){ return new Date(a.endDate)-new Date(b.endDate); }).forEach(function(c){
