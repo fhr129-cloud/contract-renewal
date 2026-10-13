@@ -1886,10 +1886,11 @@ window.renderAdmin=function(){
       '<td>'+priceLabel(c)+'</td>'+
       '<td onclick="event.stopPropagation()"><button class="btn sm danger" onclick="handleDelete(\''+c.id+'\',\''+c.name.replace(/'/g,'')+'\')" ><i class="ti ti-trash"></i></button></td></tr>';
   }).join('')||'<tr><td colspan="6"><div class="empty-state">없음</div></td></tr>';
-  if(window.renderStaffAdmin) window.renderStaffAdmin();
+    if(window.renderStaffAdmin) window.renderStaffAdmin();
+  if(window.renderBackupNote) window.renderBackupNote();
 };
 
-// ── 계약 모달 ──────────────────────────
+// ── 계약 모달
 window.openAddModal=function(){
   if(!isAdmin()){ showToast('계약 정보는 관리자만 추가할 수 있어요.'); return; }
   editingId=null;
