@@ -1,5 +1,5 @@
 // admin.js — 관리자 기능 (엑셀/백업/동기화)
-import { fetchAllForBackup, updateContract, saveStaff, deleteStaff, importStaff, ensureAllowedUser, listAllowedRoles, saveStaffOrder, auth } from './db.js';
+import { fetchAllForBackup, updateContract, saveStaff, deleteStaff, importStaff, ensureAllowedUser, removeAllowedUser, listAllowedRoles, saveStaffOrder, auth } from './db.js';
 import { DEFAULT_STAFF, COLOR_PALETTE, fullName, hasApp } from './staff.js';
 import { calcStatus, STATUS_META, fmtDate, dDiff, priceLabel } from './utils.js';
 
@@ -99,8 +99,19 @@ export function initAdmin(ctx){
   var editingStaffId=null, roles={}, rolesLoaded=false, sortable=null, orderMode=false;
   function myPhoneNow(){ return auth.currentUser&&auth.currentUser.email?auth.currentUser.email.split('@')[0]:''; }
   function loadRoles(){
-    listAllowedRoles().then(function(m){ roles=m; rolesLoaded=true; window.renderStaffAdmin(); })
+    listAllowedRoles().then(function(m){ roles=m; rolesLoaded=true; cleanupRetired(); window.renderStaffAdmin(); })
       .catch(function(e){ console.warn('권한 목록을 못 읽었어요',e); });
+  }
+  function digits(p){ return String(p||'').replace(/[^0-9]/g,''); }
+  // 예전에 퇴사 처리했는데 로그인 허용이 남아 있는 직원 → 로그인 막기 (한 번만 자동 정리)
+  function cleanupRetired(){
+    var me=myPhoneNow();
+    var activeP=(window.STAFF_ALL||[]).filter(function(s){ return s.active!==false; }).map(function(s){ return digits(s.phone); });
+    var left=(window.STAFF_ALL||[]).filter(function(s){ var p=digits(s.phone); return s.active===false&&p&&p!==me&&roles[p]&&activeP.indexOf(p)<0; });
+    if(!left.length) return;
+    Promise.all(left.map(function(s){ var p=digits(s.phone); return removeAllowedUser(p).then(function(){ delete roles[p]; }); }))
+      .then(function(){ showToast('퇴사 처리된 '+left.length+'명의 로그인을 막았어요.'); window.renderStaffAdmin(); })
+      .catch(function(e){ console.warn('퇴사자 로그인 정리 실패',e); });
   }
   // 관리자 화면 위쪽 탭: 사업장 계약 / 직원 관리
   window.setAdminTab=function(t){
@@ -205,6 +216,7 @@ export function initAdmin(ctx){
     var myPhone=myPhoneNow();
     if(phone&&phone===myPhone&&apps.indexOf('fs')<0){ showToast('내 계정의 FS 권한은 끌 수 없어요.'); return; }
     if(phone&&phone===myPhone&&!wantAdmin){ showToast('내 계정의 관리자 권한은 끌 수 없어요.'); return; }
+    if(phone&&phone===myPhone&&!document.getElementById('sf-active').checked){ showToast('내 계정은 퇴사 처리할 수 없어요.'); return; }
     if(apps.indexOf('fs')<0&&!phone){ showToast('차량만 쓰는 직원은 휴대폰 번호가 꼭 필요해요 (로그인용).'); return; }
     if(wantAdmin&&!phone){ showToast('관리자 권한을 주려면 휴대폰 번호가 필요해요.'); return; }
     var old=editingStaffId?(window.STAFF_ALL||[]).filter(function(x){ return x.id===editingStaffId; })[0]:null;
@@ -222,6 +234,13 @@ export function initAdmin(ctx){
     try{
       await saveStaff(editingStaffId,data);
       var msg='저장되었습니다.';
+      // 번호를 바꿨으면 예전 번호의 로그인은 막음
+      var oldPhone=old?digits(old.phone):'';
+      if(oldPhone&&oldPhone!==phone&&oldPhone!==myPhone){ await removeAllowedUser(oldPhone); delete roles[oldPhone]; }
+      if(phone&&!data.active){
+        // 퇴사·비활성 → 로그인 막기 (다시 재직 중으로 켜면 로그인 가능)
+        if(roles[phone]||!rolesLoaded){ await removeAllowedUser(phone); delete roles[phone]; msg='저장 + 퇴사 처리: 이제 로그인할 수 없어요.'; }
+      }
       if(phone&&data.active){
         var role=wantAdmin?'admin':'staff';
         var r=await ensureAllowedUser(phone,name,apps,role);
@@ -234,8 +253,10 @@ export function initAdmin(ctx){
   };
   window.deleteStaffForm=async function(){
     if(!editingStaffId) return;
-    if(!confirm('이 직원을 명단에서 완전히 삭제할까요?\n(퇴사자는 삭제보다 "재직 중" 체크를 끄는 걸 권장해요 — 과거 일정의 이름·색이 유지됩니다)')) return;
-    try{ await deleteStaff(editingStaffId); showToast('삭제되었습니다.'); closeStaffModal(); }
+    var s=(window.STAFF_ALL||[]).filter(function(x){ return x.id===editingStaffId; })[0], p=s?digits(s.phone):'';
+    if(p&&p===myPhoneNow()){ showToast('내 계정은 삭제할 수 없어요.'); return; }
+    if(!confirm('이 직원을 명단에서 완전히 삭제할까요?\n로그인도 같이 막혀요.\n(퇴사자는 삭제보다 "재직 중" 체크를 끄는 걸 권장해요 — 과거 일정의 이름·색이 유지됩니다)')) return;
+    try{ if(p){ await removeAllowedUser(p); delete roles[p]; } await deleteStaff(editingStaffId); showToast('삭제되었습니다. 로그인도 막혔어요.'); closeStaffModal(); }
     catch(e){ console.error(e); showToast('삭제 실패: '+(e.message||'')); }
   };
 }
