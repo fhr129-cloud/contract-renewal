@@ -80,7 +80,18 @@ input,textarea,button{font-family:inherit;}
 .ev-c{font-size:8px;opacity:.65;flex-shrink:0;white-space:nowrap;}
 .cal-more{font-size:9px;color:#aaa;padding:1px 3px;}
 .cal-more:hover{color:#185FA5;}
-
+/* 휴대폰 달력: 칸 안에 차 3대 막대 + 아래에 고른 날 목록 */
+.cal-grid.m{min-width:0;}
+.cal-grid.m .cal-header{padding:6px 0;font-size:11px;}
+.cal-grid.m .cal-day{min-height:58px;padding:3px 3px 4px;display:flex;flex-direction:column;align-items:center;}
+.cal-grid.m .cal-day.past{opacity:.5;}
+.cal-grid.m .cal-day.sel{background:#E6F1FB !important;box-shadow:inset 0 0 0 2px #185FA5;border-radius:4px;}
+.mbars{display:flex;flex-direction:column;gap:2px;width:100%;padding:0 2px;margin-top:3px;}
+.mbars i{display:block;height:4px;border-radius:2px;}
+.mcnt{font-size:9px;color:#888;margin-top:2px;}
+.mday{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;padding:12px 14px;margin-top:12px;}
+.mday-h{font-size:14px;font-weight:600;margin-bottom:4px;}
+.mday-h span{font-size:11px;color:#E24B4A;font-weight:500;}
 /* 내 예약 */
 .dash-list-wrap{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;overflow:hidden;}
 .sup-row{display:flex;flex-direction:column;gap:2px;padding:11px 16px;border-bottom:.5px solid #f0f0ec;cursor:pointer;}
@@ -223,6 +234,6 @@ input,textarea,button{font-family:inherit;}
 <script>
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('../sw.js').catch(function(e){ console.warn('sw',e); }); }
 </script>
-<script type="module" src="./car.js?v=20261012k"></script>
+<script type="module" src="./car.js?v=20261013a"></script>
 </body>
 </html>
