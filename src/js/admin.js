@@ -247,12 +247,12 @@ export function initAdmin(ctx){
     if(window.pushModalState) window.pushModalState();
   };
   window.pickStaffGroup=function(v){ form.group=v; syncStaffAppUI(); };
-  window.toggleStaffPerm=function(k){ form[k]=!form[k]; syncStaffAppUI(); };
+    window.toggleStaffPerm=function(k){ var b=document.getElementById(k==='admin'?'sf-admin':'sf-app-'+k); form[k]=b?b.checked:!form[k]; syncStaffAppUI(); };
   window.nextStaffColor=function(){ form.color=pickColor(editingStaffId, form.color); syncStaffAppUI(); };
   window.syncStaffAppUI=function(){
-    var pills=document.getElementById('sf-group-pills');
-    if(pills) pills.innerHTML=DEPTS.map(function(d){ return '<button type="button" class="sf-pill'+(form.group===d.v?' on':'')+'" onclick="pickStaffGroup(\''+d.v+'\')">'+d.label+'</button>'; }).join('');
-    ['fs','car','admin'].forEach(function(k){ var b=document.getElementById(k==='admin'?'sf-admin':'sf-app-'+k); if(b) b.classList.toggle('on',!!form[k]); });
+        var sel=document.getElementById('sf-group');
+    if(sel){ if(!sel.options.length) sel.innerHTML=DEPTS.map(function(d){ return '<option value="'+d.v+'">'+d.label+'</option>'; }).join(''); sel.value=form.group; }
+    ['fs','car','admin'].forEach(function(k){ var b=document.getElementById(k==='admin'?'sf-admin':'sf-app-'+k); if(b) b.checked=!!form[k]; });
     var hint=document.getElementById('sf-perm-hint');
     if(hint) hint.textContent=form.admin?'관리자: 계약 수정·직원 관리·모든 일정과 차량 예약을 고칠 수 있어요.'
       :(!form.fs&&!form.car?'하나 이상 골라주세요.':!form.fs?'FS 사업장·일정 데이터는 볼 수 없어요.':'');
