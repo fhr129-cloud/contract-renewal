@@ -217,13 +217,23 @@ function monthView(){
     '<button class="btn sm" data-act="month" data-d="1"><i class="ti ti-chevron-right"></i></button>'+
     '<button class="btn sm" data-act="month" data-d="0">오늘</button>'+
     '<span class="cal-legend">'+CARS.map(function(c){ return '<span><i style="background:'+c.bg+';border-color:'+c.color+'"></i>'+c.short+'</span>'; }).join('')+'</span></div>';
-  h+='<div class="cal-scroll"><div class="cal-grid">';
+  var mob=isMobile();
+  h+='<div class="cal-scroll"><div class="cal-grid'+(mob?' m':'')+'">';
   ['일','월','화','수','목','금','토'].forEach(function(d,i){ h+='<div class="cal-header" style="'+(i===0?'color:#C0392B;font-weight:700;':i===6?'color:#1A5276;font-weight:700;':'')+'">'+d+'</div>'; });
   for(var i=0;i<first;i++) h+='<div class="cal-day empty"></div>';
   for(var d=1;d<=last;d++){
     var key=y+'-'+pad(mo+1)+'-'+pad(d), dow=new Date(y,mo,d).getDay(), hol=getHoliday(key);
     var its=itemsOn(key);
     var color=dow===0?'color:#C0392B;':dow===6?'color:#1A5276;':'';
+    if(mob){
+      // 휴대폰: 칸마다 차 3대의 막대 (색 = 그날 예약 있음, 회색 = 하루 종일 비어 있음)
+      h+='<div class="cal-day'+(key===t?' today':'')+(hol||dow===0?' holiday':'')+(dow===6?' sat':'')+(key===mobileSel?' sel':'')+(key<t?' past':'')+'" data-act="day" data-date="'+key+'">'+
+         '<div class="cal-num" style="'+color+'">'+d+'</div>'+
+         '<div class="mbars">'+CARS.map(function(c){ var n=its.filter(function(r){ return r.carId===c.id; }).length;
+           return '<i style="background:'+(n?c.color:'#E8E8E4')+'"></i>'; }).join('')+'</div>'+
+         (its.length?'<div class="mcnt">'+its.length+'건</div>':'')+'</div>';
+      continue;
+    }
     h+='<div class="cal-day'+(key===t?' today':'')+(hol||dow===0?' holiday':'')+(dow===6?' sat':'')+(key<t?' past':'')+'" data-act="day" data-date="'+key+'">'+
        '<div class="cal-num" style="'+color+'">'+d+'</div>'+(hol?'<div class="cal-hol">'+hol+'</div>':'')+
        its.slice(0,3).map(function(r){ var c=car(r.carId);
@@ -234,6 +244,10 @@ function monthView(){
   }
   var cells=first+last; for(var k=cells;k%7;k++) h+='<div class="cal-day empty"></div>';
   h+='</div></div>';
+  if(mob){
+    var hol2=getHoliday(mobileSel);
+    h+='<div class="mday"><div class="mday-h">'+dayLabel(mobileSel)+(hol2?' <span>'+hol2+'</span>':'')+'</div>'+dayListHtml(mobileSel)+'</div>';
+  }
   return h;
 }
 function myList(){
@@ -253,6 +267,19 @@ function shortRangeFull(r){
   return g.length>1 ? md(a.date)+' '+a.start+' ~ '+md(b.date)+' '+b.end : md(a.date)+' '+a.start+'–'+a.end;
 }
 
+// 그날 예약 목록 (PC 팝업 · 휴대폰 달력 아래 공용)
+function dayListHtml(date){
+  var its=itemsOn(date), past=date<ymd(new Date());
+  return (its.length?its.map(function(r){ var c=car(r.carId);
+      return '<div class="cal-sup-item" data-act="open" data-id="'+r.id+'"><div><div class="sup-biz">'+esc(r.dest||'-')+'</div><div class="sup-row-sub">'+r.start+'–'+r.end+' · '+esc(who(r))+(r.purpose?' · '+esc(r.purpose):'')+'</div></div>'+
+        '<span class="badge-cat" style="background:'+c.bg+';color:'+c.color+'">'+c.short+'</span></div>'; }).join(''):'<div class="empty-state">예약이 없어요 · 모든 차 사용 가능</div>')+
+    (past?'':'<button class="btn primary full" data-act="new" data-date="'+date+'"><i class="ti ti-plus"></i> 이 날 예약 등록</button>');
+}
+// 휴대폰 화면 여부 (폭 600px 이하)
+var mq=window.matchMedia('(max-width:600px)');
+function isMobile(){ return mq.matches; }
+try{ mq.addEventListener('change',function(){ if(me&&!form) render(); }); }catch(e){}
+var mobileSel=ymd(new Date());
 // ── 팝업: 예약 상세 / 그날 목록 (운영지원 달력 팝업과 같은 모양) ──────────────
 var popup=null; // {type:'detail', id} | {type:'day', date}
 function renderPopup(){
@@ -278,13 +305,8 @@ function renderPopup(){
         :(callP?'<div class="pbtns"><a class="btn" href="tel:'+esc(callP)+'"><i class="ti ti-phone"></i> '+esc(callN)+'에게 전화 ('+telFmt(callP)+')</a></div><div class="hint">다른 사람 예약은 보기만 가능해요.</div>':''))+
       '</div></div>';
   } else {
-    var its=itemsOn(popup.date), past=popup.date<ymd(new Date());
     h='<div class="cal-popup-inner"><div class="cal-popup-header"><h4>'+dayLabel(popup.date)+'</h4><button class="btn sm" data-act="pclose"><i class="ti ti-x"></i></button></div><div class="cal-popup-body">'+
-      (its.length?its.map(function(r){ var c=car(r.carId);
-        return '<div class="cal-sup-item" data-act="open" data-id="'+r.id+'"><div><div class="sup-biz">'+esc(r.dest||'-')+'</div><div class="sup-row-sub">'+r.start+'–'+r.end+' · '+esc(who(r))+(r.purpose?' · '+esc(r.purpose):'')+'</div></div>'+
-          '<span class="badge-cat" style="background:'+c.bg+';color:'+c.color+'">'+c.short+'</span></div>'; }).join(''):'<div class="empty-state">예약이 없어요</div>')+
-      (past?'':'<button class="btn primary full" data-act="new" data-date="'+popup.date+'"><i class="ti ti-plus"></i> 이 날 예약 등록</button>')+
-      '</div></div>';
+      dayListHtml(popup.date)+'</div></div>';
   }
   el.className='cal-popup open'; el.innerHTML=h;
 }
@@ -441,7 +463,10 @@ document.addEventListener('click', async function(ev){
   var a=t.getAttribute('data-act');
   ev.stopPropagation();
   if(a==='logout'){ if(confirm('로그아웃할까요?')){ await logoutUser(); location.reload(); } }
-  else if(a==='month'){ var dd=+t.getAttribute('data-d'); monthCursor=dd?new Date(monthCursor.getFullYear(),monthCursor.getMonth()+dd,1):firstOfMonth(new Date()); render(); }
+  else if(a==='month'){ var dd=+t.getAttribute('data-d'); monthCursor=dd?new Date(monthCursor.getFullYear(),monthCursor.getMonth()+dd,1):firstOfMonth(new Date());
+    // 휴대폰에서 고른 날짜: 이번 달이면 오늘, 다른 달이면 1일
+    mobileSel=ymd(new Date()).slice(0,7)===ymd(monthCursor).slice(0,7)?ymd(new Date()):ymd(monthCursor); render(); }
+  else if(a==='day'&&isMobile()){ mobileSel=t.getAttribute('data-date'); render(); }
   else if(a==='day'){ var dt=t.getAttribute('data-date'); if(dt>=ymd(new Date())) openForm({ date:dt }); else { pushLayer(); popup={type:'day',date:dt}; renderPopup(); } }
   else if(a==='daylist'){ pushLayer(); popup={type:'day',date:t.getAttribute('data-date')}; renderPopup(); }
   else if(a==='new'){ openForm({ date:t.getAttribute('data-date')||null, car:t.getAttribute('data-car')||null }); }
