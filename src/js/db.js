@@ -191,6 +191,9 @@ export function removeAllowedUser(phone){
   var p=String(phone||'').replace(/[^0-9]/g,''); if(!p) return Promise.resolve();
   return deleteDoc(doc(db,'allowedUsers',p));
 }
+// 마지막 백업 기록 (meta/backup)
+export async function getBackupInfo(){ var s=await getDoc(doc(db,'meta','backup')); return s.exists()?s.data():null; }
+export function setBackupInfo(by){ return setDoc(doc(db,'meta','backup'),{ at:new Date().toISOString(), by:by||'' }); }
 export async function fetchAllForBackup(){
   var result={};
   var cols=['contracts','history','supports','allowedUsers','staff','reservations'];
