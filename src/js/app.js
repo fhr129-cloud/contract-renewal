@@ -1032,7 +1032,7 @@ function applyState(state) {
     var titles={dashboard:'대시보드',support:'운영지원',businesses:'FS 사업장 현황',admin:'관리자 수정'};
     document.getElementById('page-title').textContent=titles[state.page]||'';
     var actions=document.getElementById('top-actions'); actions.innerHTML='';
-    if(state.page==='admin') actions.innerHTML='<button class="btn primary" onclick="openAddModal()"><i class="ti ti-plus"></i> 추가</button><button class="btn" onclick="syncContractsFromHistory()"><i class="ti ti-refresh"></i> 동기화</button><button class="btn" onclick="exportExcel()"><i class="ti ti-download"></i> 엑셀</button><button class="btn" onclick="downloadBackup()"><i class="ti ti-database-export"></i> 백업</button><button class="btn" onclick="recalcCoords()"><i class="ti ti-map-pin"></i> 좌표</button>';
+        if(state.page==='admin') actions.innerHTML='<button class="btn primary" onclick="openAddModal()"><i class="ti ti-plus"></i> 추가</button><button class="btn" onclick="toggleAdminMore(this)" aria-label="더보기"><i class="ti ti-dots"></i> 더보기</button>';
     ['dashboard','support','businesses','admin'].forEach(function(p){
       var el=document.getElementById('page-'+p); if(el) el.style.display=p===state.page?'block':'none';
     });
@@ -1063,6 +1063,20 @@ function applyState(state) {
 }
 window.goHome=function(){ var s={screen:'home'}; history.pushState(s,'',''); applyState(s); };
 window._goHome=window.goHome;
+// 관리자 화면 상단 '더보기' 메뉴 (가끔 쓰는 기능 모음)
+window.toggleAdminMore=function(btn){
+  var m=document.getElementById('admin-more-menu'); if(m){ m.remove(); return; }
+  m=document.createElement('div'); m.id='admin-more-menu'; m.className='more-menu';
+  m.innerHTML='<button onclick="exportExcel()"><i class="ti ti-download"></i> 엑셀 내보내기</button>'+
+    '<button onclick="downloadBackup()"><i class="ti ti-database-export"></i> 백업 받기</button>'+
+    '<div class="more-sep"></div>'+
+    '<button onclick="syncContractsFromHistory()"><i class="ti ti-refresh"></i> 이력으로 계약 동기화</button>'+
+    '<button onclick="recalcCoords()"><i class="ti ti-map-pin"></i> 좌표 다시 계산</button>';
+  document.body.appendChild(m);
+  var r=btn.getBoundingClientRect();
+  m.style.top=(r.bottom+6)+'px'; m.style.right=Math.max(8,window.innerWidth-r.right)+'px';
+  setTimeout(function(){ document.addEventListener('click',function(){ var x=document.getElementById('admin-more-menu'); if(x) x.remove(); },{once:true}); },0);
+};
 window.goPage=function(page){ var s={screen:'page',page:page}; history.pushState(s,'',''); applyState(s); };
 window._goPage=window.goPage;
 window.goDetail=function(id){ if(!id||id==='undefined') return; var s={screen:'detail',id:id}; history.pushState(s,'',''); applyState(s); };
