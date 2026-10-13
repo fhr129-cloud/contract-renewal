@@ -445,7 +445,7 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 .staff-grip{cursor:grab;color:#bbb;font-size:18px;display:flex;align-items:center;padding:4px 2px;touch-action:none;}
 .staff-grip:active{cursor:grabbing;}
 .staff-ghost{opacity:.4;background:#E6F1FB !important;}
-  .backup-note{display:flex;align-items:center;gap:8px;font-size:12px;color:#888;margin-bottom:10px;}
+.backup-note{display:flex;align-items:center;gap:8px;font-size:12px;color:#888;margin-bottom:10px;}
 .backup-note.warn{background:#FAEEDA;color:#854F0B;border:.5px solid #FAC775;border-radius:8px;padding:8px 12px;}
 .backup-note span{flex:1;}
 .staff-order-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:#888;margin-bottom:8px;}
@@ -484,6 +484,34 @@ body{overflow-x:clip;}
 .sf-sw{width:32px;height:32px;border-radius:8px;border:1.5px solid;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;cursor:pointer;}
 .sf-sw.on{outline:2px solid #1a1a18;outline-offset:2px;}
 .sf-note{font-size:11px;color:#888;margin-top:8px;line-height:1.5;}
+.sf-step{margin-bottom:16px;}
+.sf-sl{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;margin-bottom:8px;}
+.sf-sl small{font-size:11px;color:#888;font-weight:400;}
+.sf-sn{display:inline-flex;width:18px;height:18px;border-radius:50%;background:#185FA5;color:#fff;font-size:10px;font-weight:700;align-items:center;justify-content:center;}
+.sf-sn.sub{background:#2F6F8F;}
+.sf-pills{display:flex;flex-wrap:wrap;gap:6px;}
+.sf-pill{padding:7px 13px;border:.5px solid #ccc;border-radius:99px;font-size:13px;background:#fff;cursor:pointer;font-family:inherit;color:#1a1a18;}
+.sf-pill:hover{border-color:#185FA5;}
+.sf-pill.on{background:#185FA5;border-color:#185FA5;color:#fff;font-weight:600;}
+.sf-pill.adm.on{background:#A32D2D;border-color:#A32D2D;}
+.sf-perm-hint{font-size:11px;color:#888;margin-top:6px;line-height:1.5;}
+.sf-fsset{border:1px dashed #B5D4F4;background:#F7FAFD;border-radius:10px;padding:12px;}
+.sf-inline{display:flex !important;flex-direction:row !important;align-items:center;gap:8px;font-size:13px !important;color:#1a1a18 !important;cursor:pointer;white-space:nowrap;}
+.sf-inline input{width:auto !important;margin:0;}
+.sf-opt{font-size:11px;color:#999;font-weight:400;}
+.sf-color-line{display:flex;align-items:center;gap:8px;font-size:12px;color:#666;}
+.sf-color-line span:nth-child(2){flex:1;}
+.sf-sw-mini{width:22px;height:22px;border-radius:6px;border:1.5px solid;flex-shrink:0;}
+.sf-sum{flex:1;font-size:11px;color:#888;min-width:0;}
+.staff-grp{border:.5px solid #e8e8e4;border-radius:10px;margin-bottom:8px;overflow:hidden;background:#fff;}
+.staff-grp-h{display:flex;align-items:center;gap:8px;width:100%;padding:11px 12px;background:#fafaf8;border:none;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:#1a1a18;text-align:left;}
+.staff-grp-h .cnt{font-size:12px;color:#888;font-weight:400;}
+.staff-grp-h .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.staff-grp-h i{margin-left:auto;color:#999;transition:transform .2s;}
+.staff-grp.open .staff-grp-h i{transform:rotate(180deg);}
+.staff-grp-b{display:none;padding:8px;}
+.staff-grp.open .staff-grp-b{display:block;}
+.staff-pb{font-size:9px;font-weight:600;padding:1px 6px;border-radius:99px;margin-left:4px;white-space:nowrap;}
 
 </style>
 </head>
@@ -1081,38 +1109,43 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register('./sw.js').catch(function(e){ console.warn('sw',e); });
 }
 </script>
-<script type="module" src="./src/js/app.js?v=20261013d"></script>
+<script type="module" src="./src/js/app.js?v=20261013e"></script>
 
 <!-- 직원 추가/수정 -->
 <div id="staff-modal" class="sup-modal">
   <div class="sup-modal-inner">
     <div class="sup-modal-header"><h3 id="sf-title">직원 추가</h3><button class="btn sm" onclick="closeStaffModal()"><i class="ti ti-x"></i></button></div>
     <div class="sup-modal-body">
-      <div class="sup-form-group" style="margin-bottom:10px;"><label>사용 앱</label>
-        <div class="sf-apps">
-          <label><input type="checkbox" id="sf-app-fs" checked onchange="syncStaffAppUI()"> FS 사업장 관리</label>
-          <label><input type="checkbox" id="sf-app-car" checked> 차량 예약</label>
+      <div class="sf-step"><div class="sf-sl"><span class="sf-sn">1</span>소속 *</div><div class="sf-pills" id="sf-group-pills"></div></div>
+      <div class="sf-step"><div class="sf-sl"><span class="sf-sn">2</span>부여할 권한 * <small>여러 개 선택</small></div>
+        <div class="sf-pills">
+          <button type="button" class="sf-pill" id="sf-app-fs" onclick="toggleStaffPerm('fs')">FS 사업장 관리</button>
+          <button type="button" class="sf-pill" id="sf-app-car" onclick="toggleStaffPerm('car')">차량 예약</button>
+          <button type="button" class="sf-pill adm" id="sf-admin" onclick="toggleStaffPerm('admin')">관리자</button>
         </div>
+        <div class="sf-perm-hint" id="sf-perm-hint"></div>
       </div>
-      <div class="sf-grid">
-        <div class="sup-form-group"><label>이름 *</label><input type="text" id="sf-name" placeholder="홍길동"></div>
-        <div class="sup-form-group"><label>직급</label><input type="text" id="sf-jobtitle" placeholder="주임 / 대리 / 과장 …"></div>
-        <div class="sup-form-group" id="sf-dept-wrap" style="display:none;"><label>부서</label><input type="text" id="sf-dept" placeholder="예: 경영지원팀"></div>
-        <div class="sup-form-group sf-fs-only"><label>소속</label><select id="sf-group"><option value="운영">운영팀</option><option value="지원">지원팀</option></select></div>
-        <div class="sup-form-group sf-fs-only"><label>담당 팀</label><select id="sf-team"><option value="0">없음</option><option value="1">1팀</option><option value="2">2팀</option><option value="3">3팀</option></select></div>
-        <div class="sup-form-group"><label>휴대폰 (로그인용)</label><input type="tel" id="sf-phone" placeholder="01012345678"></div>
+      <div class="sf-step sf-fsset" id="sf-fsset">
+        <div class="sf-sl"><span class="sf-sn sub">+</span>FS 앱 설정 <small>FS 사업장 관리를 고르면 나타나요</small></div>
+        <div class="sf-grid">
+          <div class="sup-form-group"><label>담당 팀 <span class="sf-opt">(선택)</span></label><select id="sf-team" onchange="syncStaffAppUI()"><option value="0">없음</option><option value="1">1팀</option><option value="2">2팀</option><option value="3">3팀</option></select></div>
+          <div class="sup-form-group" id="sf-lead-wrap" style="justify-content:flex-end;"><label class="sf-inline"><input type="checkbox" id="sf-lead"> 팀장</label></div>
+        </div>
+        <div class="sf-color-line"><span class="sf-sw-mini" id="sf-color-preview"></span><span id="sf-color-text">색상은 다른 직원과 겹치지 않게 자동으로 정해져요.</span><button type="button" class="btn sm" onclick="nextStaffColor()">다른 색</button></div>
       </div>
-      <div class="sf-checks">
-        <label class="sf-fs-only"><input type="checkbox" id="sf-lead"> 팀장 (사업장 현황 팀 제목에 표시)</label>
-        <label><input type="checkbox" id="sf-active" checked> 재직 중</label>
-        <label class="sf-admin-chk"><input type="checkbox" id="sf-admin"> 관리자 권한 <span>(계약 수정·직원 관리·모든 일정과 차량 예약 수정 가능)</span></label>
+      <div class="sf-step"><div class="sf-sl"><span class="sf-sn">3</span>직원 정보</div>
+        <div class="sf-grid">
+          <div class="sup-form-group"><label>이름 *</label><input type="text" id="sf-name" placeholder="홍길동"></div>
+          <div class="sup-form-group"><label>직급</label><input type="text" id="sf-jobtitle" placeholder="주임 / 대리 / 과장 …"></div>
+        </div>
+        <div class="sup-form-group"><label>휴대폰 (로그인용) *</label><input type="tel" id="sf-phone" placeholder="01012345678"></div>
+        <label class="sf-inline"><input type="checkbox" id="sf-active" checked> 재직 중 <span class="sf-opt">(끄면 로그인도 막혀요)</span></label>
       </div>
-      <div class="sup-form-group sf-fs-only"><label>색상</label><div id="sf-palette" class="sf-palette"></div></div>
-      <div class="sf-note">휴대폰을 넣고 저장하면 로그인 허용 목록에 자동 등록돼요. 본인이 앱에서 번호 입력 → 비밀번호 만들기만 하면 됩니다.<br>FS 체크를 끄면 "차량만" 직원이 되어 사업장·일정 데이터는 볼 수 없고 차량 예약만 쓸 수 있어요.</div>
+      <div class="sf-note">저장하면 로그인 허용 목록에 자동 등록돼요. 본인이 앱에서 번호 입력 → 비밀번호 만들기만 하면 됩니다.</div>
     </div>
     <div class="sup-modal-footer">
       <button class="btn" id="sf-delete" onclick="deleteStaffForm()" style="color:#A32D2D;">삭제</button>
-      <span style="flex:1;"></span>
+      <span class="sf-sum" id="sf-sum"></span>
       <button class="btn" onclick="closeStaffModal()">취소</button>
       <button class="btn primary" onclick="saveStaffForm()">저장</button>
     </div>
