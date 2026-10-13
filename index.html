@@ -494,6 +494,9 @@ body{overflow-x:clip;}
 .sf-pill:hover{border-color:#185FA5;}
 .sf-pill.on{background:#185FA5;border-color:#185FA5;color:#fff;font-weight:600;}
 .sf-pill.adm.on{background:#A32D2D;border-color:#A32D2D;}
+  .sf-perms{display:flex;flex-direction:column;gap:8px;}
+.sf-perm{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;}
+.sf-perm input{width:auto;margin:0;}
 .sf-perm-hint{font-size:11px;color:#888;margin-top:6px;line-height:1.5;}
 .sf-fsset{border:1px dashed #B5D4F4;background:#F7FAFD;border-radius:10px;padding:12px;}
 .sf-inline{display:flex !important;flex-direction:row !important;align-items:center;gap:8px;font-size:13px !important;color:#1a1a18 !important;cursor:pointer;white-space:nowrap;}
@@ -1116,12 +1119,12 @@ if('serviceWorker' in navigator){
   <div class="sup-modal-inner">
     <div class="sup-modal-header"><h3 id="sf-title">직원 추가</h3><button class="btn sm" onclick="closeStaffModal()"><i class="ti ti-x"></i></button></div>
     <div class="sup-modal-body">
-      <div class="sf-step"><div class="sf-sl"><span class="sf-sn">1</span>소속 *</div><div class="sf-pills" id="sf-group-pills"></div></div>
+      <div class="sf-step"><div class="sf-sl"><span class="sf-sn">1</span>소속 *</div><div class="sup-form-group" style="margin:0;"><select id="sf-group" onchange="pickStaffGroup(this.value)"></select></div></div>
       <div class="sf-step"><div class="sf-sl"><span class="sf-sn">2</span>부여할 권한 * <small>여러 개 선택</small></div>
-        <div class="sf-pills">
-          <button type="button" class="sf-pill" id="sf-app-fs" onclick="toggleStaffPerm('fs')">FS 사업장 관리</button>
-          <button type="button" class="sf-pill" id="sf-app-car" onclick="toggleStaffPerm('car')">차량 예약</button>
-          <button type="button" class="sf-pill adm" id="sf-admin" onclick="toggleStaffPerm('admin')">관리자</button>
+                <div class="sf-perms">
+          <label class="sf-perm"><input type="checkbox" id="sf-app-fs" onchange="toggleStaffPerm('fs')"> FS 사업장 관리</label>
+          <label class="sf-perm"><input type="checkbox" id="sf-app-car" onchange="toggleStaffPerm('car')"> 차량 예약</label>
+          <label class="sf-perm"><input type="checkbox" id="sf-admin" onchange="toggleStaffPerm('admin')"> 관리자</label>
         </div>
         <div class="sf-perm-hint" id="sf-perm-hint"></div>
       </div>
