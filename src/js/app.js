@@ -1997,7 +1997,10 @@ window.saveContract=async function(){
   } catch(e){ console.error(e); showToast('저장 중 오류가 발생했습니다.'); }
 };
 window.handleDelete=async function(id,name){
-  if(!confirm(name+' 계약을 삭제할까요?')) return;
+    // 실수 방지: 사업장 이름을 그대로 쳐야 삭제됨 (계약과 이력이 모두 지워지고 되돌릴 수 없음)
+  var typed=prompt('정말 삭제하려면 사업장 이름을 그대로 입력하세요.\n삭제하면 계약과 이력이 모두 지워지고 되돌릴 수 없어요.\n(계약이 끝난 곳은 삭제 대신 "해지"로 처리하면 기록이 남아요)\n\n'+name);
+  if(typed===null) return;
+  if(typed.replace(/\s/g,'')!==name.replace(/\s/g,'')){ showToast('이름이 달라서 삭제하지 않았어요.'); return; }
   try{ await deleteContract(id); showToast(name+' 삭제되었습니다.'); window.renderAdmin(); } catch(e){ showToast('삭제 중 오류가 발생했습니다.'); }
 };
 
