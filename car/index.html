@@ -220,6 +220,9 @@ input,textarea,button{font-family:inherit;}
 <div id="form" class="sup-modal"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 
+<script>
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('../sw.js').catch(function(e){ console.warn('sw',e); }); }
+</script>
 <script type="module" src="./car.js?v=20261012k"></script>
 </body>
 </html>
