@@ -1063,6 +1063,16 @@ function applyState(state) {
 }
 window.goHome=function(){ var s={screen:'home'}; history.pushState(s,'',''); applyState(s); };
 window._goHome=window.goHome;
+// 무거운 외부 기능은 필요할 때 한 번만 불러옴 (엑셀, 지도)
+var _loaded={};
+window.loadScriptOnce=function(src){
+  if(!_loaded[src]) _loaded[src]=new Promise(function(res,rej){ var sc=document.createElement('script'); sc.src=src; sc.onload=res; sc.onerror=function(){ delete _loaded[src]; rej(new Error('load fail')); }; document.head.appendChild(sc); });
+  return _loaded[src];
+};
+function loadLeaflet(){
+  if(!document.getElementById('leaflet-css')){ var l=document.createElement('link'); l.id='leaflet-css'; l.rel='stylesheet'; l.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(l); }
+  return loadScriptOnce('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js');
+}
 // 관리자 화면 상단 '더보기' 메뉴 (가끔 쓰는 기능 모음)
 window.toggleAdminMore=function(btn){
   var m=document.getElementById('admin-more-menu'); if(m){ m.remove(); return; }
@@ -1871,8 +1881,14 @@ window.renderBizTab=function(){
     html+='</div>';
    el.innerHTML=html;
     
-     } else {
-    renderRegionTab(el, filtered);
+        } else {
+    // 지도 기능은 소재지별 탭을 처음 열 때 불러옴 (첫 화면을 빠르게)
+    if(window.L){ renderRegionTab(el, filtered); }
+    else {
+      el.innerHTML='<div style="color:#aaa;font-size:13px;padding:24px 0;text-align:center;">지도 불러오는 중…</div>';
+      loadLeaflet().then(function(){ if(el.isConnected) renderRegionTab(el, filtered); })
+        .catch(function(){ el.innerHTML='<div style="color:#A32D2D;font-size:13px;padding:24px 0;text-align:center;">지도를 불러오지 못했어요. 인터넷 연결을 확인해주세요.</div>'; });
+    }
   }
 };
 
