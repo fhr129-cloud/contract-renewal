@@ -54,6 +54,12 @@ function isAdmin(){ return !!(me&&me.role==='admin'); }
 // 수정·취소·반납: 등록한 사람, 예약자로 선택된 사람, 관리자
 function canEdit(r){ return isAdmin()||(r&&r.type!=='maint'&&(r.ownerPhone===me.phone||(r.riderPhones||[]).indexOf(me.phone)>=0)); }
 function telFmt(p){ p=String(p||''); return p.length===11?p.slice(0,3)+'-'+p.slice(3,7)+'-'+p.slice(7):p; }
+// 그 차의 가장 최근 반납 메모 (before 시각 이전, 14일 이내)
+function lastNote(carId, before, exceptId){
+  var lim=ymd(addDays(new Date(),-14));
+  return list.filter(function(r){ return r.carId===carId&&r.returnNote&&r.id!==exceptId&&r.date>=lim&&(r.date+r.end)<=before; })
+    .sort(function(a,b){ return (b.date+b.end).localeCompare(a.date+a.end); })[0]||null;
+}
 // 예약자: 등록할 때 고른 사람(최대 2명). 예전 예약은 등록한 사람.
 function users(r){ return r.riders&&r.riders.length?r.riders:(r.ownerName?[r.ownerName]:[]); }
 function short1(n){ return String(n||'').split(' ')[0]; }
@@ -152,7 +158,7 @@ async function saveReservation(r, olds){
       tx.set(refs[i], {
         carId:r.carId, date:s.date, start:s.start, end:s.end, type:r.type, groupId:gid,
         ownerPhone:owner.ownerPhone, ownerName:owner.ownerName,
-        dest:r.dest||'', purpose:r.purpose||'', riders:r.riders||[], riderPhones:r.riderPhones||[], memo:r.memo||'', returnedAt:r.returnedAt||'',
+        dest:r.dest||'', purpose:r.purpose||'', riders:r.riders||[], riderPhones:r.riderPhones||[], memo:r.memo||'', returnedAt:r.returnedAt||'', returnNote:r.returnNote||'',
         createdAt:(olds[i]&&olds[i].createdAt)||serverTimestamp(), updatedAt:serverTimestamp(), updatedBy:me.phone
       });
       ranges[dayKey(r.carId,s.date)].push({ id:refs[i].id, start:s.start, end:s.end, who:r.type==='maint'?'정비':(r.riders&&r.riders[0]?short1(r.riders[0]):owner.ownerName) });
@@ -205,7 +211,8 @@ function statusRow(){
     }
     return '<div class="car-stat '+cls+'" data-act="'+(cur?'open':'new')+'" data-id="'+(cur?cur.id:'')+'" data-car="'+c.id+'">'+
       '<div class="cs-name"><span class="cs-dot" style="background:'+c.color+'"></span>'+c.name+(c.plate?' <small>'+esc(c.plate)+'</small>':'')+'</div>'+
-      '<div class="cs-state">'+state+'</div><div class="cs-sub">'+sub+'</div></div>';
+      '<div class="cs-state">'+state+'</div><div class="cs-sub">'+sub+'</div>'+
+      (function(){ var pn=lastNote(c.id, t+n); return pn?'<div class="cs-sub" style="color:#854F0B;margin-top:3px"><i class="ti ti-note"></i> '+esc(pn.returnNote)+'</div>':''; })()+'</div>';
   }).join('')+'</div>'+(NOTICE?'<div class="notice">'+esc(NOTICE)+'</div>':'');
 }
 function evLabel(r){ return r.type==='maint'?'정비':who(r)+(r.dest?' '+r.dest:''); }
@@ -298,7 +305,9 @@ function renderPopup(){
       '<div><span>일시</span><div><b>'+esc(rangeText(g))+'</b>'+(r.returnedAt?' <span class="badge-cat" style="background:#EAF3DE;color:#3B6D11">'+esc(r.returnedAt)+' 반납 완료</span>':'')+'</div></div>'+
       '<div><span>예약자</span><b>'+esc(whoFull(r))+'</b></div>'+
       (r.riders&&r.riders.length&&r.ownerName?'<div><span>등록</span>'+esc(r.ownerName)+(r.ownerPhone===me.phone?' (나)':'')+'</div>':'')+
-      (r.memo?'<div><span>상세 내용</span>'+esc(r.memo)+'</div>':'')+'</div>'+
+      (r.memo?'<div><span>상세 내용</span>'+esc(r.memo)+'</div>':'')+
+      (r.returnNote?'<div><span>반납 메모</span><b style="color:#854F0B">'+esc(r.returnNote)+'</b></div>':'')+
+      (function(){ if(r.returnedAt) return ''; var pn=lastNote(r.carId, g[0].date+g[0].start, r.id); return pn?'<div><span>직전 메모</span><span style="color:#854F0B">'+esc(pn.returnNote)+' <small style="color:#999">('+esc(who(pn))+', '+(parseYmd(pn.date).getMonth()+1)+'/'+parseYmd(pn.date).getDate()+')</small></span></div>':''; })()+'</div>'+
       (edit?(others?'<div class="warn">다른 사람 예약이에요. 관리자 권한으로 수정·취소할 수 있어요.</div>':'')+
         (inUse?'<button class="btn primary full" style="margin:0 0 8px" data-act="return" data-id="'+r.id+'"><i class="ti ti-key"></i> 지금 반납 완료</button>':'')+
         '<div class="pbtns"><button class="btn" data-act="edit" data-id="'+r.id+'"><i class="ti ti-pencil"></i> 수정</button><button class="btn danger" data-act="cancel" data-id="'+r.id+'"><i class="ti ti-trash"></i> 예약 취소</button></div>'
@@ -449,7 +458,8 @@ function openSug(){
 async function submitForm(){
   if(!form||!form.carId||!formValid()) return;
   var r={ carId:form.carId, segs:formSegs(), type:'use',
-          dest:form.dest.trim(), purpose:form.purpose, riders:form.riders.slice(0,2), riderPhones:form.riders.slice(0,2).map(phoneOf).filter(Boolean), memo:form.memo.trim() };
+          dest:form.dest.trim(), purpose:form.purpose, riders:form.riders.slice(0,2), riderPhones:form.riders.slice(0,2).map(phoneOf).filter(Boolean), memo:form.memo.trim(),
+          returnedAt:(form.olds[0]&&form.olds[0].returnedAt)||'', returnNote:(form.olds[0]&&form.olds[0].returnNote)||'' };
   var olds=form.olds; form.busy=true; renderForm();
   try{
     await saveReservation(r, olds);
@@ -491,12 +501,13 @@ document.addEventListener('click', async function(ev){
   else if(a==='return'){
     var r3=list.filter(function(x){ return x.id===t.getAttribute('data-id'); })[0]; if(!r3) return;
     var g3=group(r3), td=ymd(new Date()), now=nowHM();
-    if(!confirm('지금('+now+') 반납 완료로 처리할까요?\n이후 시간은 다른 사람이 예약할 수 있게 비워져요.')) return;
+    var note=prompt('지금('+now+') 반납 완료로 처리할까요?\n이후 시간은 다른 사람이 예약할 수 있게 비워져요.\n\n다음 사람에게 남길 메모가 있으면 적어주세요. (없으면 비워두고 확인)\n예: 주유 필요, 뒷범퍼 긁힘, 주차 B구역','');
+    if(note===null) return;
     var segs=g3.filter(function(x){ return x.date<=td; }).map(function(x){ return { date:x.date, start:x.start, end:x.date===td?now:x.end }; })
       .filter(function(x){ return x.end>x.start; });
     if(!segs.length) return;
     try{
-      await saveReservation({ carId:r3.carId, segs:segs, type:'use', dest:r3.dest, purpose:r3.purpose, riders:r3.riders||[], riderPhones:r3.riderPhones||[], memo:r3.memo, returnedAt:now }, g3);
+      await saveReservation({ carId:r3.carId, segs:segs, type:'use', dest:r3.dest, purpose:r3.purpose, riders:r3.riders||[], riderPhones:r3.riderPhones||[], memo:r3.memo, returnedAt:now, returnNote:String(note).trim().slice(0,200) }, g3);
       popup=null; renderPopup(); popLayer(); toast('반납 완료! '+car(r3.carId).name+', 이제 다른 사람이 쓸 수 있어요.');
     }catch(e){ console.error(e); toast(e.code==='permission-denied'?'반납 처리 권한이 없어요.':'반납 처리하지 못했어요.'); }
   }
