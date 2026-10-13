@@ -157,15 +157,27 @@ export async function importStaff(list){
   list.forEach(function(s){ batch.set(doc(collection(db,'staff')), Object.assign({}, s, {createdAt: serverTimestamp(), updatedAt: serverTimestamp()})); });
   await batch.commit();
 }
-// 로그인 허용 목록에 번호 등록 (이미 있으면 이름·사용 앱만 갱신. 역할(관리자)은 건드리지 않음)
-// apps: ['fs','car'] 중 사용할 앱. 생략하면 기존 값 유지.
-export async function ensureAllowedUser(phone, name, apps){
+// 로그인 허용 목록에 번호 등록 (이미 있으면 이름·사용 앱·권한만 갱신)
+// apps: ['fs','car'] 중 사용할 앱, role: 'admin' | 'staff'. 생략하면 기존 값 유지.
+export async function ensureAllowedUser(phone, name, apps, role){
   var p=String(phone||'').replace(/[^0-9]/g,''); if(p.length<10) return false;
   var ref=doc(db,'allowedUsers',p), snap=await getDoc(ref);
-  var patch={name:name}; if(apps) patch.apps=apps;
+  var patch={name:name}; if(apps) patch.apps=apps; if(role) patch.role=role;
   if(snap.exists()){ await updateDoc(ref,patch); return 'updated'; }
   await setDoc(ref,Object.assign({role:'staff', registered:false, createdAt: serverTimestamp()},patch));
   return 'created';
+}
+// 관리자 화면용: 번호별 권한 { '010…': 'admin' | 'staff' }
+export async function listAllowedRoles(){
+  var snap=await getDocs(collection(db,'allowedUsers')), m={};
+  snap.docs.forEach(function(d){ m[d.id]=d.data().role||'staff'; });
+  return m;
+}
+// 직원 순서 저장 (드래그로 바꾼 순서대로 1,2,3…)
+export async function saveStaffOrder(ids){
+  var batch=writeBatch(db);
+  ids.forEach(function(id,i){ batch.update(doc(db,'staff',id),{order:i+1}); });
+  await batch.commit();
 }
 // 차량 예약 앱의 행선지 목록용: 사업장 이름만 meta/sites 에 복사 (관리자 접속 시 자동)
 export async function syncSiteNames(names, id){

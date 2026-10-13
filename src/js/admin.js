@@ -1,5 +1,5 @@
 // admin.js — 관리자 기능 (엑셀/백업/동기화)
-import { fetchAllForBackup, updateContract, saveStaff, deleteStaff, importStaff, ensureAllowedUser, auth } from './db.js';
+import { fetchAllForBackup, updateContract, saveStaff, deleteStaff, importStaff, ensureAllowedUser, listAllowedRoles, saveStaffOrder, auth } from './db.js';
 import { DEFAULT_STAFF, COLOR_PALETTE, fullName, hasApp } from './staff.js';
 import { calcStatus, STATUS_META, fmtDate, dDiff, priceLabel } from './utils.js';
 
@@ -96,35 +96,66 @@ export function initAdmin(ctx){
 
   // ── 직원 관리 ──────────────────────────
   function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
-  var editingStaffId=null;
+  var editingStaffId=null, roles={}, rolesLoaded=false, sortable=null;
+  function myPhoneNow(){ return auth.currentUser&&auth.currentUser.email?auth.currentUser.email.split('@')[0]:''; }
+  function loadRoles(){
+    listAllowedRoles().then(function(m){ roles=m; rolesLoaded=true; window.renderStaffAdmin(); })
+      .catch(function(e){ console.warn('권한 목록을 못 읽었어요',e); });
+  }
+  // 관리자 화면 위쪽 탭: 사업장 계약 / 직원 관리
+  window.setAdminTab=function(t){
+    window._adminTab=t;
+    document.querySelectorAll('#admin-tabs .tab-btn').forEach(function(b){ b.classList.toggle('active',b.getAttribute('data-t')===t); });
+    var c=document.getElementById('admin-contracts'), s=document.getElementById('admin-staff');
+    if(c) c.style.display=t==='staff'?'none':'';
+    if(s) s.style.display=t==='staff'?'':'none';
+    if(t==='staff'){ if(!rolesLoaded) loadRoles(); window.renderStaffAdmin(); }
+  };
   window.renderStaffAdmin=function(){
     var el=document.getElementById('staff-admin-list'); if(!el) return;
     var all=(window.STAFF_ALL||[]).filter(function(s){ return !!s.id; });
+    var cnt=document.getElementById('admin-staff-count'); if(cnt) cnt.textContent=all.filter(function(s){ return s.active!==false; }).length;
     if(!all.length){
       el.innerHTML='<div class="staff-empty">직원 명단이 아직 앱에 없어요. 코드에 있던 기존 명단('+DEFAULT_STAFF.filter(function(s){ return s.active!==false; }).length+'명)을 가져오면 시작됩니다.</div>'+
         '<button class="btn primary" onclick="importDefaultStaff()"><i class="ti ti-download"></i> 기존 직원 가져오기</button>';
       return;
     }
     var active=all.filter(function(s){ return s.active!==false; }), retired=all.filter(function(s){ return s.active===false; });
-    function row(s){
-      return '<div class="staff-row'+(s.active===false?' retired':'')+'" onclick="openStaffModal(\''+s.id+'\')">'+
+    function row(s,drag){
+      var isAdm=s.phone&&roles[String(s.phone).replace(/[^0-9]/g,'')]==='admin';
+      return '<div class="staff-row'+(s.active===false?' retired':'')+'" data-id="'+s.id+'">'+
+        (drag?'<span class="staff-grip" title="끌어서 순서 바꾸기"><i class="ti ti-grip-vertical"></i></span>':'')+
         '<span class="staff-swatch" style="background:'+esc(s.bg||'#f0f0ec')+';border-color:'+esc(s.border||'#ccc')+';color:'+esc(s.color||'#444')+'">'+esc(s.name.slice(0,1))+'</span>'+
-        '<span class="staff-name">'+esc(fullName(s))+'</span>'+
+        '<span class="staff-name">'+esc(fullName(s))+(isAdm?' <b class="staff-admin">관리자</b>':'')+'</span>'+
         '<span class="staff-meta">'+(hasApp(s,'fs')
             ? esc(s.group||'운영')+'팀'+(s.team?' · '+s.team+'팀'+(s.lead?' 팀장':''):'')+(hasApp(s,'car')?'':' · FS만')
             : '<b class="staff-caronly">차량만</b>'+(s.dept?' · '+esc(s.dept):''))+(s.phone?' · '+esc(s.phone):'')+'</span>'+
-        '<i class="ti ti-chevron-right"></i></div>';
+        '<button class="btn sm" onclick="openStaffModal(\''+s.id+'\')"><i class="ti ti-pencil"></i> 수정</button></div>';
     }
-    el.innerHTML='<div class="staff-list">'+active.map(row).join('')+'</div>'+
-      (retired.length?'<div class="staff-sub">퇴사 · 비활성 '+retired.length+'명</div><div class="staff-list">'+retired.map(row).join('')+'</div>':'')+
-      '<div class="staff-hint">순서 숫자가 작을수록 앞에 표시돼요. 퇴사 처리하면 선택 목록에서 빠지지만 과거 일정의 이름·색은 유지됩니다.</div>';
+    el.innerHTML='<div class="staff-list" id="staff-sort">'+active.map(function(s){ return row(s,true); }).join('')+'</div>'+
+      (retired.length?'<details class="staff-retired"><summary>퇴사 · 비활성 '+retired.length+'명</summary><div class="staff-list">'+retired.map(function(s){ return row(s,false); }).join('')+'</div></details>':'')+
+      '<div class="staff-hint">왼쪽 <i class="ti ti-grip-vertical"></i> 손잡이를 끌어서 순서를 바꾸면 바로 저장돼요. 이 순서대로 일정 담당자 목록에 나와요.</div>';
+    // 드래그로 순서 바꾸기 (휴대폰 터치도 됨)
+    if(sortable){ try{ sortable.destroy(); }catch(e){} sortable=null; }
+    var box=document.getElementById('staff-sort');
+    if(box&&window.Sortable){
+      sortable=window.Sortable.create(box,{ handle:'.staff-grip', animation:150, ghostClass:'staff-ghost',
+        onEnd:function(){
+          var ids=[].map.call(box.querySelectorAll('.staff-row'),function(r){ return r.getAttribute('data-id'); });
+          // 퇴사자는 재직자 뒤로
+          retired.forEach(function(s){ ids.push(s.id); });
+          saveStaffOrder(ids).then(function(){ showToast('순서를 저장했어요.'); })
+            .catch(function(e){ console.error(e); showToast('순서 저장 실패: '+(e.message||'')); });
+        }});
+    }
   };
   window.importDefaultStaff=async function(){
     if(!confirm('코드에 있던 직원 명단을 앱으로 가져올까요? (한 번만 하면 됩니다)')) return;
     try{ await importStaff(DEFAULT_STAFF); showToast('직원 명단을 가져왔어요.'); }
     catch(e){ console.error(e); showToast('가져오기 실패: '+(e.message||'')); }
   };
-  window.openStaffModal=function(id){
+  window.openStaffModal=async function(id){
+    if(!rolesLoaded){ try{ roles=await listAllowedRoles(); rolesLoaded=true; }catch(e){ showToast('권한 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.'); return; } }
     var s=id?(window.STAFF_ALL||[]).filter(function(x){ return x.id===id; })[0]:null;
     editingStaffId=s?s.id:null;
     var ov=document.getElementById('staff-modal'); if(!ov) return;
@@ -135,11 +166,12 @@ export function initAdmin(ctx){
     document.getElementById('sf-team').value=s?String(s.team||0):'0';
     document.getElementById('sf-lead').checked=!!(s&&s.lead);
     document.getElementById('sf-phone').value=s?(s.phone||''):'';
-    document.getElementById('sf-order').value=s?(s.order||''):((window.STAFF_ALL||[]).length+1);
     document.getElementById('sf-active').checked=s?s.active!==false:true;
     document.getElementById('sf-app-fs').checked=hasApp(s,'fs');
     document.getElementById('sf-app-car').checked=hasApp(s,'car');
     document.getElementById('sf-dept').value=s?(s.dept||''):'';
+    var p=s&&s.phone?String(s.phone).replace(/[^0-9]/g,''):'';
+    document.getElementById('sf-admin').checked=!!(p&&roles[p]==='admin');
     syncStaffAppUI();
     var pal=document.getElementById('sf-palette');
     var cur=s&&s.color?s.color:COLOR_PALETTE[(window.STAFF_ALL||[]).length%COLOR_PALETTE.length].color;
@@ -163,23 +195,36 @@ export function initAdmin(ctx){
     var sw=document.querySelector('#sf-palette .sf-sw.on')||document.querySelector('#sf-palette .sf-sw');
     var phone=document.getElementById('sf-phone').value.replace(/[^0-9]/g,'');
     var apps=[]; if(document.getElementById('sf-app-fs').checked) apps.push('fs'); if(document.getElementById('sf-app-car').checked) apps.push('car');
+    var wantAdmin=document.getElementById('sf-admin').checked;
     if(!apps.length){ showToast('사용 앱을 하나 이상 골라주세요.'); return; }
-    var myPhone=auth.currentUser&&auth.currentUser.email?auth.currentUser.email.split('@')[0]:'';
+    var myPhone=myPhoneNow();
     if(phone&&phone===myPhone&&apps.indexOf('fs')<0){ showToast('내 계정의 FS 권한은 끌 수 없어요.'); return; }
+    if(phone&&phone===myPhone&&!wantAdmin){ showToast('내 계정의 관리자 권한은 끌 수 없어요.'); return; }
     if(apps.indexOf('fs')<0&&!phone){ showToast('차량만 쓰는 직원은 휴대폰 번호가 꼭 필요해요 (로그인용).'); return; }
+    if(wantAdmin&&!phone){ showToast('관리자 권한을 주려면 휴대폰 번호가 필요해요.'); return; }
+    var old=editingStaffId?(window.STAFF_ALL||[]).filter(function(x){ return x.id===editingStaffId; })[0]:null;
+    var wasAdmin=!!(phone&&roles[phone]==='admin');
+    if(wantAdmin&&!wasAdmin&&!confirm(name+'님에게 관리자 권한을 줄까요?\n계약 수정·삭제, 직원 관리, 모든 일정·차량 예약 수정이 가능해져요.')) return;
+    var maxOrder=(window.STAFF_ALL||[]).reduce(function(m,x){ return Math.max(m,x.order||0); },0);
     var data={
       name:name, title:document.getElementById('sf-jobtitle').value.trim(),
       group:document.getElementById('sf-group').value, team:parseInt(document.getElementById('sf-team').value)||0,
       lead:document.getElementById('sf-lead').checked, phone:phone,
-      order:parseInt(document.getElementById('sf-order').value)||99, active:document.getElementById('sf-active').checked,
+      order:old?(old.order||maxOrder+1):maxOrder+1, active:document.getElementById('sf-active').checked,
       color:sw.getAttribute('data-color'), bg:sw.getAttribute('data-bg'), border:sw.getAttribute('data-border'),
       apps:apps, dept:document.getElementById('sf-dept').value.trim()
     };
     try{
       await saveStaff(editingStaffId,data);
       var msg='저장되었습니다.';
-      if(phone&&data.active){ var r=await ensureAllowedUser(phone,name,apps); if(r==='created') msg='저장 + 로그인 번호 등록 완료. 본인이 앱에서 비밀번호를 만들면 돼요.'; }
-      showToast(msg); closeStaffModal();
+      if(phone&&data.active){
+        var role=wantAdmin?'admin':'staff';
+        var r=await ensureAllowedUser(phone,name,apps,role);
+        roles[phone]=role;
+        if(r==='created') msg='저장 + 로그인 번호 등록 완료. 본인이 앱에서 비밀번호를 만들면 돼요.';
+        else if(wantAdmin!==wasAdmin) msg=wantAdmin?'저장 + 관리자 권한을 줬어요.':'저장 + 관리자 권한을 해제했어요.';
+      }
+      showToast(msg); closeStaffModal(); window.renderStaffAdmin();
     }catch(e){ console.error(e); showToast('저장 실패: '+(e.message||'')); }
   };
   window.deleteStaffForm=async function(){
