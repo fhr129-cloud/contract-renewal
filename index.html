@@ -1075,12 +1075,10 @@ function goHome(){ if(window._goHome) window._goHome(); else setTimeout(function
 </script>
  <script>
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.getRegistrations().then(function(regs){
-    regs.forEach(function(r){ r.unregister(); });
-  });
+  navigator.serviceWorker.register('./sw.js').catch(function(e){ console.warn('sw',e); });
 }
 </script>
-<script type="module" src="./src/js/app.js?v=20261013b"></script>
+<script type="module" src="./src/js/app.js?v=20261013c"></script>
 
 <!-- 직원 추가/수정 -->
 <div id="staff-modal" class="sup-modal">
