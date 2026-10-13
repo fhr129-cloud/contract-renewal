@@ -347,6 +347,9 @@ function timeSelect(f,v){
   return '<select data-f="'+f+'" style="padding:8px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;width:100%;background:#fff;color:#1a1a18;font-family:inherit;">'+
     (v?'':'<option value="">선택</option>')+opts.map(function(t){ return '<option'+(t===v?' selected':'')+'>'+t+'</option>'; }).join('')+'</select>';
 }
+// 소속 이름 (FS 앱 직원 관리와 같은 순서)
+var DEPT_ORDER=['운영','CS','지원','관리','영업'];
+var DEPT_NAME={ '운영':'운영팀 (FS)', 'CS':'운영팀 (CS)', '지원':'지원팀', '관리':'관리팀', '영업':'영업팀' };
 function myShort(){ return String(me.name||'').split(' ')[0]; }
 function grp(label, body, opt){ return '<div class="sup-form-group"><label>'+label+(opt?' <span class="opt">'+opt+'</span>':'')+'</label>'+body+'</div>'; }
 function renderForm(){
@@ -394,8 +397,9 @@ function renderForm(){
     var people=staffList.slice();
     form.riders.forEach(function(n){ if(!people.some(function(x){ return x.n===n; })) people.push({ n:n, g:'' }); });
     var groups=[]; people.forEach(function(x){ if(groups.indexOf(x.g)<0) groups.push(x.g); });
+    groups.sort(function(a,b){ var ia=DEPT_ORDER.indexOf(a), ib=DEPT_ORDER.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib); });
     h+='<div class="step">'+grp('예약자 *', people.length?groups.map(function(g){
-          return (g?'<div class="chip-grp">'+esc(g)+'팀</div>':'')+'<div class="chips">'+people.filter(function(x){ return x.g===g; }).map(function(x){
+          return (g?'<div class="chip-grp">'+esc(DEPT_NAME[g]||g+'팀')+'</div>':'')+'<div class="chips">'+people.filter(function(x){ return x.g===g; }).map(function(x){
             return '<div class="staff-chip'+(form.riders.indexOf(x.n)>=0?' selected':'')+'" data-act="rider" data-n="'+esc(x.n)+'">'+esc(x.n)+'</div>'; }).join('')+'</div>';
         }).join(''):'<div class="hint l">직원 목록을 불러오는 중이에요…</div>','(차를 쓰는 사람 · 최대 2명)')+'</div>';
   }
