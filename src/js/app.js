@@ -452,13 +452,13 @@ window.delHistRow=async function(idx){
     var restoreEnd=prevRecord&&prevRecord.endDate?prevRecord.endDate:(c&&c.endDate?c.endDate:'');
     var restorePrice=prevRecord&&prevRecord.price!=null?prevRecord.price:(c&&c.price!=null?c.price:0);
     var restoreType=prevRecord&&prevRecord.priceType?prevRecord.priceType:(c&&c.priceType?c.priceType:'per-meal');
-    await updateContract(editingId,{
+        await updateContract(editingId,stampEdit({
       terminated:false,
       startDate:restoreStart||'',
       endDate:restoreEnd||'',
       price:restorePrice||0,
             priceType:restoreType||'per-meal'
-    });
+    }));
   }
   }catch(e){ console.error(e); showToast('삭제 중 오류가 발생했습니다.'); return; }
   showToast('삭제되었습니다.');
@@ -573,7 +573,7 @@ window.saveHistForm=async function(idx){
       priceType:lastRecord.priceType||'per-meal'
     };
         if(lastRecord.addType==='terminate') updateData.terminated=true;
-    await updateContract(editingId,updateData);
+     await updateContract(editingId,stampEdit(updateData));
   }
   }catch(e){ console.error(e); showToast('저장 중 오류가 발생했습니다.'); return; }
   closeHistForm(); showToast(idx===-1?'이력이 추가되었습니다.':'이력이 수정되었습니다.');
@@ -1153,7 +1153,7 @@ function renderDetail(c) {
     '<div class="detail-row"><span class="detail-label">특이사항</span><span class="detail-val">'+(c.note||'-')+'</span></div>'+
     '</div>'+
     '<div class="detail-section"><div class="detail-section-title">계약 히스토리</div>'+histHtml+'</div>'+
-    '<div class="detail-section"><div class="detail-section-title">운영지원 이력</div>'+supHtml+'</div>';
+        '<div class="detail-section"><div class="detail-section-title">운영지원 이력</div>'+supHtml+'</div>'+fmtEdited(c);
 }
 
 // ── 달력 ──────────────────────────
@@ -2005,6 +2005,7 @@ window.saveContract=async function(){
     } catch(e){}
   }
   var data={name:name,addr:addr,contacts:contacts,contactName:contacts.length?contacts[0].name:'',contactPhone:contacts.length?contacts[0].phone:'',tel:contacts.length?contacts[0].tel:'',team:parseInt(document.getElementById('f-team').value)||1,resp:document.getElementById('f-resp').value,startDate:document.getElementById('f-startDate').value,endDate:endDate,price:parseInt(document.getElementById('f-price').value)||0,priceType:document.getElementById('f-priceType').value,meals:meals,avgMeals:parseInt(document.getElementById('f-avgMeals').value)||0,autoRenew:true,note:document.getElementById('f-note').value.trim(),lat:lat,lng:lng,nutritionists:getNutritionists()};
+  stampEdit(data);
   try{
     if(editingId){
       var oldContract=contracts.find(function(x){ return x.id===editingId; });
@@ -2027,6 +2028,13 @@ window.saveContract=async function(){
     if(c&&document.getElementById('detail-screen').style.display==='flex') renderDetail(c);
   } catch(e){ console.error(e); showToast('저장 중 오류가 발생했습니다.'); }
 };
+// 계약을 고친 사람·시각 기록 (사업장 상세 맨 아래에 표시)
+function stampEdit(o){ o.editedBy=window.currentUserName||''; o.editedAt=new Date().toISOString(); return o; }
+function fmtEdited(c){
+  if(!c.editedAt) return '';
+  var d=new Date(c.editedAt), p=function(n){ return String(n).padStart(2,'0'); };
+  return '<div style="font-size:11px;color:#999;text-align:right;margin:4px 2px 0;">마지막 수정: '+(c.editedBy||'-')+' · '+d.getFullYear()+'.'+p(d.getMonth()+1)+'.'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+'</div>';
+}
 window.handleDelete=async function(id,name){
     // 실수 방지: 사업장 이름을 그대로 쳐야 삭제됨 (계약과 이력이 모두 지워지고 되돌릴 수 없음)
   var typed=prompt('정말 삭제하려면 사업장 이름을 그대로 입력하세요.\n삭제하면 계약과 이력이 모두 지워지고 되돌릴 수 없어요.\n(계약이 끝난 곳은 삭제 대신 "해지"로 처리하면 기록이 남아요)\n\n'+name);
