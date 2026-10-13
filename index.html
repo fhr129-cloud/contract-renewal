@@ -445,6 +445,9 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 .staff-grip{cursor:grab;color:#bbb;font-size:18px;display:flex;align-items:center;padding:4px 2px;touch-action:none;}
 .staff-grip:active{cursor:grabbing;}
 .staff-ghost{opacity:.4;background:#E6F1FB !important;}
+  .backup-note{display:flex;align-items:center;gap:8px;font-size:12px;color:#888;margin-bottom:10px;}
+.backup-note.warn{background:#FAEEDA;color:#854F0B;border:.5px solid #FAC775;border-radius:8px;padding:8px 12px;}
+.backup-note span{flex:1;}
 .staff-order-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:#888;margin-bottom:8px;}
 .staff-order-bar.on{background:#E6F1FB;color:#185FA5;padding:8px 10px;border-radius:8px;}
 .staff-list.ordering .staff-row{border-color:#B5D4F4;}
@@ -1078,7 +1081,7 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register('./sw.js').catch(function(e){ console.warn('sw',e); });
 }
 </script>
-<script type="module" src="./src/js/app.js?v=20261013c"></script>
+<script type="module" src="./src/js/app.js?v=20261013d"></script>
 
 <!-- 직원 추가/수정 -->
 <div id="staff-modal" class="sup-modal">
