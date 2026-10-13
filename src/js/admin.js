@@ -96,7 +96,7 @@ export function initAdmin(ctx){
 
   // ── 직원 관리 ──────────────────────────
   function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
-  var editingStaffId=null, roles={}, rolesLoaded=false, sortable=null;
+  var editingStaffId=null, roles={}, rolesLoaded=false, sortable=null, orderMode=false;
   function myPhoneNow(){ return auth.currentUser&&auth.currentUser.email?auth.currentUser.email.split('@')[0]:''; }
   function loadRoles(){
     listAllowedRoles().then(function(m){ roles=m; rolesLoaded=true; window.renderStaffAdmin(); })
@@ -124,22 +124,26 @@ export function initAdmin(ctx){
     function row(s,drag){
       var isAdm=s.phone&&roles[String(s.phone).replace(/[^0-9]/g,'')]==='admin';
       return '<div class="staff-row'+(s.active===false?' retired':'')+'" data-id="'+s.id+'">'+
-        (drag?'<span class="staff-grip" title="끌어서 순서 바꾸기"><i class="ti ti-grip-vertical"></i></span>':'')+
+        (drag&&orderMode?'<span class="staff-grip" title="끌어서 순서 바꾸기"><i class="ti ti-grip-vertical"></i></span>':'')+
         '<span class="staff-swatch" style="background:'+esc(s.bg||'#f0f0ec')+';border-color:'+esc(s.border||'#ccc')+';color:'+esc(s.color||'#444')+'">'+esc(s.name.slice(0,1))+'</span>'+
         '<span class="staff-name">'+esc(fullName(s))+(isAdm?' <b class="staff-admin">관리자</b>':'')+'</span>'+
         '<span class="staff-meta">'+(hasApp(s,'fs')
             ? esc(s.group||'운영')+'팀'+(s.team?' · '+s.team+'팀'+(s.lead?' 팀장':''):'')+(hasApp(s,'car')?'':' · FS만')
             : '<b class="staff-caronly">차량만</b>'+(s.dept?' · '+esc(s.dept):''))+(s.phone?' · '+esc(s.phone):'')+'</span>'+
-        '<button class="btn sm" onclick="openStaffModal(\''+s.id+'\')"><i class="ti ti-pencil"></i> 수정</button></div>';
+        (orderMode&&drag?'':'<button class="btn sm" onclick="openStaffModal(\''+s.id+'\')"><i class="ti ti-pencil"></i> 수정</button>')+'</div>';
     }
-    el.innerHTML='<div class="staff-list" id="staff-sort">'+active.map(function(s){ return row(s,true); }).join('')+'</div>'+
-      (retired.length?'<details class="staff-retired"><summary>퇴사 · 비활성 '+retired.length+'명</summary><div class="staff-list">'+retired.map(function(s){ return row(s,false); }).join('')+'</div></details>':'')+
-      '<div class="staff-hint">왼쪽 <i class="ti ti-grip-vertical"></i> 손잡이를 끌어서 순서를 바꾸면 바로 저장돼요. 이 순서대로 일정 담당자 목록에 나와요.</div>';
+    el.innerHTML='<div class="staff-order-bar'+(orderMode?' on':'')+'">'+(orderMode
+        ?'<span><i class="ti ti-arrows-sort"></i> 손잡이(⋮⋮)를 끌어서 순서를 바꾸세요. 바꾸면 바로 저장돼요.</span><button class="btn sm primary" onclick="toggleStaffOrder()">완료</button>'
+        :'<span>재직 '+active.length+'명</span><button class="btn sm" onclick="toggleStaffOrder()"><i class="ti ti-arrows-sort"></i> 순서 바꾸기</button>')+'</div>'+
+      '<div class="staff-list'+(orderMode?' ordering':'')+'" id="staff-sort">'+active.map(function(s){ return row(s,true); }).join('')+'</div>'+
+      (orderMode?'':(retired.length?'<details class="staff-retired"><summary>퇴사 · 비활성 '+retired.length+'명</summary><div class="staff-list">'+retired.map(function(s){ return row(s,false); }).join('')+'</div></details>':'')+
+      '<div class="staff-hint">이 순서대로 일정 담당자 목록에 나와요. 퇴사 처리하면 선택 목록에서 빠지지만 과거 일정의 이름·색은 유지됩니다.</div>');
     // 드래그로 순서 바꾸기 (휴대폰 터치도 됨)
     if(sortable){ try{ sortable.destroy(); }catch(e){} sortable=null; }
     var box=document.getElementById('staff-sort');
-    if(box&&window.Sortable){
-      sortable=window.Sortable.create(box,{ handle:'.staff-grip', animation:150, ghostClass:'staff-ghost',
+    if(orderMode&&box&&window.Sortable){
+      // 휴대폰에선 손잡이를 0.2초 누르고 있어야 움직임 (스크롤하다 실수로 바뀌지 않게)
+      sortable=window.Sortable.create(box,{ handle:'.staff-grip', animation:150, ghostClass:'staff-ghost', delay:200, delayOnTouchOnly:true, touchStartThreshold:6,
         onEnd:function(){
           var ids=[].map.call(box.querySelectorAll('.staff-row'),function(r){ return r.getAttribute('data-id'); });
           // 퇴사자는 재직자 뒤로
@@ -149,6 +153,7 @@ export function initAdmin(ctx){
         }});
     }
   };
+  window.toggleStaffOrder=function(){ orderMode=!orderMode; window.renderStaffAdmin(); };
   window.importDefaultStaff=async function(){
     if(!confirm('코드에 있던 직원 명단을 앱으로 가져올까요? (한 번만 하면 됩니다)')) return;
     try{ await importStaff(DEFAULT_STAFF); showToast('직원 명단을 가져왔어요.'); }
