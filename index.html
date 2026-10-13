@@ -18,6 +18,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
 <script>
 window.kakaoReady = false;
@@ -438,15 +439,24 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 }
 
 /* ── 직원 관리 ── */
-.staff-card{padding:18px 16px 16px;margin-top:20px;}
+.staff-card{padding:18px 16px 16px;}
+.tab-cnt{font-size:11px;color:#aaa;font-weight:400;margin-left:2px;}
+.tab-btn.active .tab-cnt{color:#185FA5;}
+.staff-grip{cursor:grab;color:#bbb;font-size:18px;display:flex;align-items:center;padding:4px 2px;touch-action:none;}
+.staff-grip:active{cursor:grabbing;}
+.staff-ghost{opacity:.4;background:#E6F1FB !important;}
+.staff-admin{font-size:10px;font-weight:600;color:#A32D2D;background:#FCEBEB;padding:1px 6px;border-radius:99px;margin-left:4px;}
+.staff-retired{margin-top:12px;}
+.staff-retired summary{font-size:12px;color:#888;cursor:pointer;padding:4px 0 8px;}
+.sf-admin-chk span{font-size:11px;color:#999;}
 .staff-admin-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
 .staff-list{display:flex;flex-direction:column;gap:6px;}
-.staff-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border:.5px solid #e8e8e4;border-radius:10px;background:#fff;cursor:pointer;}
+.staff-row{display:flex;align-items:center;gap:10px;padding:7px 10px;border:.5px solid #e8e8e4;border-radius:10px;background:#fff;}
 .staff-row:hover{border-color:#185FA5;}
 .staff-row.retired{opacity:.55;}
 .staff-swatch{width:28px;height:28px;border-radius:8px;border:1px solid;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
 .staff-name{font-size:13px;font-weight:600;}
-.staff-meta{font-size:11px;color:#888;flex:1;}
+.staff-meta{font-size:11px;color:#888;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .staff-caronly{font-weight:600;color:#185FA5;background:#E6F1FB;padding:1px 6px;border-radius:99px;font-size:10px;}
 .sf-apps{display:flex;gap:8px;margin-top:4px;}
 .sf-apps label{flex:1;display:flex;align-items:center;gap:8px;padding:9px 11px;border:.5px solid #ccc;border-radius:8px;font-size:13px;cursor:pointer;}
@@ -654,6 +664,11 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
 
   <!-- 관리자 수정 -->
   <div id="page-admin" class="page-body" style="display:none;">
+    <div class="tab-bar" id="admin-tabs">
+      <button class="tab-btn active" data-t="contracts" onclick="setAdminTab('contracts')">사업장 계약</button>
+      <button class="tab-btn" data-t="staff" onclick="setAdminTab('staff')">직원 관리 <span id="admin-staff-count" class="tab-cnt"></span></button>
+    </div>
+    <div id="admin-contracts">
     <div class="toolbar">
       <input type="text" id="admin-search" placeholder="사업장명 검색..." oninput="window.renderAdmin()">
       <span id="admin-count" class="count-badge"></span>
@@ -666,12 +681,15 @@ tbody tr:hover td{background:#fafaf8;cursor:pointer;}
         </table>
       </div>
     </div>
+    </div>
+    <div id="admin-staff" style="display:none;">
     <div class="card staff-card">
       <div class="staff-admin-head">
         <div><div style="font-size:15px;font-weight:600;">직원 관리</div><div style="font-size:11px;color:#888;margin-top:2px;">여기서 추가·수정하면 일정 담당자 선택, 팀장 표시, 색상, 로그인 번호까지 한 번에 반영됩니다.</div></div>
         <button class="btn primary" onclick="openStaffModal('')"><i class="ti ti-user-plus"></i> 직원 추가</button>
       </div>
       <div id="staff-admin-list"></div>
+    </div>
     </div>
   </div>
 </div>
@@ -1052,7 +1070,7 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
-<script type="module" src="./src/js/app.js?v=20261012d"></script>
+<script type="module" src="./src/js/app.js?v=20261013a"></script>
 
 <!-- 직원 추가/수정 -->
 <div id="staff-modal" class="sup-modal">
@@ -1072,11 +1090,11 @@ if('serviceWorker' in navigator){
         <div class="sup-form-group sf-fs-only"><label>소속</label><select id="sf-group"><option value="운영">운영팀</option><option value="지원">지원팀</option></select></div>
         <div class="sup-form-group sf-fs-only"><label>담당 팀</label><select id="sf-team"><option value="0">없음</option><option value="1">1팀</option><option value="2">2팀</option><option value="3">3팀</option></select></div>
         <div class="sup-form-group"><label>휴대폰 (로그인용)</label><input type="tel" id="sf-phone" placeholder="01012345678"></div>
-        <div class="sup-form-group"><label>표시 순서</label><input type="number" id="sf-order" min="1"></div>
       </div>
       <div class="sf-checks">
         <label class="sf-fs-only"><input type="checkbox" id="sf-lead"> 팀장 (사업장 현황 팀 제목에 표시)</label>
         <label><input type="checkbox" id="sf-active" checked> 재직 중</label>
+        <label class="sf-admin-chk"><input type="checkbox" id="sf-admin"> 관리자 권한 <span>(계약 수정·직원 관리·모든 일정과 차량 예약 수정 가능)</span></label>
       </div>
       <div class="sup-form-group sf-fs-only"><label>색상</label><div id="sf-palette" class="sf-palette"></div></div>
       <div class="sf-note">휴대폰을 넣고 저장하면 로그인 허용 목록에 자동 등록돼요. 본인이 앱에서 번호 입력 → 비밀번호 만들기만 하면 됩니다.<br>FS 체크를 끄면 "차량만" 직원이 되어 사업장·일정 데이터는 볼 수 없고 차량 예약만 쓸 수 있어요.</div>
