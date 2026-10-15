@@ -6,8 +6,8 @@ import {
 
 // ── 설정: 차량번호·안내 문구는 여기만 고치면 됨 ──────────────────
 export var CARS = [
-  { id:'ray1',   name:'레이 1호', short:'레이1',   plate:'', color:'#185FA5', bg:'#E6F1FB' },
-  { id:'ray2',   name:'레이 2호', short:'레이2',   plate:'', color:'#854F0B', bg:'#FAEEDA' },
+  { id:'ray1',   name:'레이 5653', short:'레이5653', plate:'', color:'#185FA5', bg:'#E6F1FB' },
+  { id:'ray2',   name:'레이 2327', short:'레이2327', plate:'', color:'#854F0B', bg:'#FAEEDA' },
   { id:'starex', name:'스타렉스', short:'스타렉스', plate:'', color:'#3B6D11', bg:'#EAF3DE' }
 ];
 var NOTICE = '';                 // 예: '키: 본사 1층 경영지원팀 · 주차: 본사 주차장 B구역'
@@ -134,36 +134,40 @@ function rangeText(g){
   var a=g[0], b=g[g.length-1];
   return g.length>1 ? dayLabel(a.date)+' '+a.start+' ~ '+dayLabel(b.date)+' '+b.end : dayLabel(a.date)+' '+a.start+' – '+a.end;
 }
-async function saveReservation(r, olds){
-  olds=olds||[];
+// rs: 예약 하나 또는 여러 대(차마다 하나). 여러 대는 한 번에 저장되고, 한 대라도 겹치면 전부 저장 안 됨.
+async function saveReservation(rs, olds){
+  rs=Array.isArray(rs)?rs:[rs]; olds=olds||[];
   var oldIds=olds.map(function(o){ return o.id; });
   return runTransaction(db, async function(tx){
     var keys=[];
     function addKey(k){ if(keys.indexOf(k)<0) keys.push(k); }
-    r.segs.forEach(function(s){ addKey(dayKey(r.carId,s.date)); });
+    rs.forEach(function(r){ r.segs.forEach(function(s){ addKey(dayKey(r.carId,s.date)); }); });
     olds.forEach(function(o){ addKey(dayKey(o.carId,o.date)); });
     var ranges={};
     for(var i=0;i<keys.length;i++){
       var snap=await tx.get(doc(db,'carDays',keys[i]));
       ranges[keys[i]]=(snap.exists()?(snap.data().ranges||[]):[]).filter(function(x){ return oldIds.indexOf(x.id)<0; });
     }
-    r.segs.forEach(function(s){
+    rs.forEach(function(r){ r.segs.forEach(function(s){
       var hit=ranges[dayKey(r.carId,s.date)].filter(function(x){ return overlaps(x,s); })[0];
-      if(hit){ var e=new Error('CONFLICT'); e.date=s.date; e.hit=hit; throw e; }
-    });
-    var refs=r.segs.map(function(s,i){ return i<olds.length?doc(db,'reservations',olds[i].id):doc(collection(db,'reservations')); });
-    var gid=refs.length>1?refs[0].id:'';
+      if(hit){ var e=new Error('CONFLICT'); e.date=s.date; e.hit=hit; e.carId=r.carId; throw e; }
+    }); });
     var owner=olds[0]||{ ownerPhone:me.phone, ownerName:me.name };
-    r.segs.forEach(function(s,i){
-      tx.set(refs[i], {
-        carId:r.carId, date:s.date, start:s.start, end:s.end, type:r.type, groupId:gid,
-        ownerPhone:owner.ownerPhone, ownerName:owner.ownerName,
-        dest:r.dest||'', purpose:r.purpose||'', riders:r.riders||[], riderPhones:r.riderPhones||[], memo:r.memo||'', returnedAt:r.returnedAt||'', returnNote:r.returnNote||'',
-        createdAt:(olds[i]&&olds[i].createdAt)||serverTimestamp(), updatedAt:serverTimestamp(), updatedBy:me.phone
+    var reuse=rs.length===1?olds:[];
+    rs.forEach(function(r){
+      var refs=r.segs.map(function(s,i){ return i<reuse.length?doc(db,'reservations',reuse[i].id):doc(collection(db,'reservations')); });
+      var gid=refs.length>1?refs[0].id:'';
+      r.segs.forEach(function(s,i){
+        tx.set(refs[i], {
+          carId:r.carId, date:s.date, start:s.start, end:s.end, type:r.type, groupId:gid,
+          ownerPhone:owner.ownerPhone, ownerName:owner.ownerName,
+          dest:r.dest||'', purpose:r.purpose||'', riders:r.riders||[], riderPhones:r.riderPhones||[], memo:r.memo||'', returnedAt:r.returnedAt||'', returnNote:r.returnNote||'',
+          createdAt:(reuse[i]&&reuse[i].createdAt)||serverTimestamp(), updatedAt:serverTimestamp(), updatedBy:me.phone
+        });
+        ranges[dayKey(r.carId,s.date)].push({ id:refs[i].id, start:s.start, end:s.end, who:r.type==='maint'?'정비':(r.riders&&r.riders[0]?short1(r.riders[0]):owner.ownerName) });
       });
-      ranges[dayKey(r.carId,s.date)].push({ id:refs[i].id, start:s.start, end:s.end, who:r.type==='maint'?'정비':(r.riders&&r.riders[0]?short1(r.riders[0]):owner.ownerName) });
+      reuse.slice(r.segs.length).forEach(function(o){ tx.delete(doc(db,'reservations',o.id)); });
     });
-    olds.slice(r.segs.length).forEach(function(o){ tx.delete(doc(db,'reservations',o.id)); });
     keys.forEach(function(k){ var j=k.indexOf('_'); tx.set(doc(db,'carDays',k), { carId:k.slice(0,j), date:k.slice(j+1), ranges:ranges[k] }); });
   });
 }
@@ -303,7 +307,7 @@ function renderPopup(){
       '<div class="cal-popup-body"><div class="dl">'+
       '<div><span>업장</span><b>'+esc(r.dest||'-')+'</b></div>'+
       '<div><span>일시</span><div><b>'+esc(rangeText(g))+'</b>'+(r.returnedAt?' <span class="badge-cat" style="background:#EAF3DE;color:#3B6D11">'+esc(r.returnedAt)+' 반납 완료</span>':'')+'</div></div>'+
-      '<div><span>예약자</span><b>'+esc(whoFull(r))+'</b></div>'+
+      '<div><span>운전자</span><b>'+esc(whoFull(r))+'</b></div>'+
       (r.riders&&r.riders.length&&r.ownerName?'<div><span>등록</span>'+esc(r.ownerName)+(r.ownerPhone===me.phone?' (나)':'')+'</div>':'')+
       (r.memo?'<div><span>상세 내용</span>'+esc(r.memo)+'</div>':'')+
       (r.returnNote?'<div><span>반납 메모</span><b style="color:#854F0B">'+esc(r.returnNote)+'</b></div>':'')+
@@ -329,11 +333,12 @@ function openForm(opts){
     editIds:g?g.map(function(x){ return x.id; }):[], olds:g||[],
     date:date, endDate:b?b.date:date, slot:a?'custom':null,
     start:a?a.start:'', end:b?b.end:'',
-    carId:a?a.carId:(opts.car||null),
+    carIds:a?[a.carId]:(opts.car?[opts.car]:[]), drivers:{},
     dest:a?(a.dest||''):'', destPicked:!!(a&&a.dest), purpose:a?(a.purpose||''):'',
-    riders:a&&a.riders?a.riders.slice(0,2):[], memo:a?(a.memo||''):'',
+    memo:a?(a.memo||''):'',
     maint:a?a.type==='maint':false, busy:false, open:!!a, _n:0
   };
+  if(a&&a.riders&&a.riders[0]) form.drivers[a.carId]=a.riders[0];
   pushLayer(); popup=null; renderPopup(); renderForm();
 }
 function pushLayer(){ try{ if(history.state&&history.state.layer) history.replaceState({layer:1},''); else history.pushState({layer:1},''); }catch(e){} }
@@ -367,15 +372,17 @@ function renderForm(){
   if(!form){ el.className='sup-modal'; el.innerHTML=''; return; }
   var multi=!!form.date&&form.endDate>form.date, valid=formValid(), op=form.open;
   var cars=CARS.map(function(c){ return { c:c, cf:valid?conflictsFor(c.id):null }; });
-  if(form.carId&&cars.some(function(x){ return x.c.id===form.carId&&x.cf; })) form.carId=null;
+  // 시간을 바꿔서 겹치게 된 차는 선택에서 뺌
+  form.carIds=form.carIds.filter(function(id){ return !cars.some(function(x){ return x.c.id===id&&x.cf; }); });
+  var driversOk=form.carIds.length>0&&form.carIds.every(function(id){ return !!form.drivers[id]; });
 
   // 단계별로 하나씩 열림 (수정할 때는 전부 보임)
   var s2=!!form.date;                                    // 시간(오전/오후/종일)
   var s3=s2&&(op||multi||!!form.slot);                   // 출발·반납 시간
   var s4=s3&&valid;                                      // 차량
-  var s5=s4&&!!form.carId;                               // 업장
-  var s6=s5&&!!form.dest.trim();                         // 예약자 (최대 2명)
-  var s6u=s6&&form.riders.length>0;                      // 카테고리
+  var s5=s4&&driversOk;                                  // 업장 (차·운전자 다 고른 뒤)
+  var s6=s5&&!!form.dest.trim();
+  var s6u=s6;                                            // 카테고리
   var s7=s6u&&!!form.purpose;                            // 상세 내용
   var canSave=s7&&!form.busy;
 
@@ -396,24 +403,33 @@ function renderForm(){
        (form.start&&form.end&&!valid?'<div class="err">반납 시간이 출발보다 늦어야 해요.</div>':'')+'</div>';
   }
   if(s4){
-    h+='<div class="step">'+grp('차량 *','<div class="carpicks">'+cars.map(function(x){ var c=x.c, on=form.carId===c.id;
+    var multiOk=!form.editIds.length;
+    h+='<div class="step">'+grp('차량 *','<div class="carpicks">'+cars.map(function(x){ var c=x.c, on=form.carIds.indexOf(c.id)>=0;
       return '<div class="carpick'+(x.cf?' no':on?' on':'')+'" data-act="car" data-car="'+c.id+'" style="'+(on?'border-color:'+c.color+';background:'+c.bg+';':'')+'">'+
-        '<div class="cp-n"><span class="cs-dot" style="background:'+(x.cf?'#ccc':c.color)+'"></span>'+c.name+'</div>'+
+        '<div class="cp-n"><span class="cs-dot" style="background:'+(x.cf?'#ccc':c.color)+'"></span>'+c.name+(on?' <i class="ti ti-check" style="margin-left:auto;color:'+c.color+'"></i>':'')+'</div>'+
         '<div class="cp-s'+(x.cf?' bad':'')+'">'+(x.cf?esc(who(x.cf.r))+' '+x.cf.r.start+'–'+x.cf.r.end+(x.cf.date!==form.date?' ('+(parseYmd(x.cf.date).getMonth()+1)+'/'+parseYmd(x.cf.date).getDate()+')':''):'비어 있음')+'</div></div>'; }).join('')+'</div>'+
-      (cars.every(function(x){ return x.cf; })?'<div class="err">이 시간엔 빈 차가 없어요. 시간을 바꿔보세요.</div>':''))+'</div>';
+      (cars.every(function(x){ return x.cf; })?'<div class="err">이 시간엔 빈 차가 없어요. 시간을 바꿔보세요.</div>':''), multiOk?'(여러 대 선택 가능)':'');
+    // 고른 차마다 운전자 1명
+    if(form.carIds.length){
+      var people=staffList.slice();
+      Object.keys(form.drivers).forEach(function(k){ var n=form.drivers[k]; if(n&&!people.some(function(x){ return x.n===n; })) people.push({ n:n, g:'' }); });
+      var groups=[]; people.forEach(function(x){ if(groups.indexOf(x.g)<0) groups.push(x.g); });
+      groups.sort(function(a,b){ var ia=DEPT_ORDER.indexOf(a), ib=DEPT_ORDER.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib); });
+      h+=grp('운전자 *', form.carIds.map(function(id){
+          var c=car(id), mine=form.drivers[id]||'';
+          var taken=form.carIds.filter(function(o){ return o!==id; }).map(function(o){ return form.drivers[o]; });
+          return '<div style="display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:center;margin-bottom:6px;"><span style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;"><span class="cs-dot" style="background:'+c.color+'"></span>'+c.name+'</span>'+
+            '<select data-f="driver" data-car="'+id+'" style="'+SEL_STYLE+'">'+(mine?'':'<option value="">운전자 선택...</option>')+
+            groups.map(function(g){ var opts=people.filter(function(x){ return x.g===g&&(x.n===mine||taken.indexOf(x.n)<0); });
+              if(!opts.length) return '';
+              return '<optgroup label="'+esc(DEPT_NAME[g]||g||'기타')+'">'+opts.map(function(x){ return '<option'+(x.n===mine?' selected':'')+'>'+esc(x.n)+'</option>'; }).join('')+'</optgroup>'; }).join('')+
+            '</select></div>';
+        }).join('')+(people.length?'':'<div class="hint l">직원 목록을 불러오는 중이에요…</div>'),'(차 1대당 1명)');
+    }
+    h+='</div>';
   }
   if(s5){
     h+='<div class="step">'+grp('업장 선택 *','<div class="searchable-select"><input id="f-dest" type="text" autocomplete="off" placeholder="업장명 검색..." value="'+esc(form.dest)+'" data-f="dest"><div id="dest-sug" class="ss-dropdown"></div></div>')+'</div>';
-  }
-  if(s6){
-    var people=staffList.slice();
-    form.riders.forEach(function(n){ if(!people.some(function(x){ return x.n===n; })) people.push({ n:n, g:'' }); });
-    var groups=[]; people.forEach(function(x){ if(groups.indexOf(x.g)<0) groups.push(x.g); });
-    groups.sort(function(a,b){ var ia=DEPT_ORDER.indexOf(a), ib=DEPT_ORDER.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib); });
-    h+='<div class="step">'+grp('예약자 *', people.length?groups.map(function(g){
-          return (g?'<div class="chip-grp">'+esc(DEPT_NAME[g]||g+'팀')+'</div>':'')+'<div class="chips">'+people.filter(function(x){ return x.g===g; }).map(function(x){
-            return '<div class="staff-chip'+(form.riders.indexOf(x.n)>=0?' selected':'')+'" data-act="rider" data-n="'+esc(x.n)+'">'+esc(x.n)+'</div>'; }).join('')+'</div>';
-        }).join(''):'<div class="hint l">직원 목록을 불러오는 중이에요…</div>','(차를 쓰는 사람 · 최대 2명)')+'</div>';
   }
   if(s6u){
     h+='<div class="step"><div class="g2">'+grp('카테고리 *','<select data-f="purpose" style="'+SEL_STYLE+'">'+(form.purpose?'':'<option value="">선택...</option>')+
@@ -422,7 +438,7 @@ function renderForm(){
   if(s7){
     h+='<div class="step">'+grp('상세 내용','<textarea placeholder="용무 간략히 (짐, 특이사항 등)" data-f="memo">'+esc(form.memo)+'</textarea>')+'</div>';
   }
-  var hint=!s2?'시작일을 골라주세요.':!s3?'시간을 골라주세요.':!s4?'출발·반납 시간을 확인해주세요.':!s5?'차량을 골라주세요.':!s6?'업장을 골라주세요.':!s6u?'예약자를 골라주세요. (최대 2명)':!s7?'카테고리를 골라주세요.':esc(rangeText(formSegs()))+' · '+car(form.carId).name;
+  var hint=!s2?'시작일을 골라주세요.':!s3?'시간을 골라주세요.':!s4?'출발·반납 시간을 확인해주세요.':!s5?(form.carIds.length?'운전자를 골라주세요.':'차량을 골라주세요.'):!s6?'업장을 골라주세요.':!s7?'카테고리를 골라주세요.':esc(rangeText(formSegs()))+' · '+form.carIds.map(function(id){ return car(id).name; }).join(', ');
   h+='</div><div class="sup-modal-footer"><span class="foot-hint">'+hint+'</span><button class="btn" data-act="fclose">취소</button><button class="btn primary" data-act="save"'+(canSave?'':' disabled')+'>'+(form.busy?'저장 중…':form.editIds.length?'수정 저장':'등록')+'</button></div></div>';
   var prev=document.getElementById('form-body'), y=prev?prev.scrollTop:0, before=form._n||0;
   el.className='sup-modal open'; el.innerHTML=h;
@@ -456,18 +472,19 @@ function openSug(){
   sg.innerHTML=destSug(form.destPicked?'':form.dest); sg.classList.add('open'); sg.scrollTop=0;
 }
 async function submitForm(){
-  if(!form||!form.carId||!formValid()) return;
-  var r={ carId:form.carId, segs:formSegs(), type:'use',
-          dest:form.dest.trim(), purpose:form.purpose, riders:form.riders.slice(0,2), riderPhones:form.riders.slice(0,2).map(phoneOf).filter(Boolean), memo:form.memo.trim(),
-          returnedAt:(form.olds[0]&&form.olds[0].returnedAt)||'', returnNote:(form.olds[0]&&form.olds[0].returnNote)||'' };
+  if(!form||!form.carIds.length||!formValid()) return;
+  var segs=formSegs(), o0=form.olds[0];
+  var rs=form.carIds.map(function(id){ var d=form.drivers[id]||''; return { carId:id, segs:segs, type:'use',
+          dest:form.dest.trim(), purpose:form.purpose, riders:d?[d]:[], riderPhones:d&&phoneOf(d)?[phoneOf(d)]:[], memo:form.memo.trim(),
+          returnedAt:(o0&&o0.returnedAt)||'', returnNote:(o0&&o0.returnNote)||'' }; });
   var olds=form.olds; form.busy=true; renderForm();
   try{
-    await saveReservation(r, olds);
-    toast(olds.length?'예약을 수정했어요.':'예약했어요.');
-    var d0=parseYmd(r.segs[0].date); form=null; monthCursor=firstOfMonth(d0); render(); popLayer();
+    await saveReservation(rs, olds);
+    toast(olds.length?'예약을 수정했어요.':(rs.length>1?rs.length+'대 예약했어요.':'예약했어요.'));
+    var d0=parseYmd(segs[0].date); form=null; monthCursor=firstOfMonth(d0); render(); popLayer();
   }catch(e){
     console.error(e); form.busy=false;
-    if(e.message==='CONFLICT') toast('방금 '+(e.hit&&e.hit.who?e.hit.who+'님이 ':'다른 사람이 ')+'그 시간을 먼저 예약했어요. 다른 시간이나 차를 골라주세요.');
+    if(e.message==='CONFLICT') toast('방금 '+(e.carId?car(e.carId).name+'을(를) ':'')+(e.hit&&e.hit.who?e.hit.who+'님이 ':'다른 사람이 ')+'먼저 예약했어요. 아무것도 저장되지 않았어요. 다른 시간이나 차를 골라주세요.');
     else if(e.code==='permission-denied') toast('권한이 없어요. 관리자에게 문의해주세요.');
     else toast('저장하지 못했어요. 인터넷 연결을 확인해주세요.');
     renderForm();
@@ -512,7 +529,11 @@ document.addEventListener('click', async function(ev){
     }catch(e){ console.error(e); toast(e.code==='permission-denied'?'반납 처리 권한이 없어요.':'반납 처리하지 못했어요.'); }
   }
   else if(a==='fclose'){ form=null; renderForm(); popLayer(); }
-  else if(a==='car'){ if(t.classList.contains('no')) return; form.carId=t.getAttribute('data-car'); renderForm(); }
+  else if(a==='car'){ if(t.classList.contains('no')) return; var cid=t.getAttribute('data-car'), ix=form.carIds.indexOf(cid);
+    if(form.editIds.length){ var prevD=form.drivers[form.carIds[0]]; form.carIds=[cid]; if(prevD&&!form.drivers[cid]) form.drivers[cid]=prevD; }   // 수정할 땐 한 대만
+    else if(ix>=0){ form.carIds.splice(ix,1); delete form.drivers[cid]; }
+    else form.carIds.push(cid);
+    renderForm(); }
   else if(a==='rider'){ var n=t.getAttribute('data-n'), ix=form.riders.indexOf(n);
     if(ix>=0) form.riders.splice(ix,1);
     else if(form.riders.length>=2){ toast('예약자는 최대 2명까지 고를 수 있어요.'); return; }
@@ -529,6 +550,7 @@ document.addEventListener('change', function(ev){
   var f=ev.target.getAttribute&&ev.target.getAttribute('data-f'); if(!f||!form) return;
   if(f==='date'){ if(!ev.target.value) return; var len=form.date?datesBetween(form.date,form.endDate).length-1:0; form.date=ev.target.value; form.endDate=ymd(addDays(parseYmd(form.date),len)); }
   else if(f==='endDate'){ var v=ev.target.value; form.endDate=v&&v>form.date?v:form.date; }
+  else if(f==='driver'){ form.drivers[ev.target.getAttribute('data-car')]=ev.target.value; }
   else if(f==='slotSel'){ var k=ev.target.value; if(!k) return; form.slot=k; if(SLOTS[k]){ form.start=SLOTS[k].s; form.end=SLOTS[k].e; } }
   else {
     form[f]=ev.target.value;
