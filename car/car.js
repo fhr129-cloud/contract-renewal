@@ -284,7 +284,7 @@ function dayListHtml(date){
 }
 // 휴대폰 화면 여부 (폭 600px 이하)
 var mq=window.matchMedia('(max-width:600px)');
-function isMobile(){ return mq.matches; }
+function isMobile(){ return false; } // 휴대폰도 운영지원 달력과 같은 모양으로
 try{ mq.addEventListener('change',function(){ if(me&&!form) render(); }); }catch(e){}
 var mobileSel=ymd(new Date());
 // ── 팝업: 예약 상세 / 그날 목록 (운영지원 달력 팝업과 같은 모양) ──────────────
