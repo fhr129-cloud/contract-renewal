@@ -69,7 +69,9 @@ function isMine(r){ var m=short1(me.name); return r.ownerPhone===me.phone||(r.ri
 function phoneOf(n){ var x=staffList.filter(function(s){ return s.n===n; })[0]; return x&&x.p||''; }
 function toast(msg){ var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toast._t); toast._t=setTimeout(function(){ t.classList.remove('on'); },2600); }
 
-function itemsOn(date,carId){ return list.filter(function(r){ return r.date===date&&(!carId||r.carId===carId); }).sort(function(a,b){ return a.start.localeCompare(b.start); }); }
+// 같은 날 예약은 항상 차 순서(레이 5653 → 레이 2327 → 스타렉스), 같은 차 안에서는 시간 순
+function carIdx(id){ for(var i=0;i<CARS.length;i++) if(CARS[i].id===id) return i; return 99; }
+function itemsOn(date,carId){ return list.filter(function(r){ return r.date===date&&(!carId||r.carId===carId); }).sort(function(a,b){ return (carIdx(a.carId)-carIdx(b.carId))||a.start.localeCompare(b.start); }); }
 
 // ── Firestore ──────────────────────────
 function listen(){
