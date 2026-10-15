@@ -194,7 +194,7 @@ function render(){
   var app=document.getElementById('app');
   if(!me){ app.innerHTML=''; return; }
   var sc=app.querySelector('.cal-scroll'), prevX=sc?sc.scrollLeft:0;
-  app.innerHTML=topBar()+'<div class="page-body">'+statusRow()+monthView()+myList()+'</div>';
+  app.innerHTML=topBar()+'<div class="page-body">'+statusRow()+myList()+monthView()+'</div>';
   var sc2=app.querySelector('.cal-scroll');
   if(sc2){
     if(scrollToToday){
@@ -226,7 +226,7 @@ function statusRow(){
       cls='free'; state='사용 가능';
       sub=next?'다음 '+(next.date===t?'오늘':(parseYmd(next.date).getMonth()+1)+'/'+parseYmd(next.date).getDate())+' '+next.start:'예약 없음';
     }
-    return '<div class="car-stat '+cls+'" data-act="'+(cur?'open':'new')+'" data-id="'+(cur?cur.id:'')+'" data-car="'+c.id+'">'+
+    return '<div class="car-stat '+cls+'" data-act="carinfo" data-car="'+c.id+'">'+
       '<div class="cs-name"><span class="cs-dot" style="background:'+c.color+'"></span>'+c.name+(c.plate?' <small>'+esc(c.plate)+'</small>':'')+'</div>'+
       '<div class="cs-state">'+state+'</div><div class="cs-sub">'+sub+'</div>'+
       (function(){ var pn=lastNote(c.id, t+n); return pn?'<div class="cs-sub" style="color:#854F0B;margin-top:3px"><i class="ti ti-note"></i> '+esc(pn.returnNote)+'</div>':''; })()+'</div>';
@@ -278,12 +278,35 @@ function myList(){
   var t=ymd(new Date()), n=nowHM(), seenG={};
   var mine=list.filter(function(r){ return isMine(r)&&r.type!=='maint'&&(r.date>t||(r.date===t&&r.end>n)); })
     .sort(function(a,b){ return (a.date+a.start).localeCompare(b.date+b.start); })
-    .filter(function(r){ if(!r.groupId) return true; if(seenG[r.groupId]) return false; seenG[r.groupId]=1; return true; }).slice(0,5);
+    .filter(function(r){ if(!r.groupId) return true; if(seenG[r.groupId]) return false; seenG[r.groupId]=1; return true; });
   if(!mine.length) return '';
-  return '<div class="card-title">내 예약</div><div class="dash-list-wrap">'+mine.map(function(r){ var c=car(r.carId);
-    return '<div class="sup-row" data-act="open" data-id="'+r.id+'"><div class="sup-row-top"><span class="sup-biz">'+esc(r.dest||'-')+'</span>'+
-      '<span class="badge-cat" style="background:'+c.bg+';color:'+c.color+'">'+c.short+'</span></div>'+
-      '<div class="sup-row-sub">'+esc(shortRangeFull(r))+(r.purpose?' · '+esc(r.purpose):'')+' · '+esc(whoFull(r))+'</div></div>'; }).join('')+'</div>';
+  // 차량 카드 바로 아래, 한 줄씩 짧게 (최대 3건)
+  var more=mine.length-3;
+  return '<div class="card-title" style="margin-top:0;display:flex;justify-content:space-between">내 예약 <span style="font-weight:400;color:#888;font-size:12px">'+mine.length+'건</span></div>'+
+    '<div style="background:#fff;border:.5px solid #e8e8e4;border-radius:12px;overflow:hidden;margin-bottom:16px">'+mine.slice(0,3).map(function(r,i){ var c=car(r.carId);
+    return '<div data-act="open" data-id="'+r.id+'" style="display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;font-size:12px;'+(i?'border-top:.5px solid #f0f0ec;':'')+'">'+
+      '<span style="color:#555;white-space:nowrap">'+esc(shortRangeFull(r))+'</span>'+
+      '<b style="font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(r.dest||'-')+'</b>'+
+      '<span class="badge-cat" style="background:'+c.bg+';color:'+c.color+';white-space:nowrap">'+c.short+'</span></div>'; }).join('')+
+    (more>0?'<div style="padding:7px 12px;border-top:.5px solid #f0f0ec;font-size:11px;color:#888">그 외 '+more+'건 더 있어요</div>':'')+'</div>';
+}
+// 차 한 대의 하루 일정 + 빈 시간 (06:00~22:00, 오늘은 지금 이후만)
+function carDayHtml(carId, date){
+  var its=itemsOn(date,carId), t=ymd(new Date()), n=nowHM();
+  var from=date===t?(n>'06:00'?n:'06:00'):'06:00', rows=[], cur=from;
+  its.forEach(function(r){
+    if(r.start>cur&&toMin(r.start)-toMin(cur)>=30) rows.push({ free:true, s:cur, e:r.start });
+    rows.push({ r:r });
+    if(r.end>cur) cur=r.end;
+  });
+  if(cur<'22:00'&&toMin('22:00')-toMin(cur)>=30) rows.push({ free:true, s:cur, e:'22:00' });
+  if(!rows.length) return '<div style="font-size:12px;color:#999;padding:6px 0">예약 가능한 시간이 지났어요.</div>';
+  return rows.map(function(x){
+    if(x.free) return '<div style="display:flex;gap:10px;padding:8px 0;border-bottom:.5px solid #f0f0ec;font-size:12px;color:#3B6D11"><b style="min-width:92px">'+(!its.length?(from!=='06:00'?'지금 이후':'하루 종일'):x.s+'–'+x.e)+'</b>비어 있음</div>';
+    var r=x.r, done=!!r.returnedAt||(date<t)||(date===t&&r.end<=n);
+    return '<div data-act="open" data-id="'+r.id+'" style="display:flex;gap:10px;padding:8px 0;border-bottom:.5px solid #f0f0ec;font-size:12px;cursor:pointer"><b style="min-width:92px;font-size:13px">'+r.start+'–'+r.end+'</b>'+
+      '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(who(r))+' · '+esc(r.dest||'-')+'</span>'+(done?'<span style="color:#999">'+(r.returnedAt?'반납됨':'끝남')+'</span>':'')+'</div>';
+  }).join('');
 }
 function shortRangeFull(r){
   var g=group(r), a=g[0], b=g[g.length-1];
@@ -309,6 +332,8 @@ var popup=null; // {type:'detail', id} | {type:'day', date}
 function renderPopup(){
   var el=document.getElementById('popup');
   if(!popup){ el.className='cal-popup'; el.innerHTML=''; return; }
+  // 화면이 새로 그려져도 쓰던 반납 메모는 유지
+  var rn=document.getElementById('ret-note'); if(rn&&rn.getAttribute('data-for')===popup.id) popup.note=rn.value;
   var h='';
   if(popup.type==='detail'){
     var r=list.filter(function(x){ return x.id===popup.id; })[0];
@@ -326,9 +351,21 @@ function renderPopup(){
       (r.returnNote?'<div><span>반납 메모</span><b style="color:#854F0B">'+esc(r.returnNote)+'</b></div>':'')+
       (function(){ if(r.returnedAt) return ''; var pn=lastNote(r.carId, g[0].date+g[0].start, r.id); return pn?'<div><span>직전 메모</span><span style="color:#854F0B">'+esc(pn.returnNote)+' <small style="color:#999">('+esc(who(pn))+', '+(parseYmd(pn.date).getMonth()+1)+'/'+parseYmd(pn.date).getDate()+')</small></span></div>':''; })()+'</div>'+
       (edit?(others?'<div class="warn">다른 사람 예약이에요. 관리자 권한으로 수정·취소할 수 있어요.</div>':'')+
-        (inUse?'<button class="btn primary full" style="margin:0 0 8px" data-act="return" data-id="'+r.id+'"><i class="ti ti-key"></i> 지금 반납 완료</button>':'')+
+        (inUse?'<div style="background:#F7FAFD;border:.5px solid #DCE9F5;border-radius:10px;padding:10px;margin:0 0 10px">'+
+          '<div style="font-size:12px;font-weight:600;margin-bottom:6px">반납 메모 <span style="font-weight:400;color:#888;font-size:11px">(선택 · 다음 사람이 봐요)</span></div>'+
+          '<textarea id="ret-note" data-for="'+r.id+'" maxlength="200" placeholder="예: 주유 필요, 뒷범퍼 긁힘, 주차 B구역" style="width:100%;min-height:52px;padding:8px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;resize:vertical;margin-bottom:8px">'+esc(popup.note||'')+'</textarea>'+
+          '<button class="btn primary full" style="margin:0" data-act="return" data-id="'+r.id+'"><i class="ti ti-key"></i> 지금 반납 완료</button></div>':'')+
         '<div class="pbtns"><button class="btn" data-act="edit" data-id="'+r.id+'"><i class="ti ti-pencil"></i> 수정</button><button class="btn danger" data-act="cancel" data-id="'+r.id+'"><i class="ti ti-trash"></i> 예약 취소</button></div>'
         :(callP?'<div class="pbtns"><a class="btn" href="tel:'+esc(callP)+'"><i class="ti ti-phone"></i> '+esc(callN)+'에게 전화 ('+telFmt(callP)+')</a></div><div class="hint">다른 사람 예약은 보기만 가능해요.</div>':''))+
+      '</div></div>';
+  } else if(popup.type==='car'){
+    var cc=car(popup.carId), t0=ymd(new Date()), t1=ymd(addDays(new Date(),1)), nn=nowHM();
+    var busyNow=itemsOn(t0,cc.id).some(function(x){ return x.start<=nn&&nn<x.end&&!x.returnedAt; });
+    h='<div class="cal-popup-inner"><div class="cal-popup-header"><h4><span class="cs-dot" style="background:'+cc.color+'"></span>'+cc.name+' 일정 <span style="font-size:12px;font-weight:500;color:'+(busyNow?'#A32D2D':'#3B6D11')+'">'+(busyNow?'지금 사용 중':'지금 사용 가능')+'</span></h4><button class="btn sm" data-act="pclose"><i class="ti ti-x"></i></button></div>'+
+      '<div class="cal-popup-body">'+
+      '<div style="font-size:12px;font-weight:600;color:#555;margin-bottom:2px">오늘 '+dayLabel(t0)+'</div>'+carDayHtml(cc.id,t0)+
+      '<div style="font-size:12px;font-weight:600;color:#555;margin:12px 0 2px">내일 '+dayLabel(t1)+'</div>'+carDayHtml(cc.id,t1)+
+      '<button class="btn primary full" style="margin-top:14px" data-act="new" data-car="'+cc.id+'"><i class="ti ti-plus"></i> 이 차로 예약하기</button>'+
       '</div></div>';
   } else {
     h='<div class="cal-popup-inner"><div class="cal-popup-header"><h4>'+dayLabel(popup.date)+'</h4><button class="btn sm" data-act="pclose"><i class="ti ti-x"></i></button></div><div class="cal-popup-body">'+
@@ -349,9 +386,11 @@ function openForm(opts){
     carIds:a?[a.carId]:(opts.car?[opts.car]:[]), drivers:{},
     dest:a?(a.dest||''):'', destPicked:!!(a&&a.dest), purpose:a?(a.purpose||''):'',
     memo:a?(a.memo||''):'',
-    maint:a?a.type==='maint':false, busy:false, open:!!a, _n:0
+    maint:a?a.type==='maint':false, busy:false, open:!!a, _n:0,
+    multiDay:!!(a&&b&&b.date>a.date)
   };
   if(a&&a.riders&&a.riders[0]) form.drivers[a.carId]=a.riders[0];
+  if(!a&&opts.car){ var myN=myStaffName(); if(myN) form.drivers[opts.car]=myN; }
   pushLayer(); popup=null; renderPopup(); renderForm();
 }
 function pushLayer(){ try{ if(history.state&&history.state.layer) history.replaceState({layer:1},''); else history.pushState({layer:1},''); }catch(e){} }
@@ -378,6 +417,11 @@ function timeSelect(f,v){
 // 소속 이름 (FS 앱 직원 관리와 같은 순서)
 var DEPT_ORDER=['운영','CS','지원','관리','영업'];
 var DEPT_NAME={ '운영':'운영팀 (FS)', 'CS':'운영팀 (CS)', '지원':'지원팀', '관리':'관리팀', '영업':'영업팀' };
+function myStaffName(){
+  var x=staffList.filter(function(s){ return s.p&&s.p===me.phone; })[0]
+     ||staffList.filter(function(s){ return short1(s.n)===myShort(); })[0];
+  return x?x.n:'';
+}
 function myShort(){ return String(me.name||'').split(' ')[0]; }
 function grp(label, body, opt){ return '<div class="sup-form-group"><label>'+label+(opt?' <span class="opt">'+opt+'</span>':'')+'</label>'+body+'</div>'; }
 function renderForm(){
@@ -400,9 +444,11 @@ function renderForm(){
   var canSave=s7&&!form.busy;
 
   var h='<div class="sup-modal-inner"><div class="sup-modal-header"><h3>'+(form.editIds.length?'차량 예약 수정':'차량 예약 등록')+'</h3><button class="btn sm" data-act="fclose"><i class="ti ti-x"></i></button></div><div class="sup-modal-body" id="form-body">';
+  // 종료일은 "여러 날 사용"을 체크했을 때만
   h+='<div class="g2">'+
      grp('시작일 *','<input type="date" value="'+form.date+'" data-f="date">')+
-     grp('종료일','<input type="date" min="'+form.date+'" value="'+(multi?form.endDate:'')+'" data-f="endDate"'+(form.date?'':' disabled')+'>','(기간 사용 시)')+'</div>'+
+     (form.multiDay?grp('종료일 *','<input type="date" min="'+form.date+'" value="'+(multi?form.endDate:'')+'" data-f="endDate"'+(form.date?'':' disabled')+'>'):'<div></div>')+'</div>'+
+     '<label style="display:flex;align-items:center;gap:7px;font-size:13px;margin:-4px 0 10px;cursor:pointer;width:max-content"><input type="checkbox" data-f="multiDay" style="width:16px;height:16px;margin:0"'+(form.multiDay?' checked':'')+'> 여러 날 사용</label>'+
      (form.date?'<div class="dayb">'+dayLabel(form.date)+(multi?' ~ '+dayLabel(form.endDate)+' · '+datesBetween(form.date,form.endDate).length+'일':'')+'</div>':'');
   if(s2&&!multi){
     h+='<div class="step"><div class="g2">'+grp('시간대 *','<select data-f="slotSel" style="'+SEL_STYLE+'">'+(form.slot?'':'<option value="">선택...</option>')+
@@ -420,7 +466,7 @@ function renderForm(){
     h+='<div class="step">'+grp('차량 *','<div class="carpicks">'+cars.map(function(x){ var c=x.c, on=form.carIds.indexOf(c.id)>=0;
       return '<div class="carpick'+(x.cf?' no':on?' on':'')+'" data-act="car" data-car="'+c.id+'" style="'+(on?'border-color:'+c.color+';background:'+c.bg+';':'')+'">'+
         '<div class="cp-n"><span class="cs-dot" style="background:'+(x.cf?'#ccc':c.color)+'"></span>'+c.name+(on?' <i class="ti ti-check" style="margin-left:auto;color:'+c.color+'"></i>':'')+'</div>'+
-        '<div class="cp-s'+(x.cf?' bad':'')+'">'+(x.cf?esc(who(x.cf.r))+' '+x.cf.r.start+'–'+x.cf.r.end+(x.cf.date!==form.date?' ('+(parseYmd(x.cf.date).getMonth()+1)+'/'+parseYmd(x.cf.date).getDate()+')':''):'비어 있음')+'</div></div>'; }).join('')+'</div>'+
+        '<div class="cp-s'+(x.cf?' bad':'')+'" style="font-size:12px">'+(x.cf?esc(who(x.cf.r))+' '+x.cf.r.start+'–'+x.cf.r.end+(x.cf.date!==form.date?' ('+(parseYmd(x.cf.date).getMonth()+1)+'/'+parseYmd(x.cf.date).getDate()+')':''):'비어 있음')+'</div></div>'; }).join('')+'</div>'+
       (cars.every(function(x){ return x.cf; })?'<div class="err">이 시간엔 빈 차가 없어요. 시간을 바꿔보세요.</div>':''), multiOk?'(여러 대 선택 가능)':'');
     // 고른 차마다 운전자 1명
     if(form.carIds.length){
@@ -519,6 +565,7 @@ document.addEventListener('click', async function(ev){
   else if(a==='daylist'){ pushLayer(); popup={type:'day',date:t.getAttribute('data-date')}; renderPopup(); }
   else if(a==='new'){ openForm({ date:t.getAttribute('data-date')||null, car:t.getAttribute('data-car')||null }); }
   else if(a==='open'){ var id=t.getAttribute('data-id'); if(id){ pushLayer(); popup={type:'detail',id:id}; renderPopup(); } else openForm({ car:t.getAttribute('data-car') }); }
+  else if(a==='carinfo'){ pushLayer(); popup={type:'car',carId:t.getAttribute('data-car')}; renderPopup(); }
   else if(a==='pclose'){ popup=null; renderPopup(); popLayer(); }
   else if(a==='edit'){ var r=list.filter(function(x){ return x.id===t.getAttribute('data-id'); })[0]; if(r) openForm({ edit:r }); }
   else if(a==='cancel'){
@@ -531,8 +578,7 @@ document.addEventListener('click', async function(ev){
   else if(a==='return'){
     var r3=list.filter(function(x){ return x.id===t.getAttribute('data-id'); })[0]; if(!r3) return;
     var g3=group(r3), td=ymd(new Date()), now=nowHM();
-    var note=prompt('지금('+now+') 반납 완료로 처리할까요?\n이후 시간은 다른 사람이 예약할 수 있게 비워져요.\n\n다음 사람에게 남길 메모가 있으면 적어주세요. (없으면 비워두고 확인)\n예: 주유 필요, 뒷범퍼 긁힘, 주차 B구역','');
-    if(note===null) return;
+    var ne=document.getElementById('ret-note'), note=ne?ne.value:'';
     var segs=g3.filter(function(x){ return x.date<=td; }).map(function(x){ return { date:x.date, start:x.start, end:x.date===td?now:x.end }; })
       .filter(function(x){ return x.end>x.start; });
     if(!segs.length) return;
@@ -545,7 +591,10 @@ document.addEventListener('click', async function(ev){
   else if(a==='car'){ if(t.classList.contains('no')) return; var cid=t.getAttribute('data-car'), ix=form.carIds.indexOf(cid);
     if(form.editIds.length){ var prevD=form.drivers[form.carIds[0]]; form.carIds=[cid]; if(prevD&&!form.drivers[cid]) form.drivers[cid]=prevD; }   // 수정할 땐 한 대만
     else if(ix>=0){ form.carIds.splice(ix,1); delete form.drivers[cid]; }
-    else form.carIds.push(cid);
+    else { form.carIds.push(cid);
+      // 운전자는 처음에 나로 (다른 차에 이미 내가 운전자면 비워둠)
+      var myN=myStaffName(), used=form.carIds.some(function(o){ return o!==cid&&form.drivers[o]===myN; });
+      if(myN&&!used&&!form.drivers[cid]) form.drivers[cid]=myN; }
     renderForm(); }
   else if(a==='rider'){ var n=t.getAttribute('data-n'), ix=form.riders.indexOf(n);
     if(ix>=0) form.riders.splice(ix,1);
@@ -561,7 +610,8 @@ document.addEventListener('click', function(ev){
 });
 document.addEventListener('change', function(ev){
   var f=ev.target.getAttribute&&ev.target.getAttribute('data-f'); if(!f||!form) return;
-  if(f==='date'){ if(!ev.target.value) return; var len=form.date?datesBetween(form.date,form.endDate).length-1:0; form.date=ev.target.value; form.endDate=ymd(addDays(parseYmd(form.date),len)); }
+  if(f==='date'){ if(!ev.target.value) return; var len=form.date&&form.multiDay?datesBetween(form.date,form.endDate).length-1:0; form.date=ev.target.value; form.endDate=ymd(addDays(parseYmd(form.date),len)); }
+  else if(f==='multiDay'){ form.multiDay=ev.target.checked; if(!form.multiDay) form.endDate=form.date; }
   else if(f==='endDate'){ var v=ev.target.value; form.endDate=v&&v>form.date?v:form.date; }
   else if(f==='driver'){ form.drivers[ev.target.getAttribute('data-car')]=ev.target.value; }
   else if(f==='slotSel'){ var k=ev.target.value; if(!k) return; form.slot=k; if(SLOTS[k]){ form.start=SLOTS[k].s; form.end=SLOTS[k].e; } }
