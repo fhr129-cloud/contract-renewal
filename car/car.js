@@ -188,10 +188,21 @@ async function cancelReservation(g){
 }
 
 // ── 화면 (FS 운영지원 화면과 같은 모양) ──────────────────────────
+// 휴대폰에서 달력이 옆으로 넓을 때: 처음 열 때·달을 옮길 때는 오늘 칸이 보이게, 그 외엔 보던 위치 유지
+var scrollToToday=true;
 function render(){
   var app=document.getElementById('app');
   if(!me){ app.innerHTML=''; return; }
+  var sc=app.querySelector('.cal-scroll'), prevX=sc?sc.scrollLeft:0;
   app.innerHTML=topBar()+'<div class="page-body">'+statusRow()+monthView()+myList()+'</div>';
+  var sc2=app.querySelector('.cal-scroll');
+  if(sc2){
+    if(scrollToToday){
+      var td=sc2.querySelector('.cal-day.today');
+      sc2.scrollLeft=td?Math.max(0, td.offsetLeft-(sc2.clientWidth-td.offsetWidth)/2):0;
+      scrollToToday=false;
+    } else sc2.scrollLeft=prevX;
+  }
   renderPopup(); renderForm();
 }
 function topBar(){
@@ -392,7 +403,7 @@ function renderForm(){
   h+='<div class="g2">'+
      grp('시작일 *','<input type="date" value="'+form.date+'" data-f="date">')+
      grp('종료일','<input type="date" min="'+form.date+'" value="'+(multi?form.endDate:'')+'" data-f="endDate"'+(form.date?'':' disabled')+'>','(기간 사용 시)')+'</div>'+
-          (form.date?'<div class="dayb">'+dayLabel(form.date)+(multi?' ~ '+dayLabel(form.endDate)+' · '+datesBetween(form.date,form.endDate).length+'일':'')+'</div>':'');
+     (form.date?'<div class="dayb">'+dayLabel(form.date)+(multi?' ~ '+dayLabel(form.endDate)+' · '+datesBetween(form.date,form.endDate).length+'일':'')+'</div>':'');
   if(s2&&!multi){
     h+='<div class="step"><div class="g2">'+grp('시간대 *','<select data-f="slotSel" style="'+SEL_STYLE+'">'+(form.slot?'':'<option value="">선택...</option>')+
       Object.keys(SLOTS).map(function(k){ var t=SLOTS[k]; return '<option value="'+k+'"'+(form.slot===k?' selected':'')+'>'+t.label+' ('+t.s+'–'+t.e+')</option>'; }).join('')+
@@ -502,7 +513,7 @@ document.addEventListener('click', async function(ev){
   if(a==='logout'){ if(confirm('로그아웃할까요?')){ await logoutUser(); location.reload(); } }
   else if(a==='month'){ var dd=+t.getAttribute('data-d'); monthCursor=dd?new Date(monthCursor.getFullYear(),monthCursor.getMonth()+dd,1):firstOfMonth(new Date());
     // 휴대폰에서 고른 날짜: 이번 달이면 오늘, 다른 달이면 1일
-    mobileSel=ymd(new Date()).slice(0,7)===ymd(monthCursor).slice(0,7)?ymd(new Date()):ymd(monthCursor); render(); }
+    mobileSel=ymd(new Date()).slice(0,7)===ymd(monthCursor).slice(0,7)?ymd(new Date()):ymd(monthCursor); scrollToToday=true; render(); }
   else if(a==='day'&&isMobile()){ mobileSel=t.getAttribute('data-date'); render(); }
   else if(a==='day'){ var dt=t.getAttribute('data-date'); if(dt>=ymd(new Date())) openForm({ date:dt }); else { pushLayer(); popup={type:'day',date:dt}; renderPopup(); } }
   else if(a==='daylist'){ pushLayer(); popup={type:'day',date:t.getAttribute('data-date')}; renderPopup(); }
