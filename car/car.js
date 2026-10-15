@@ -392,7 +392,7 @@ function renderForm(){
   h+='<div class="g2">'+
      grp('시작일 *','<input type="date" value="'+form.date+'" data-f="date">')+
      grp('종료일','<input type="date" min="'+form.date+'" value="'+(multi?form.endDate:'')+'" data-f="endDate"'+(form.date?'':' disabled')+'>','(기간 사용 시)')+'</div>'+
-     (form.date?'<div class="dayb">'+dayLabel(form.date)+(multi?' ~ '+dayLabel(form.endDate)+' · '+datesBetween(form.date,form.endDate).length+'일':'')+dayBookings()+'</div>':'');
+          (form.date?'<div class="dayb">'+dayLabel(form.date)+(multi?' ~ '+dayLabel(form.endDate)+' · '+datesBetween(form.date,form.endDate).length+'일':'')+'</div>':'');
   if(s2&&!multi){
     h+='<div class="step"><div class="g2">'+grp('시간대 *','<select data-f="slotSel" style="'+SEL_STYLE+'">'+(form.slot?'':'<option value="">선택...</option>')+
       Object.keys(SLOTS).map(function(k){ var t=SLOTS[k]; return '<option value="'+k+'"'+(form.slot===k?' selected':'')+'>'+t.label+' ('+t.s+'–'+t.e+')</option>'; }).join('')+
