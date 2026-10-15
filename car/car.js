@@ -194,7 +194,7 @@ function render(){
   var app=document.getElementById('app');
   if(!me){ app.innerHTML=''; return; }
   var sc=app.querySelector('.cal-scroll'), prevX=sc?sc.scrollLeft:0;
-  app.innerHTML=topBar()+'<div class="page-body">'+statusRow()+myList()+monthView()+'</div>';
+  app.innerHTML=topBar()+'<div class="page-body">'+statusRow()+monthView()+myList()+'</div>';
   var sc2=app.querySelector('.cal-scroll');
   if(sc2){
     if(scrollToToday){
@@ -282,7 +282,7 @@ function myList(){
   if(!mine.length) return '';
   // 차량 카드 바로 아래, 한 줄씩 짧게 (최대 3건)
   var more=mine.length-3;
-  return '<div class="card-title" style="margin-top:0;display:flex;justify-content:space-between">내 예약 <span style="font-weight:400;color:#888;font-size:12px">'+mine.length+'건</span></div>'+
+  return '<div class="card-title" style="margin-top:18px;display:flex;justify-content:space-between">내 예약 <span style="font-weight:400;color:#888;font-size:12px">'+mine.length+'건</span></div>'+
     '<div style="background:#fff;border:.5px solid #e8e8e4;border-radius:12px;overflow:hidden;margin-bottom:16px">'+mine.slice(0,3).map(function(r,i){ var c=car(r.carId);
     return '<div data-act="open" data-id="'+r.id+'" style="display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;font-size:12px;'+(i?'border-top:.5px solid #f0f0ec;':'')+'">'+
       '<span style="color:#555;white-space:nowrap">'+esc(shortRangeFull(r))+'</span>'+
