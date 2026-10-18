@@ -1,10 +1,10 @@
-// region.js — 소재지별 탭: 상단 지도(지역 원 → 읍·면 → 사업장) + 하단 지역 카드
+// region.js — 소재지별 탭: 본사 기준 지도(사업장 점) + 지역·팀 드롭다운 + 가까운 순 목록
 import { COORDS } from './coords.js';
 
 var TEAM_COLOR={1:'#185FA5',2:'#3B6D11',3:'#854F0B'};
-var CITY_PALETTE=['#185FA5','#6B2FA0','#0B6B5A','#854F0B','#A32D6B','#3B6D11','#6B5B0B','#A32D2D','#2F6F8F','#7A5230','#4E6B3A','#8A3A6B'];
 var CENTERS={'평택시':[36.992,127.113],'화성시':[37.199,126.831],'아산시':[36.790,127.002],'천안시':[36.815,127.114],'용인시':[37.241,127.178],'안성시':[37.008,127.280],'오산시':[37.150,127.077],'수원시':[37.263,127.029],'안산시':[37.322,126.831],'시흥시':[37.380,126.803],'이천시':[37.272,127.435],'성남시':[37.420,127.127]};
 var TOWN2CITY={'포승읍':'평택시','청북읍':'평택시','진위면':'평택시','서탄면':'평택시','오성면':'평택시','고덕면':'평택시','팽성읍':'평택시','세교동':'평택시','모곡동':'평택시','둔포면':'아산시','음봉면':'아산시','정남면':'화성시','우정읍':'화성시','양감면':'화성시'};
+var HOME_KM=30;   // 첫 화면: 본사 중심 반경 (km)
 
 // 본사 — 주소는 여기 한 줄만 바꾸면 됨. 좌표는 앱 실행 시 카카오 지오코딩으로 갱신해 기억
 var HQ={id:'__hq',name:'본사',addr:'경기 평택시 청북읍 청북로 172',lat:37.017,lng:126.930};
@@ -16,13 +16,15 @@ function geocodeHQ(){
     new kakao.maps.services.Geocoder().addressSearch(HQ.addr,function(res,st){
       if(st===kakao.maps.services.Status.OK&&res[0]){ HQ.lat=parseFloat(res[0].y); HQ.lng=parseFloat(res[0].x);
         try{ localStorage.setItem('hqCoord',JSON.stringify({addr:HQ.addr,lat:HQ.lat,lng:HQ.lng})); }catch(e){}
-        if(map) drawMap(); }
+        if(map) drawAll(true); }
     });
   }catch(e){}
 }
-var map=null, layers={sites:null,near:null}, bubbleLayer=null;
-var selectedCity=null, selectedTown=null, selectedSiteId=null, nearKm=5;
-var cache={contracts:[],regions:null};
+
+var map=null, layers={dots:null,deco:null};
+// 화면 상태 (탭을 다시 열어도 유지)
+var st={ city:'', team:'', sel:null, near:false, nearKm:5, view:'home' };   // view: home(본사 30km) | all(전체)
+var cache={contracts:[], regions:[]};
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function coordOf(c){ if(c.lat&&c.lng) return {lat:c.lat,lng:c.lng}; return COORDS[c.name]||null; }
@@ -50,223 +52,189 @@ export function regionOf(c){
   }
   return {city:city||'기타 지역',town:town||'기타'};
 }
-function buildRegions(contracts){
-  var byCity={};
-  contracts.forEach(function(c){
-    var r=regionOf(c); c._region=r;
-    if(!byCity[r.city]) byCity[r.city]={name:r.city,items:[],towns:{}};
-    byCity[r.city].items.push(c);
-    if(!byCity[r.city].towns[r.town]) byCity[r.city].towns[r.town]=[];
-    byCity[r.city].towns[r.town].push(c);
+function hqKm(c){ var co=coordOf(c); return co?kmBetween({lat:HQ.lat,lng:HQ.lng},co):null; }
+function dotColor(c){ return c.terminated?'#aaa':(TEAM_COLOR[c.team]||'#4A90D9'); }
+function byId(id){ return cache.contracts.filter(function(x){ return x.id===id; })[0]; }
+// 지역·팀 드롭다운으로 거른 사업장
+function shown(){
+  return cache.contracts.filter(function(c){
+    if(st.city&&c._region.city!==st.city) return false;
+    if(st.team&&String(c.team)!==st.team) return false;
+    return true;
   });
-  var list=Object.keys(byCity).map(function(k){ return byCity[k]; }).sort(function(a,b){ return b.items.length-a.items.length||a.name.localeCompare(b.name,'ko'); });
-  list.forEach(function(r,i){ r.color=r.name==='기타 지역'?'#999':CITY_PALETTE[i%CITY_PALETTE.length]; r.major=r.items.length>=2; r._c=centroid(r.items); });
-  return list;
 }
-function regionByName(n){ return cache.regions.filter(function(r){ return r.name===n; })[0]; }
-function teamCount(items){
-  var c={}; items.forEach(function(x){ var t=x.team||'?'; c[t]=(c[t]||0)+1; });
-  return Object.keys(c).sort().map(function(k){ return k+'팀 '+c[k]; }).join(' · ');
+function nearList(center){
+  var co=center.id==='__hq'?{lat:HQ.lat,lng:HQ.lng}:coordOf(center); if(!co) return [];
+  return cache.contracts.filter(function(x){ return x.id!==center.id&&coordOf(x); })
+    .map(function(x){ return {c:x,d:kmBetween(co,coordOf(x))}; }).filter(function(x){ return x.d<=st.nearKm; })
+    .sort(function(a,b){ return a.d-b.d; });
 }
-function centroid(items){
-  var pts=items.map(coordOf).filter(Boolean); if(!pts.length) return null;
-  return {lat:pts.reduce(function(s,p){return s+p.lat;},0)/pts.length,lng:pts.reduce(function(s,p){return s+p.lng;},0)/pts.length};
-}
-function townKeys(r){ return Object.keys(r.towns).sort(function(a,b){ return r.towns[b].length-r.towns[a].length; }); }
 
 // ── 렌더 ──
 export function renderRegionTab(el,contracts){
-  cache.contracts=contracts; cache.regions=buildRegions(contracts);
-  if(selectedCity&&selectedCity!=='__rest'&&!regionByName(selectedCity)) { selectedCity=null; selectedTown=null; }
-  el.innerHTML='<div class="rg-map-wrap"><div id="rg-map"></div><div class="rg-map-ov" id="rg-map-ov"></div></div>'+
-    '<div class="rg-chips" id="rg-chips"></div><div id="rg-near"></div><div class="rg-cards" id="rg-cards"></div>';
-  setTimeout(function(){ initMap(); drawAll(); },50);
+  cache.contracts=contracts;
+  var by={};
+  contracts.forEach(function(c){ c._region=regionOf(c); by[c._region.city]=(by[c._region.city]||0)+1; });
+  cache.regions=Object.keys(by).map(function(k){ return {name:k,n:by[k]}; })
+    .sort(function(a,b){ return (a.name==='기타 지역')-(b.name==='기타 지역')||b.n-a.n||a.name.localeCompare(b.name,'ko'); });
+  if(st.city&&!by[st.city]) st.city='';
+  if(st.sel&&st.sel!=='__hq'&&!byId(st.sel)){ st.sel=null; st.near=false; }
+  el.innerHTML='<div class="rg2"><div class="rg2-filters" id="rg-filters"></div>'+
+    '<div class="rg2-mapcol"><div class="rg2-map"><div id="rg-map"></div>'+
+      '<div class="rg2-ov tl" id="rg-ov-tl"></div><div class="rg2-ov br" id="rg-ov-br"></div>'+
+      '<div class="rg2-ov bl" id="rg-ov-bl"></div><div class="rg2-sheet" id="rg-sheet"></div></div></div>'+
+    '<div class="rg2-list" id="rg-list"></div></div>';
+  setTimeout(function(){ initMap(); drawAll(true); },50);
 }
-export function destroyRegionMap(){ if(map){ map.remove(); map=null; bubbleLayer=null; } }
+export function destroyRegionMap(){ if(map){ map.remove(); map=null; } }
 
 function initMap(){
   if(map){ map.remove(); map=null; }
-  var mapEl=document.getElementById('rg-map'); if(!mapEl) return;
-  map=L.map('rg-map',{zoomControl:false,attributionControl:false});
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,className:'rg-tiles'}).addTo(map);
-  map.on('zoomend',function(){ if(isOverview()) placeBubbles(); });
-  map.on('moveend',function(){ if(!isOverview()) layoutLabels(); });
-  layers.sites=L.layerGroup().addTo(map); layers.near=L.layerGroup().addTo(map);
+  if(!document.getElementById('rg-map')) return;
+  map=L.map('rg-map',{zoomControl:false,attributionControl:true});
+  map.attributionControl.setPrefix(false);
+  L.control.zoom({position:'topright'}).addTo(map);
+  // 밝은 기본 지도 (CARTO Voyager, OpenStreetMap 기반)
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
+    maxZoom:19, subdomains:'abcd', attribution:'© OpenStreetMap © CARTO'
+  }).addTo(map);
+  layers.deco=L.layerGroup().addTo(map); layers.dots=L.layerGroup().addTo(map);
+  map.on('moveend',function(){ layoutLabels(); drawOverlay(); });
   geocodeHQ();
 }
-function isOverview(){ return !selectedCity||selectedCity==='__rest'; }
-function drawAll(){ drawMap(); drawChips(); drawNear(); drawCards(); }
 
-function drawMap(){
+function drawAll(refit){ drawFilters(); drawMap(refit); drawSheet(); drawList(); drawOverlay(); }
+
+function fitView(){
   if(!map) return;
-  layers.sites.clearLayers(); layers.near.clearLayers();
-  if(bubbleLayer){ map.removeLayer(bubbleLayer); bubbleLayer=null; }
-  var ov=document.getElementById('rg-map-ov');
-  if(isOverview()){
-    var bounds=cache.regions.filter(function(r){ return r._c; }).map(function(r){ return [r._c.lat,r._c.lng]; });
-    if(bounds.length) map.fitBounds(bounds,{padding:[30,30],maxZoom:10});
-    placeBubbles(); drawHQ();
-    if(selectedSiteId==='__hq') drawHQRadius();
-    if(ov) ov.innerHTML=selectedSiteId==='__hq'?'<span class="rg-title" style="color:#A32D2D">★ 본사 주변 '+nearKm+'km</span>':'<span class="rg-hint">지역 원을 누르면 그 지역으로 확대 · ★ 본사</span>';
+  var items=shown();
+  if(st.sel){
+    var c=st.sel==='__hq'?HQ:byId(st.sel), co=c&&(st.sel==='__hq'?{lat:HQ.lat,lng:HQ.lng}:coordOf(c));
+    if(co){ if(st.near) map.fitBounds(L.latLng(co.lat,co.lng).toBounds(st.nearKm*2200)); else map.setView([co.lat,co.lng], Math.max(map.getZoom()||0,13)); }
     return;
   }
-  var r=regionByName(selectedCity); if(!r) return;
-  var bounds=[], townBounds=[];
-  // 다른 지역 사업장: 회색
-  cache.contracts.forEach(function(x){ if(x._region.city===selectedCity) return; var co=coordOf(x); if(!co) return;
-    L.circleMarker([co.lat,co.lng],{radius:3.5,fillColor:'#C8C4BC',color:'#fff',weight:1,fillOpacity:1}).bindTooltip(esc(x.name)+' · '+esc(x._region.city),{direction:'top'}).addTo(layers.sites); });
-  var selCo=null, sel=null;
-  r.items.forEach(function(x){ var co=coordOf(x); if(!co) return; bounds.push([co.lat,co.lng]);
-    var isSel=x.id===selectedSiteId; if(isSel){ selCo=co; sel=x; }
-    var inTown=!selectedTown||x._region.town===selectedTown; if(inTown&&selectedTown) townBounds.push([co.lat,co.lng]);
-    var m=L.circleMarker([co.lat,co.lng],{radius:isSel?11:(inTown?7:5),fillColor:isSel?'#A32D2D':(x.terminated?'#aaa':(TEAM_COLOR[x.team]||'#4A90D9')),color:'#fff',weight:isSel?3:1.5,fillOpacity:inTown?1:0.3});
-    m._biz=x; m._co=co;
-    m.bindTooltip(isSel?esc(x.name):esc(shortName(x.name)),{direction:'right',offset:[6,0],permanent:true,interactive:true,className:isSel?'rg-tip-sel':'rg-tip'});
-    m._pri=isSel?0:(inTown?1:2); m._lw=(isSel?x.name.length:shortName(x.name).length)*11+8;
-    m.on('click',function(){ selectSite(x.id); });
-    m.addTo(layers.sites);
-  });
-  // 읍·면 라벨 (클릭 → 읍·면 선택)
-  townKeys(r).forEach(function(t){ if(t==='기타'||r.towns[t].length<2) return; var c=centroid(r.towns[t]); if(!c) return;
-    var on=t===selectedTown;
-    var mk=L.marker([c.lat,c.lng],{icon:L.divIcon({className:'rg-town-wrap',html:'<div class="rg-town'+(on?' on':'')+'" style="'+(on?'background:'+r.color+';':'')+'">'+esc(t)+' '+r.towns[t].length+'</div>',iconAnchor:[0,-14]})});
-    mk.on('click',function(){ selectTown(on?null:t); });
-    mk.addTo(layers.sites); });
-  if(selCo){
-    L.circle([selCo.lat,selCo.lng],{radius:nearKm*1000,color:'#185FA5',weight:1,dashArray:'4 4',fillColor:'#185FA5',fillOpacity:0.07}).addTo(layers.near);
-    layers.sites.eachLayer(function(m){ if(m._biz&&m._biz.id!==selectedSiteId&&kmBetween(selCo,m._co)>nearKm) m.setStyle({fillOpacity:0.3}); });
-    map.fitBounds(L.latLng(selCo.lat,selCo.lng).toBounds(nearKm*2200));
-  } else if(selectedTown&&townBounds.length) map.fitBounds(townBounds,{padding:[40,40],maxZoom:14});
-  else if(bounds.length) map.fitBounds(bounds,{padding:[28,28]});
-  drawHQ();
-  setTimeout(layoutLabels,0);
-  if(ov){
-    var crumb='<button class="rg-back" onclick="window._rgBack()">← 전체</button>';
-    crumb+='<span class="rg-title" style="color:'+r.color+'" onclick="window._rgTown(null)">'+esc(r.name)+' '+r.items.length+'</span>';
-    if(selectedTown) crumb+='<span class="rg-title" style="color:'+r.color+'">› '+esc(selectedTown)+' '+(r.towns[selectedTown]||[]).length+'</span>';
-    if(sel) crumb+='<span class="rg-title" style="color:#A32D2D">› '+esc(sel.name)+'</span>';
-    ov.innerHTML=crumb;
+  if(st.city||st.view==='all'){
+    var pts=items.map(coordOf).filter(Boolean).map(function(p){ return [p.lat,p.lng]; });
+    if(st.view==='all'&&!st.city) pts.push([HQ.lat,HQ.lng]);
+    if(pts.length){ map.fitBounds(pts,{padding:[30,30],maxZoom:13}); return; }
   }
+  map.fitBounds(L.latLng(HQ.lat,HQ.lng).toBounds(HOME_KM*2000),{padding:[10,10]});
 }
-// 이름표 겹침 방지: 겹치지 않는 것만 표시 (선택 > 선택 읍·면 > 나머지 순)
+
+function drawMap(refit){
+  if(!map) return;
+  layers.dots.clearLayers(); layers.deco.clearLayers();
+  var items=shown(), sel=st.sel&&st.sel!=='__hq'?byId(st.sel):null;
+  var center=st.sel==='__hq'?{lat:HQ.lat,lng:HQ.lng}:(sel?coordOf(sel):null);
+  // 본사 거리 원 (전체 화면일 때만)
+  if(!st.sel&&!st.city){
+    [10,20,30].forEach(function(k){
+      L.circle([HQ.lat,HQ.lng],{radius:k*1000,color:'#A32D2D',weight:1,opacity:.35,dashArray:'3 5',fill:false,interactive:false}).addTo(layers.deco);
+      var p=L.latLng(HQ.lat,HQ.lng).toBounds(k*2000*0.7071).getNorthEast();
+      L.marker(p,{interactive:false,icon:L.divIcon({className:'rg2-ring',html:k+'km',iconSize:[34,14],iconAnchor:[0,14]})}).addTo(layers.deco);
+    });
+  }
+  if(center&&st.near) L.circle([center.lat,center.lng],{radius:st.nearKm*1000,color:'#185FA5',weight:1,dashArray:'4 4',fillColor:'#185FA5',fillOpacity:0.06,interactive:false}).addTo(layers.deco);
+  items.forEach(function(x){ var co=coordOf(x); if(!co) return;
+    var isSel=sel&&x.id===sel.id, far=center&&st.near&&!isSel&&kmBetween(center,co)>st.nearKm;
+    var m=L.circleMarker([co.lat,co.lng],{radius:isSel?10:6,fillColor:isSel?'#A32D2D':dotColor(x),color:'#fff',weight:isSel?3:1.5,fillOpacity:far?0.3:1});
+    m._biz=x; m._pri=isSel?0:(far?2:1);
+    var lbl=isSel?x.name:shortName(x.name); m._lw=lbl.length*11+8;
+    m.bindTooltip(esc(lbl),{direction:'right',offset:[6,0],permanent:true,interactive:true,className:isSel?'rg-tip-sel':'rg-tip'});
+    m.on('click',function(){ select(x.id); });
+    m.addTo(layers.dots);
+  });
+  var on=st.sel==='__hq';
+  L.marker([HQ.lat,HQ.lng],{zIndexOffset:1000,icon:L.divIcon({className:'rg-hq-wrap',html:'<div class="rg-hq'+(on?' on':'')+'">★</div><div class="rg-hq-lbl">본사</div>',iconSize:[26,40],iconAnchor:[13,13]})})
+    .on('click',function(){ select(on?null:'__hq'); }).addTo(layers.deco);
+  if(refit) fitView();
+  setTimeout(layoutLabels,0);
+}
+// 이름표 겹침 방지: 겹치지 않는 것만 표시 (선택 > 나머지 순)
 function layoutLabels(){
-  if(!map||!layers.sites) return;
-  var ms=[]; layers.sites.eachLayer(function(m){ if(m._biz&&m.getTooltip()) ms.push(m); });
+  if(!map||!layers.dots) return;
+  var ms=[]; layers.dots.eachLayer(function(m){ if(m._biz&&m.getTooltip()) ms.push(m); });
   var size=map.getSize(), pts=ms.map(function(m){ var p=map.latLngToContainerPoint(m.getLatLng()); return {m:m,x:p.x,y:p.y}; });
-  var boxes=pts.map(function(q){ return {x0:q.x-8,y0:q.y-8,x1:q.x+8,y1:q.y+8}; }); // 점 자체는 항상 차지
+  var boxes=pts.map(function(q){ return {x0:q.x-8,y0:q.y-8,x1:q.x+8,y1:q.y+8,self:q}; });
+  var hq=map.latLngToContainerPoint([HQ.lat,HQ.lng]); boxes.push({x0:hq.x-16,y0:hq.y-14,x1:hq.x+16,y1:hq.y+30}); // 본사 표시 자리
   pts.sort(function(a,b){ return a.m._pri-b.m._pri||a.y-b.y; });
   pts.forEach(function(q){
     var el=q.m.getTooltip().getElement(); if(!el) return;
     var b={x0:q.x+6,y0:q.y-9,x1:q.x+6+q.m._lw,y1:q.y+9};
     var onScreen=b.x0>=0&&b.y0>=0&&b.x1<=size.x&&b.y1<=size.y;
-    var self={x0:q.x-8,y0:q.y-8,x1:q.x+8,y1:q.y+8};
-    var hit=!onScreen||boxes.some(function(o){ if(o.x0===self.x0&&o.y0===self.y0&&o.x1===self.x1&&o.y1===self.y1) return false; return !(b.x1<o.x0||b.x0>o.x1||b.y1<o.y0||b.y0>o.y1); });
+    var hit=!onScreen||q.m._pri===2||boxes.some(function(o){ if(o.self===q) return false; return !(b.x1<o.x0||b.x0>o.x1||b.y1<o.y0||b.y0>o.y1); });
     if(hit&&q.m._pri!==0){ el.style.display='none'; }
     else { el.style.display=''; boxes.push(b); }
   });
 }
-function drawHQRadius(){
-  L.circle([HQ.lat,HQ.lng],{radius:nearKm*1000,color:'#A32D2D',weight:1,dashArray:'4 4',fillColor:'#A32D2D',fillOpacity:0.05}).addTo(layers.near);
-  map.fitBounds(L.latLng(HQ.lat,HQ.lng).toBounds(nearKm*2200));
+// 지도 위 안내 (왼쪽 위 / 오른쪽 아래 / 왼쪽 아래)
+function drawOverlay(){
+  var tl=document.getElementById('rg-ov-tl'), br=document.getElementById('rg-ov-br'), bl=document.getElementById('rg-ov-bl');
+  if(!tl||!map) return;
+  var items=shown().filter(function(c){ return coordOf(c); }), b=map.getBounds();
+  var out=items.filter(function(c){ var co=coordOf(c); return !b.contains([co.lat,co.lng]); }).length;
+  if(st.sel) tl.innerHTML='<button class="rg2-pill" onclick="window._rgHome()">← 전체 지도</button>';
+  else if(st.city) tl.innerHTML='<span class="rg2-pill">'+esc(shortCity(st.city))+' · '+items.length+'곳</span>';
+  else tl.innerHTML='<span class="rg2-pill">'+(st.view==='all'?'전체':'본사 기준 '+HOME_KM+'km')+' · '+(items.length-out)+'곳</span>';
+  br.innerHTML=st.sel?'':(out>0?'<button class="rg2-pill blue" onclick="window._rgAll()">지도 밖 '+out+'곳 보기 ›</button>'
+    :(st.view==='all'&&!st.city?'<button class="rg2-pill blue" onclick="window._rgHome()">본사 중심으로</button>':''));
+  bl.innerHTML=st.sel?'':'<div class="rg2-legend"><span><i style="background:#185FA5"></i>1팀</span><span><i style="background:#3B6D11"></i>2팀</span><span><i style="background:#854F0B"></i>3팀</span><span><i style="background:#A32D2D"></i>본사</span></div>';
 }
-function drawHQ(){
-  if(!map) return;
-  var on=selectedSiteId==='__hq';
-  var icon=L.divIcon({className:'rg-hq-wrap',html:'<div class="rg-hq'+(on?' on':'')+'">★</div><div class="rg-hq-lbl">본사</div>',iconSize:[26,40],iconAnchor:[13,13]});
-  L.marker([HQ.lat,HQ.lng],{icon:icon,zIndexOffset:1000}).bindTooltip('본사 · '+esc(HQ.addr),{direction:'top',offset:[0,-10]}).on('click',function(){ selectSite(on?null:'__hq'); }).addTo(layers.near);
+function drawFilters(){
+  var el=document.getElementById('rg-filters'); if(!el) return;
+  var all=cache.contracts.length;
+  el.innerHTML='<select onchange="window._rgCity(this.value)"><option value="">지역: 전체 ('+all+')</option>'+
+    cache.regions.map(function(r){ return '<option value="'+esc(r.name)+'"'+(r.name===st.city?' selected':'')+'>'+esc(r.name)+' ('+r.n+')</option>'; }).join('')+'</select>'+
+    '<select onchange="window._rgTeam(this.value)"><option value="">팀: 전체</option>'+[1,2,3].map(function(t){ return '<option value="'+t+'"'+(String(t)===st.team?' selected':'')+'>'+t+'팀</option>'; }).join('')+'</select>';
 }
-function placeBubbles(){
-  if(!map) return;
-  if(bubbleLayer){ map.removeLayer(bubbleLayer); }
-  bubbleLayer=L.layerGroup().addTo(map);
-  var items=cache.regions.filter(function(r){ return r._c; }).map(function(r){
-    var size=22+Math.min(r.items.length,40)*0.8, p=map.latLngToContainerPoint([r._c.lat,r._c.lng]);
-    return {r:r,size:size,x:p.x,y:p.y,ox:p.x,oy:p.y};
-  });
-  // 겹치는 원 서로 밀어내기 (픽셀 단위)
-  for(var it=0;it<80;it++){
-    var moved=false;
-    for(var i=0;i<items.length;i++) for(var j=i+1;j<items.length;j++){
-      var a=items[i],b=items[j],dx=b.x-a.x,dy=b.y-a.y,d=Math.sqrt(dx*dx+dy*dy)||0.01,min=(a.size+b.size)/2+12;
-      if(d<min){ var push=(min-d)/2,ux=dx/d,uy=dy/d; a.x-=ux*push;a.y-=uy*push;b.x+=ux*push;b.y+=uy*push; moved=true; }
-    }
-    if(!moved) break;
+// 점을 누르면 지도 아래쪽에 뜨는 작은 카드
+function drawSheet(){
+  var el=document.getElementById('rg-sheet'); if(!el) return;
+  if(!st.sel){ el.className='rg2-sheet'; el.innerHTML=''; return; }
+  var isHQ=st.sel==='__hq', c=isHQ?HQ:byId(st.sel); if(!c){ el.innerHTML=''; return; }
+  var n=nearList(c).length, kms=isHQ?[10,20,30]:[5,10], d=isHQ?null:hqKm(c);
+  el.className='rg2-sheet open';
+  el.innerHTML='<div class="rg2-sh-top"><span class="rg-dot lg" style="background:'+(isHQ?'#A32D2D':dotColor(c))+'"></span><b>'+(isHQ?'★ ':'')+esc(c.name)+'</b>'+
+      (isHQ?'':'<span class="rg2-sh-t">'+(c.team?c.team+'팀':'')+(c.terminated?' · 해지':'')+'</span>')+
+      (d!=null?'<span class="rg2-sh-km">본사에서 '+d.toFixed(0)+'km</span>':'')+'<button class="rg-x" onclick="window._rgHome()" aria-label="닫기">✕</button></div>'+
+    '<div class="rg2-sh-sub">'+esc(isHQ?HQ.addr:(c.addr||''))+'</div>'+
+    '<div class="rg2-sh-near">주변 <select onchange="window._rgKm(+this.value)">'+kms.map(function(k){ return '<option value="'+k+'"'+(st.nearKm===k?' selected':'')+'>'+k+'km</option>'; }).join('')+'</select> 안 사업장 '+n+'곳</div>'+
+    '<div class="rg2-sh-btns"><button class="btn'+(st.near?' on':'')+'" onclick="window._rgNear()">'+(st.near?'주변 보기 끄기':'주변 '+st.nearKm+'km 보기')+'</button>'+
+      (isHQ?'':'<button class="btn primary" onclick="goDetail(\''+c.id+'\')">상세 보기</button>')+'</div>';
+}
+function drawList(){
+  var el=document.getElementById('rg-list'); if(!el) return;
+  var rows, title;
+  if(st.sel&&st.near){
+    var c=st.sel==='__hq'?HQ:byId(st.sel);
+    rows=nearList(c).map(function(x){ return {c:x.c,d:x.d}; });
+    title=esc(c.name)+' 주변 '+st.nearKm+'km';
+  } else {
+    rows=shown().map(function(x){ return {c:x,d:hqKm(x)}; }).sort(function(a,b){ return (a.d==null?999:a.d)-(b.d==null?999:b.d); });
+    title='본사에서 가까운 순';
   }
-  items.forEach(function(it){
-    var r=it.r,size=it.size,ll=map.containerPointToLatLng([it.x,it.y]);
-    if(Math.abs(it.x-it.ox)>2||Math.abs(it.y-it.oy)>2) L.polyline([[r._c.lat,r._c.lng],ll],{color:r.color,weight:1,opacity:.5,dashArray:'2 3'}).addTo(bubbleLayer);
-    var icon=L.divIcon({className:'rg-bubble-wrap',html:'<div class="rg-bubble'+(r.items.length<2?' sm':'')+'" style="width:'+size+'px;height:'+size+'px;background:'+r.color+';">'+r.items.length+'</div><div class="rg-bubble-lbl">'+esc(shortCity(r.name))+'</div>',iconSize:[size,size+18],iconAnchor:[size/2,size/2]});
-    L.marker(ll,{icon:icon}).on('click',function(){ selectCity(r.name); }).addTo(bubbleLayer);
-  });
-}
-function drawChips(){
-  var el=document.getElementById('rg-chips'); if(!el) return;
-  var html='';
-  cache.regions.forEach(function(r){ if(!r.major) return; var on=r.name===selectedCity;
-    html+='<span class="rg-chip'+(on?' on':'')+'" style="'+(on?'background:'+r.color+';border-color:'+r.color+';':'')+'" onclick="window._rgCity(\''+esc(r.name)+'\')">'+esc(shortCity(r.name))+' '+r.items.length+'</span>'; });
-  var minor=cache.regions.filter(function(r){ return !r.major; });
-  var rest=minor.reduce(function(s,r){ return s+r.items.length; },0);
-  var restOn=selectedCity==='__rest'||minor.some(function(r){ return r.name===selectedCity; });
-  if(rest) html+='<span class="rg-chip'+(restOn?' on':'')+'" style="'+(restOn?'background:#8A867D;border-color:#8A867D;':'')+'" onclick="window._rgCity(\'__rest\')">그 외 '+rest+'</span>';
-  el.innerHTML=html;
-}
-function drawNear(){
-  var el=document.getElementById('rg-near'); if(!el) return;
-  if(!selectedSiteId){ el.innerHTML=''; return; }
-  var isHQ=selectedSiteId==='__hq';
-  var center=isHQ?HQ:cache.contracts.filter(function(x){ return x.id===selectedSiteId; })[0]; var co=center?(isHQ?{lat:HQ.lat,lng:HQ.lng}:coordOf(center)):null;
-  if(!co){ el.innerHTML=''; return; }
-  var list=cache.contracts.filter(function(x){ return x.id!==selectedSiteId&&coordOf(x); }).map(function(x){ return {c:x,d:kmBetween(co,coordOf(x))}; }).filter(function(x){ return x.d<=nearKm; }).sort(function(a,b){ return a.d-b.d; });
-  var kms=isHQ?[10,20,30]:[5,10];
-  el.innerHTML='<div class="rg-near"><div class="rg-near-head"><span class="rg-near-name" '+(isHQ?'':'onclick="goDetail(\''+center.id+'\')"')+'>'+(isHQ?'★ ':'')+esc(center.name)+'</span><span class="rg-near-sub">주변 '+nearKm+'km · '+list.length+'곳 · 직선거리</span><span class="rg-near-tg">'+kms.map(function(k){ return '<span class="'+(nearKm===k?'on':'')+'" onclick="window._rgKm('+k+')">'+k+'km</span>'; }).join('')+'</span><button class="rg-x" onclick="window._rgSite(null)" aria-label="닫기">✕</button></div>'+
-    (list.length?list.map(function(x){ return '<div class="rg-near-row" onclick="goDetail(\''+x.c.id+'\')"><span class="rg-dot" style="background:'+(x.c.terminated?'#aaa':(TEAM_COLOR[x.c.team]||'#4A90D9'))+'"></span><span class="rg-near-n">'+esc(x.c.name)+'</span><span class="rg-near-t">'+(x.c.team?x.c.team+'팀 · ':'')+esc(x.c._region.town!=='기타'?x.c._region.town:x.c._region.city)+'</span><span class="rg-near-d">'+x.d.toFixed(1)+' km</span></div>'; }).join(''):'<div class="rg-near-empty">'+nearKm+'km 안에 다른 사업장이 없어요</div>')+'</div>';
-}
-function chip(x,cityLabel){
-  var on=x.id===selectedSiteId, co=coordOf(x);
-  var km=co?'<em class="rg-site-km">'+kmBetween({lat:HQ.lat,lng:HQ.lng},co).toFixed(0)+'km</em>':'';
-  return '<span class="rg-site'+(on?' on':'')+(x.terminated?' term':'')+'" onclick="window._rgSite(\''+x.id+'\')"><span class="rg-dot" style="background:'+(on?'#fff':(x.terminated?'#aaa':(TEAM_COLOR[x.team]||'#4A90D9')))+'"></span>'+esc(x.name)+(cityLabel?'<em class="rg-site-city">'+esc(cityLabel)+'</em>':'')+km+'</span>';
-}
-function openCard(r){
-  var html='<div class="rg-card open" style="border-color:'+r.color+'"><div class="rg-card-head" onclick="window._rgBack()"><span class="rg-dot lg" style="background:'+r.color+'"></span><span class="rg-card-name">'+esc(r.name)+'</span><span class="rg-card-sub">'+r.items.length+'곳 · '+teamCount(r.items)+'</span><i class="ti ti-chevron-up"></i></div>';
-  townKeys(r).forEach(function(t){
-    var on=t===selectedTown, dim=selectedTown&&!on;
-    html+='<div class="rg-town-sec'+(on?' on':'')+(dim?' dim':'')+'" id="rg-town-'+esc(t)+'"><div class="rg-town-h" onclick="window._rgTown(\''+esc(on?'':t)+'\')" style="'+(on?'color:'+r.color+';':'')+'">'+esc(t)+' <span>'+r.towns[t].length+'</span>'+(r.towns[t].length>=2?'<i class="ti ti-'+(on?'x':'zoom-in')+'"></i>':'')+'</div><div class="rg-chipwrap">'+r.towns[t].map(function(x){ return chip(x); }).join('')+'</div></div>'; });
-  return html+'</div>';
-}
-function closedCard(r){
-  return '<div class="rg-card" onclick="window._rgCity(\''+esc(r.name)+'\')"><div class="rg-card-head"><span class="rg-dot lg" style="background:'+r.color+'"></span><span class="rg-card-name">'+esc(r.name)+'</span><span class="rg-card-sub">'+r.items.length+'곳 · '+teamCount(r.items)+'</span><i class="ti ti-chevron-down"></i></div><div class="rg-card-prev">'+esc(r.items.slice(0,4).map(function(x){ return x.name; }).join(' · '))+(r.items.length>4?' …':'')+'</div></div>';
-}
-function drawCards(){
-  var el=document.getElementById('rg-cards'); if(!el) return;
-  var html='';
-  var selMinor=selectedCity&&selectedCity!=='__rest'&&regionByName(selectedCity)&&!regionByName(selectedCity).major;
-  cache.regions.forEach(function(r){ if(!r.major) return; html+=(r.name===selectedCity)?openCard(r):closedCard(r); });
-  var minor=cache.regions.filter(function(r){ return !r.major; });
-  if(minor.length){
-    var open=selectedCity==='__rest'||selMinor, n=minor.reduce(function(s,r){ return s+r.items.length; },0);
-    html+='<div class="rg-card'+(open?' open':'')+'" style="'+(open?'border-color:#8A867D':'')+'"><div class="rg-card-head" onclick="window._rgCity(\''+(open?'':'__rest')+'\')"><span class="rg-dot lg" style="background:#B8B4AC"></span><span class="rg-card-name">그 외 지역</span><span class="rg-card-sub">'+n+'곳 · '+minor.length+'개 지역</span><i class="ti ti-chevron-'+(open?'up':'down')+'"></i></div>'+
-      (open?'<div class="rg-town-sec"><div class="rg-chipwrap">'+minor.map(function(r){ return r.items.map(function(x){ return chip(x,shortCity(r.name)).replace('class="rg-site',(r.name===selectedCity?'class="rg-site city-on ':'class="rg-site')); }).join(''); }).join('')+'</div></div>':'<div class="rg-card-prev">'+esc(minor.slice(0,5).map(function(r){ return r.items[0].name; }).join(' · '))+' …</div>')+'</div>';
-  }
-  el.innerHTML=html;
-  if(selectedTown){ var sec=document.getElementById('rg-town-'+selectedTown); if(sec) sec.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+  el.innerHTML='<div class="rg2-list-h">'+title+'<span>'+rows.length+'곳</span></div>'+
+    (rows.length?rows.map(function(x){ var c=x.c, on=c.id===st.sel;
+      return '<div class="rg2-row'+(on?' on':'')+(c.terminated?' term':'')+'" onclick="window._rgSite(\''+c.id+'\')">'+
+        '<span class="rg-dot" style="background:'+dotColor(c)+'"></span><span class="rg2-row-n">'+esc(c.name)+'</span>'+
+        '<span class="rg2-row-t">'+(c.team?c.team+'팀 · ':'')+esc(c._region.town!=='기타'?c._region.town:shortCity(c._region.city))+(c.terminated?' · 해지':'')+'</span>'+
+        '<span class="rg2-row-d">'+(x.d!=null?x.d.toFixed(x.d<10?1:0)+'km':'-')+'</span></div>'; }).join('')
+      :'<div class="rg-near-empty">'+(st.near?st.nearKm+'km 안에 다른 사업장이 없어요':'사업장이 없어요')+'</div>');
 }
 
 // ── 상태 변경 ──
-function selectCity(name){ selectedCity=name||null; selectedTown=null; selectedSiteId=null; drawAll(); }
-function selectTown(t){ selectedTown=t||null; selectedSiteId=null; drawAll(); }
-function selectSite(id){
-  selectedSiteId=id||null;
-  if(id==='__hq'){ selectedCity=null; selectedTown=null; if([10,20,30].indexOf(nearKm)<0) nearKm=20; drawAll(); var nr=document.getElementById('rg-near'); if(nr) nr.scrollIntoView({behavior:'smooth',block:'nearest'}); return; }
-  if(selectedSiteId&&[5,10].indexOf(nearKm)<0) nearKm=5;
-  if(id){
-    var x=cache.contracts.filter(function(c){ return c.id===id; })[0];
-    if(x){ selectedCity=x._region.city; if(selectedTown&&x._region.town!==selectedTown) selectedTown=null; }
-  }
-  drawAll();
-  var near=document.getElementById('rg-near'); if(near&&id) near.scrollIntoView({behavior:'smooth',block:'nearest'});
+function select(id){
+  st.sel=id||null; if(!id) st.near=false;
+  if(id==='__hq'){ st.nearKm=[10,20,30].indexOf(st.nearKm)<0?10:st.nearKm; st.near=true; }
+  else if(id&&[5,10].indexOf(st.nearKm)<0) st.nearKm=5;
+  drawAll(true);
+  // 휴대폰: 목록에서 눌렀으면 지도가 보이게
+  if(id&&window.innerWidth<900){ var m=document.querySelector('.rg2-map'); if(m) m.scrollIntoView({behavior:'smooth',block:'center'}); }
 }
-window._rgCity=function(name){ selectCity(name); };
-window._rgTown=function(t){ selectTown(t); };
-window._rgBack=function(){ selectCity(null); };
-window._rgSite=function(id){ selectSite(id); };
-window._rgKm=function(km){ nearKm=km; drawAll(); };
+window._rgCity=function(v){ st.city=v||''; st.sel=null; st.near=false; drawAll(true); };
+window._rgTeam=function(v){ st.team=v||''; st.sel=null; st.near=false; drawAll(true); };
+window._rgSite=function(id){ select(id===st.sel?null:id); };
+window._rgHome=function(){ st.sel=null; st.near=false; st.view='home'; drawAll(true); };
+window._rgAll=function(){ st.view='all'; drawAll(true); };
+window._rgNear=function(){ st.near=!st.near; drawAll(true); };
+window._rgKm=function(km){ st.nearKm=km; drawAll(true); };
