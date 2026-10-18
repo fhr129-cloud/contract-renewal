@@ -255,8 +255,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f0f0ee;color:#1a1a18;min-
 .rg-map-wrap{position:relative;border-radius:12px;overflow:hidden;border:.5px solid #e8e8e4;background:#F7F6F2;}
 #rg-map{height:min(58vh,440px);}
 /* 소재지별 지도 (2026-10 개편) */
-.rg2{display:grid;gap:10px;grid-template-columns:minmax(0,1fr);grid-template-areas:"f" "m" "l";}
-.rg2-filters{grid-area:f;}.rg2-mapcol{grid-area:m;min-width:0;}.rg2-list{grid-area:l;}
+.rg2{display:grid;gap:12px;grid-template-columns:minmax(0,1fr);}
+.rg2-mapcol{min-width:0;}
+.rg-tiles2{filter:saturate(.7) brightness(1.03);}
 /* 지도 이름표: 지도 도구 기본 말풍선 모양을 덮어씀 */
 .leaflet-tooltip.rg-tip,.leaflet-tooltip.rg-tip-sel{background:transparent;border:none;box-shadow:none;padding:0 2px;}
 .leaflet-tooltip.rg-tip::before,.leaflet-tooltip.rg-tip-sel::before{display:none;}
@@ -283,7 +284,7 @@ span.rg2-pill{cursor:default;}
 .rg2-filters{display:flex;gap:6px;}
 .rg2-filters select{flex:1;padding:8px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;background:#fff;color:#1a1a18;font-family:inherit;}
 .rg2-filters select+select{flex:0 0 110px;}
-.rg2-list{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;overflow:hidden;}
+.rg2-list{min-width:0;}
 .rg2-list-h{font-size:11px;color:#888;padding:8px 14px;background:#f5f5f3;display:flex;justify-content:space-between;}
 .rg2-row{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:.5px solid #f0f0ec;font-size:13px;cursor:pointer;}
 .rg2-row:last-child{border-bottom:none;}
@@ -294,9 +295,9 @@ span.rg2-pill{cursor:default;}
 .rg2-row-t{font-size:11px;color:#888;white-space:nowrap;}
 .rg2-row-d{margin-left:auto;font-size:12px;color:#555;white-space:nowrap;}
 @media(min-width:900px){
-  .rg2{grid-template-columns:minmax(0,1fr) 340px;grid-template-areas:"m f" "m l";grid-template-rows:auto 1fr;align-items:start;}
+  .rg2{grid-template-columns:minmax(0,1fr) 360px;align-items:start;}
   #rg-map{height:560px;}
-  .rg2-list{max-height:508px;overflow-y:auto;}
+  .rg2-list{max-height:560px;overflow-y:auto;}
 }
 .rg-map-ov{position:absolute;left:10px;top:10px;display:flex;gap:6px;align-items:center;z-index:500;pointer-events:none;}
 .rg-map-ov>*{pointer-events:auto;}
