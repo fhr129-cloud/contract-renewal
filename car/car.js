@@ -363,6 +363,10 @@ function renderPopup(){
         '<div class="pbtns"><button class="btn" data-act="edit" data-id="'+r.id+'"><i class="ti ti-pencil"></i> 수정</button><button class="btn danger" data-act="cancel" data-id="'+r.id+'"><i class="ti ti-trash"></i> 예약 취소</button></div>'
         :(callP?'<div class="pbtns"><a class="btn" href="tel:'+esc(callP)+'"><i class="ti ti-phone"></i> '+esc(callN)+'에게 전화 ('+telFmt(callP)+')</a></div><div class="hint">다른 사람 예약은 보기만 가능해요.</div>':''))+
       '</div></div>';
+  } else if(popup.type==='km'){
+    var rk=list.filter(function(x){ return x.id===popup.id; })[0];
+    if(!rk){ popup=null; el.className='cal-popup'; el.innerHTML=''; return; }
+    h=kmSheet(rk);
   } else if(popup.type==='car'){
     var cc=car(popup.carId), t0=ymd(new Date()), t1=ymd(addDays(new Date(),1)), nn=nowHM();
     var busyNow=itemsOn(t0,cc.id).some(function(x){ return x.start<=nn&&nn<x.end&&!x.returnedAt; });
@@ -602,15 +606,37 @@ function isEnded(pool,r){ return !!r.returnedAt||tripEnd(pool,r)<=tKey(ymd(new D
 function inLog(pool,r){ var ck=carKm[r.carId]; return !!ck&&r.type!=='maint'&&poolGroup(pool,r)[0].date>=(ck.since||''); }
 function needsKm(r){ return inLog(list,r)&&isEnded(list,r)&&endKmOf(list,r)==null; }
 
-// 내가 안 적은 운행 (맨 위 빨간 띠)
+// 내가 숫자를 적어야 하는 운행: 지금 타고 있는 차(운행 중) + 끝났는데 비어 있는 것
+function inUseNow(r){ var g=group(r), t=ymd(new Date()), n=nowHM(); return !r.returnedAt&&g.some(function(x){ return x.date===t&&x.start<=n&&n<x.end; }); }
+function myMissing(){
+  var out=[]; CARS.forEach(function(c){ tripsOf(list,c.id).forEach(function(r){ if(isMine(r)&&canEdit(r)&&needsKm(r)) out.push(r); }); });
+  return out.sort(function(a,b){ return tripStart(list,b).localeCompare(tripStart(list,a)); });
+}
+function myDriving(){
+  var out=null; CARS.forEach(function(c){ tripsOf(list,c.id).forEach(function(r){ if(!out&&isMine(r)&&canEdit(r)&&inLog(list,r)&&inUseNow(r)&&r.endKm==null) out=r; }); });
+  return out;
+}
+function tripWhen(r){ var g=group(r), a=g[0], b=g[g.length-1], d=parseYmd(a.date), t=ymd(new Date());
+  return (a.date===t?'오늘':(d.getMonth()+1)+'/'+d.getDate()+' ('+DOW[d.getDay()]+')')+' '+a.start+' – '+(g.length>1?(parseYmd(b.date).getMonth()+1)+'/'+parseYmd(b.date).getDate()+' ':'')+b.end; }
+var CAR_IC='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17h14M6 17l1.5-6h9L18 17M7 17v2M17 17v2"/></svg>';
 function missingBanner(){
-  var mine=[]; CARS.forEach(function(c){ tripsOf(list,c.id).forEach(function(r){ if(isMine(r)&&canEdit(r)&&needsKm(r)) mine.push(r); }); });
-  if(!mine.length) return '';
-  var r=mine[0], c=car(r.carId);
-  return '<div style="background:#FCEBEB;border:.5px solid #F7C1C1;border-radius:12px;padding:11px 13px;margin-bottom:12px">'+
-    '<div style="font-size:13px;font-weight:600;color:#A32D2D">운행 기록(도착 km)을 안 적은 예약이 '+mine.length+'건 있어요</div>'+
-    '<div style="font-size:12px;color:#555;margin:4px 0 8px">'+esc(shortRangeFull(r))+' · '+c.name+' · '+esc(r.dest||'-')+'</div>'+
-    '<button class="btn primary full" style="margin:0" data-act="open" data-id="'+r.id+'">도착 km 적기</button></div>';
+  var drv=myDriving(), miss=myMissing();
+  var h='';
+  if(drv){ var c=car(drv.carId);
+    h+='<div style="background:#fff;border:1.5px solid #185FA5;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 2px 10px rgba(24,95,165,.12)">'+
+      '<div style="font-size:12px;color:#185FA5;font-weight:600;display:flex;align-items:center;gap:6px">'+CAR_IC+'지금 내가 타고 있는 차</div>'+
+      '<div style="font-size:16px;font-weight:700;margin:4px 0 2px">'+c.name+' · '+esc(drv.dest||'-')+'</div>'+
+      '<div style="font-size:12px;color:#777;margin-bottom:12px">'+esc(tripWhen(drv))+' · 내리면 계기판 숫자 하나만 적어주세요</div>'+
+      '<button class="btn primary full" style="margin:0;padding:13px;font-size:16px;font-weight:700;justify-content:center" data-act="kmopen" data-id="'+drv.id+'">계기판 숫자 적기</button></div>';
+  }
+  if(miss.length){ var r=miss[0], c2=car(r.carId);
+    h+='<div style="background:#fff;border:1.5px solid #E24B4A;border-radius:14px;padding:14px;margin-bottom:12px">'+
+      '<div style="font-size:12px;color:#A32D2D;font-weight:600">계기판 숫자가 비어 있어요'+(miss.length>1?' · '+miss.length+'건':'')+'</div>'+
+      '<div style="font-size:15px;font-weight:700;margin:4px 0 2px">'+c2.name+' · '+esc(r.dest||'-')+'</div>'+
+      '<div style="font-size:12px;color:#777;margin-bottom:12px">'+esc(tripWhen(r))+' · 그때 내릴 때 본 숫자를 적어주세요</div>'+
+      '<button class="btn primary full" style="margin:0;padding:13px;font-size:16px;font-weight:700;justify-content:center" data-act="kmopen" data-id="'+r.id+'">계기판 숫자 적기</button></div>';
+  }
+  return h;
 }
 // 상세 창: 주행 기록 한 줄
 function kmLine(r){
@@ -630,40 +656,67 @@ function keepPopupVals(){
 function pv(id,def){ return popup&&popup.vals&&popup.vals[id]!=null?popup.vals[id]:(def==null?'':def); }
 var KM_IN='width:100%;padding:9px 12px;border:1px solid #185FA5;border-radius:8px;font-size:18px;font-weight:700;background:#fff;color:#1a1a18;';
 var SM_IN='width:100%;padding:8px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;background:#fff;color:#1a1a18;';
-// 상세 창: 반납/운행 기록 입력 상자
+// 상세 창: 운행 기록 버튼 (입력은 숫자 입력 창에서)
 function kmBox(r, g, inUse){
-  var on=kmOn(r.carId)&&inLog(list,r)&&r.type!=='maint', ended=isEnded(list,r), today=ymd(new Date());
-  var s0=on?startKmOf(list,r):null, prevMissing=on&&s0==null;
-  var noteHtml='<div style="font-size:12px;font-weight:600;margin:8px 0 6px">반납 메모 <span style="font-weight:400;color:#888;font-size:11px">(선택 · 다음 사람이 봐요)</span></div>'+
-    '<textarea id="ret-note" data-for="'+r.id+'" maxlength="200" placeholder="예: 주유 필요, 뒷범퍼 긁힘, 주차 B구역" style="'+SM_IN+'min-height:48px;resize:vertical;margin-bottom:8px">'+esc(pv('ret-note'))+'</textarea>';
-  var wrap=function(inner){ return '<div style="background:#F7FAFD;border:.5px solid #DCE9F5;border-radius:10px;padding:10px;margin:0 0 10px">'+inner+'</div>'; };
-  function startField(){
-    if(!prevMissing&&r.startKm==null) return '<div style="font-size:12px;color:#777;margin-bottom:8px">출발 km <b style="color:#1a1a18">'+fmtKm(s0)+'</b> <span style="color:#aaa">(앞 사람 도착 km)</span></div>';
-    var p=prevTrip(list,r);
-    return '<div style="font-size:12px;font-weight:600;margin-bottom:6px">출발 km'+(prevMissing?' <span style="font-weight:400;color:#854F0B;font-size:11px">'+(p?esc(who(p))+'님이 도착 km를 안 적었어요':'처음 기록')+' — 탈 때 계기판 숫자</span>':'')+'</div>'+
-      '<input id="km-start" data-for="'+r.id+'" inputmode="numeric" placeholder="예: 12376" value="'+esc(pv('km-start', r.startKm!=null?r.startKm:''))+'" style="'+SM_IN+'margin-bottom:8px">';
+  var on=kmOn(r.carId)&&inLog(list,r)&&r.type!=='maint', ended=isEnded(list,r);
+  if(!on){
+    if(!inUse) return '';
+    return '<div style="background:#F7FAFD;border:.5px solid #DCE9F5;border-radius:10px;padding:10px;margin:0 0 10px">'+
+      '<div style="font-size:12px;font-weight:600;margin:0 0 6px">반납 메모 <span style="font-weight:400;color:#888;font-size:11px">(선택 · 다음 사람이 봐요)</span></div>'+
+      '<textarea id="ret-note" data-for="'+r.id+'" maxlength="200" placeholder="예: 주유 필요, 뒷범퍼 긁힘, 주차 B구역" style="'+SM_IN+'min-height:48px;resize:vertical;margin-bottom:8px">'+esc(pv('ret-note'))+'</textarea>'+
+      '<button class="btn primary full" style="margin:0" data-act="return" data-id="'+r.id+'"><i class="ti ti-key"></i> 지금 반납 완료</button></div>';
   }
-  function endFields(){
-    var fon=pv('fuelOn', !!r.fuel);
-    return '<div style="font-size:12px;font-weight:600;margin-bottom:6px">도착 계기판 km *</div>'+
-      '<input id="km-end" data-for="'+r.id+'" inputmode="numeric" placeholder="계기판 숫자" value="'+esc(pv('km-end', r.endKm!=null?r.endKm:''))+'" style="'+KM_IN+'margin-bottom:8px">'+
-      '<label style="display:flex;align-items:center;gap:7px;font-size:13px;margin-bottom:6px;cursor:pointer;width:max-content"><input type="checkbox" id="km-fuelchk" data-for="'+r.id+'" style="width:16px;height:16px;margin:0"'+(fon?' checked':'')+'> 주유했어요</label>'+
-      (fon?'<input id="km-fuel" data-for="'+r.id+'" inputmode="numeric" placeholder="주유 금액 (원)" value="'+esc(pv('km-fuel', r.fuel||''))+'" style="'+SM_IN+'margin-bottom:6px">':'');
-  }
-  if(inUse){
-    if(!on) return wrap(noteHtml.replace('margin:8px 0 6px','margin:0 0 6px')+'<button class="btn primary full" style="margin:0" data-act="return" data-id="'+r.id+'"><i class="ti ti-key"></i> 지금 반납 완료</button>');
-    return wrap(startField()+endFields()+noteHtml+'<button class="btn primary full" style="margin:0" data-act="return" data-id="'+r.id+'"><i class="ti ti-key"></i> 지금 반납 완료</button>');
-  }
-  if(!on) return '';
-  // 끝났는데 도착 km가 없거나, 고치기를 누른 경우
-  if(ended&&(r.endKm==null&&endKmOf(list,r)==null||popup.kmEdit))
-    return wrap('<div style="font-size:12px;color:#A32D2D;font-weight:600;margin-bottom:8px">'+(popup.kmEdit?'운행 기록 고치기':'운행 기록을 아직 안 적었어요')+'</div>'+startField()+endFields()+
-      '<button class="btn primary full" style="margin:4px 0 0" data-act="kmsave" data-id="'+r.id+'">운행 기록 저장</button>');
-  if(ended) return '<div style="text-align:right;margin:-6px 0 8px"><button class="btn sm" data-act="kmedit"><i class="ti ti-pencil"></i> km 고치기</button></div>';
-  // 오늘 탈 예약인데 앞 사람 기록이 없으면 출발 km를 먼저 받아둠
-  if(prevMissing&&g[0].date===today)
-    return wrap(startField()+'<button class="btn full" style="margin:0" data-act="kmsave" data-mode="start" data-id="'+r.id+'">출발 km 저장</button>');
+  if(inUse||(ended&&endKmOf(list,r)==null))
+    return '<button class="btn primary full" style="margin:0 0 10px;padding:12px;font-size:15px;font-weight:700;justify-content:center" data-act="kmopen" data-id="'+r.id+'">계기판 숫자 적기</button>';
+  if(ended) return '<div style="text-align:right;margin:-6px 0 8px"><button class="btn sm" data-act="kmopen" data-id="'+r.id+'"><i class="ti ti-pencil"></i> 계기판 숫자 고치기</button></div>';
   return '';
+}
+// 계기판 숫자 입력 창: 큰 숫자 칸 하나 + 주유 체크 + (선택) 메모
+function kmSheet(r){
+  var c=car(r.carId), base=startKmOf(list,r), p=prevTrip(list,r), gate=popup.gate, ck=carKm[r.carId];
+  var fon=pv('fuelOn', !!r.fuel), noteOn=popup.noteOn||!!pv('ret-note'), startOn=popup.startOn||r.startKm!=null;
+  var refTxt;
+  if(base!=null){
+    if(r.startKm!=null) refTxt='출발 숫자 '+fmtKm(base);
+    else if(p&&p.endKm!=null) refTxt='앞 사람 기록 '+fmtKm(base)+' <span style="color:#aaa">('+esc(who(p))+' · '+(parseYmd(p.date).getMonth()+1)+'/'+parseYmd(p.date).getDate()+')</span>';
+    else refTxt='기준 숫자 '+fmtKm(base);
+  } else refTxt=p?'<span style="color:#854F0B">앞 사람('+esc(who(p))+')이 숫자를 안 적었어요</span>':'앞 기록 없음';
+  var h='<div class="cal-popup-inner" style="width:440px"><div class="cal-popup-header"><h4>'+(gate?'<span style="color:#A32D2D">지난 운행 숫자가 비어 있어요</span>':'<span class="cs-dot" style="background:'+c.color+'"></span>'+c.name+' 계기판 숫자')+'</h4><button class="btn sm" data-act="pclose"><i class="ti ti-x"></i></button></div><div class="cal-popup-body">'+
+    '<div style="font-size:13px;margin-bottom:2px"><b>'+(gate?c.name+' · ':'')+esc(tripWhen(r))+'</b> · '+esc(r.dest||'-')+'</div>'+
+    '<div style="font-size:12px;color:#777;margin-bottom:10px">'+(gate?'그때 내릴 때 본 계기판 숫자를 적고 예약을 계속해요.':'차에서 내릴 때 계기판에 보이는 숫자 그대로 적어주세요.')+'</div>'+
+    '<input id="km-end" data-for="'+r.id+'" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="계기판 숫자" value="'+esc(pv('km-end', r.endKm!=null?r.endKm:''))+'" style="width:100%;height:60px;border:2px solid #185FA5;border-radius:12px;text-align:center;font-size:28px;font-weight:700;letter-spacing:1px;background:#fff;color:#1a1a18">'+
+    '<div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#777;background:#f7f7f5;border-radius:8px;padding:8px 10px;margin-top:8px"><span>'+refTxt+'</span><b id="km-diff" data-base="'+(base==null?'':base)+'" style="color:#185FA5;white-space:nowrap"></b></div>'+
+    (base==null&&p?(startOn?'<div style="font-size:12px;font-weight:600;margin:10px 0 6px">탈 때 본 숫자 <span style="font-weight:400;color:#888">(알면)</span></div><input id="km-start" data-for="'+r.id+'" inputmode="numeric" placeholder="예: 12376" value="'+esc(pv('km-start', r.startKm!=null?r.startKm:''))+'" style="'+SM_IN+'">'
+      :'<div style="font-size:12px;color:#185FA5;margin-top:8px;cursor:pointer" data-act="kmstart">+ 탈 때 본 숫자도 알면 적기</div>'):'')+
+    '<label style="display:flex;align-items:center;gap:8px;font-size:14px;margin:14px 0 6px;cursor:pointer;width:max-content"><input type="checkbox" id="km-fuelchk" data-for="'+r.id+'" style="width:18px;height:18px;margin:0"'+(fon?' checked':'')+'> 주유했어요</label>'+
+    (fon?'<input id="km-fuel" data-for="'+r.id+'" inputmode="numeric" placeholder="주유 금액 (원)" value="'+esc(pv('km-fuel', r.fuel||''))+'" style="'+SM_IN+'margin-bottom:6px">':'')+
+    (noteOn?'<div style="font-size:12px;font-weight:600;margin:8px 0 6px">다음 사람에게 메모 <span style="font-weight:400;color:#888">(선택)</span></div><textarea id="ret-note" data-for="'+r.id+'" maxlength="200" placeholder="예: 주유 필요, 뒷범퍼 긁힘, 주차 B구역" style="'+SM_IN+'min-height:48px;resize:vertical">'+esc(pv('ret-note', r.returnNote||''))+'</textarea>'
+      :'<div style="font-size:12px;color:#185FA5;margin:4px 0 0;cursor:pointer" data-act="kmnote">+ 다음 사람에게 메모 남기기 (선택)</div>')+
+    '<button class="btn primary full" style="margin:16px 0 0;padding:13px;font-size:16px;font-weight:700;justify-content:center" data-act="kmdone" data-id="'+r.id+'">'+(gate?'적고 예약 계속하기':'완료')+'</button>'+
+    (gate?'<div style="text-align:center;font-size:12px;color:#888;margin-top:10px;text-decoration:underline;cursor:pointer" data-act="kmskip" data-id="'+r.id+'">숫자를 몰라요 (다음 사람이 채워요)</div>':'')+
+    '</div></div>';
+  setTimeout(kmDiff,0);
+  return h;
+}
+// 숫자를 치는 동안 이번 운행 거리 표시
+function kmDiff(){
+  var e=document.getElementById('km-end'), d=document.getElementById('km-diff'); if(!e||!d) return;
+  var se=document.getElementById('km-start'), b=se&&parseKm(se.value)!=null?parseKm(se.value):(d.getAttribute('data-base')===''?null:+d.getAttribute('data-base'));
+  var v=parseKm(e.value);
+  d.style.color='#185FA5';
+  if(v==null||b==null){ d.textContent=''; return; }
+  if(v<b){ d.textContent='앞 기록보다 작아요'; d.style.color='#A32D2D'; return; }
+  d.textContent='+'+(v-b).toLocaleString()+' km';
+  if(v-b>1000) d.style.color='#A32D2D';
+}
+// K4: 안 적은 운행이 있으면 새 예약 전에 먼저 묻기 ("몰라요"로 넘긴 건 그날 하루는 안 물음)
+function kmSkipped(id){ try{ var m=JSON.parse(localStorage.getItem('kmSkip')||'{}'); return m[id]===ymd(new Date()); }catch(e){ return false; } }
+function kmSkip(id){ try{ var m=JSON.parse(localStorage.getItem('kmSkip')||'{}'), t=ymd(new Date()); Object.keys(m).forEach(function(k){ if(m[k]!==t) delete m[k]; }); m[id]=t; localStorage.setItem('kmSkip',JSON.stringify(m)); }catch(e){} kmSkipMem[id]=1; }
+var kmSkipMem={};
+function startNew(opts){
+  var m=myMissing().filter(function(r){ return !kmSkipMem[r.id]&&!kmSkipped(r.id); })[0];
+  if(m){ pushLayer(); popup={type:'km', id:m.id, gate:opts}; renderPopup(); return; }
+  openForm(opts);
 }
 // 입력값 읽기 + 확인
 function readKm(r, startOnly){
@@ -672,9 +725,9 @@ function readKm(r, startOnly){
   var sk=se?parseKm(se.value):(r.startKm!=null?r.startKm:null);
   if(startOnly){ if(sk==null){ toast('출발 km를 숫자로 적어주세요.'); return null; } return { startKm:sk }; }
   var ek=ee?parseKm(ee.value):null;
-  if(ek==null){ toast('도착 계기판 km를 적어주세요.'); if(ee) ee.focus(); return null; }
+  if(ek==null){ toast('계기판 숫자를 적어주세요.'); if(ee) ee.focus(); return null; }
   var base=sk!=null?sk:startKmOf(list,r);
-  if(base!=null&&ek<base){ toast('도착 km('+fmtKm(ek)+')가 출발 km('+fmtKm(base)+')보다 작아요. 다시 확인해주세요.'); return null; }
+  if(base!=null&&ek<base){ toast('적은 숫자('+fmtKm(ek)+')가 앞 기록('+fmtKm(base)+')보다 작아요. 다시 확인해주세요.'); return null; }
   if(base!=null&&ek-base>1000&&!confirm('이번 운행이 '+(ek-base).toLocaleString()+' km 맞나요?')) return null;
   var fuel=fc&&fc.checked?(parseKm(fe&&fe.value)||0):0;
   if(fc&&fc.checked&&!fuel){ toast('주유 금액을 적어주세요.'); return null; }
@@ -685,6 +738,7 @@ async function saveKm(r, kv){
   var g=group(r), b=writeBatch(db), upd={ updatedAt:serverTimestamp(), updatedBy:me.phone };
   if('startKm' in kv) upd.startKm=kv.startKm;
   if('endKm' in kv){ upd.endKm=kv.endKm; upd.fuel=kv.fuel||0; }
+  if('returnNote' in kv) upd.returnNote=kv.returnNote;
   g.forEach(function(x){ b.update(doc(db,'reservations',x.id), upd); });
   await b.commit();
   if(kv.endKm!=null) await bumpCarKm(r.carId, kv.endKm, tripEnd(list,r));
@@ -727,6 +781,28 @@ function logRows(){
       s:s0, e:e0, d:(s0!=null&&e0!=null?e0-s0:null), fuel:r.fuel||0, note:note.join(' · '), miss:e0==null||s0==null };
   });
 }
+// 관리자: 숫자 안 적은 운행 (최근 두 달, 차 전체) + 단톡방 안내 문구
+function allMissing(){
+  var out=[]; CARS.forEach(function(c){ tripsOf(list,c.id).forEach(function(r){ if(needsKm(r)) out.push(r); }); });
+  return out.sort(function(a,b){ return tripStart(list,b).localeCompare(tripStart(list,a)); });
+}
+function mdw(x){ var d=parseYmd(x); return (d.getMonth()+1)+'/'+d.getDate()+' ('+DOW[d.getDay()]+')'; }
+function missingText(ms){
+  return '[차량 운행일지] 계기판 숫자가 비어 있어요.\n'+ms.map(function(r){ return '· '+(users(r)[0]||r.ownerName||'')+' — '+mdw(group(r)[0].date)+' '+car(r.carId).name; }).join('\n')+
+    '\n차량 예약 앱 맨 위 [계기판 숫자 적기]에서 숫자만 적어주세요!';
+}
+function missingAdmin(){
+  var ms=allMissing(); if(!ms.length) return '';
+  return '<div style="background:#fff;border:.5px solid #F7C1C1;border-radius:12px;overflow:hidden;margin-bottom:12px">'+
+    '<div style="background:#FCEBEB;padding:9px 12px;font-size:13px;font-weight:700;color:#A32D2D;display:flex;align-items:center;gap:8px">숫자 안 적은 운행 '+ms.length+'건'+
+    '<button class="btn sm" style="margin-left:auto" data-act="lcopy"><i class="ti ti-copy"></i> 단톡방 안내 문구 복사</button></div>'+
+    ms.map(function(r){ return '<div data-act="open" data-id="'+r.id+'" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:.5px solid #f0f0ec;font-size:12px;cursor:pointer"><b style="font-size:13px">'+esc(users(r)[0]||r.ownerName||'')+'</b><span style="color:#777">'+mdw(group(r)[0].date)+' · '+car(r.carId).name+'</span><span style="margin-left:auto;color:#999">'+esc(r.dest||'')+'</span></div>'; }).join('')+'</div>';
+}
+function copyText(txt){
+  function fallback(){ var ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); var ok=false; try{ ok=document.execCommand('copy'); }catch(e){} ta.remove(); return ok; }
+  if(navigator.clipboard&&navigator.clipboard.writeText) return navigator.clipboard.writeText(txt).then(function(){ return true; },function(){ return fallback(); });
+  return Promise.resolve(fallback());
+}
 function renderLog(){
   var el=document.getElementById('logm');
   if(!el){ el=document.createElement('div'); el.id='logm'; el.className='sup-modal'; el.style.zIndex='350'; document.body.appendChild(el); }
@@ -737,7 +813,7 @@ function renderLog(){
   var card=function(l,v,red){ return '<div style="background:#fff;border:.5px solid '+(red?'#F7C1C1':'#e8e8e4')+';border-radius:10px;padding:9px 12px;font-size:11px;color:#777">'+l+'<b style="display:block;font-size:16px;color:'+(red?'#A32D2D':'#1a1a18')+';margin-top:2px">'+v+'</b></div>'; };
   var th='padding:7px 8px;background:#f5f5f3;color:#666;font-weight:500;text-align:left;border-bottom:.5px solid #e8e8e4;white-space:nowrap;position:sticky;top:0;';
   var td='padding:7px 8px;border-bottom:.5px solid #f0f0ec;white-space:nowrap;';
-  var h='<div class="sup-modal-inner" style="width:1000px;height:92vh"><div class="sup-modal-header"><h3>운행일지</h3><button class="btn sm" data-act="lclose"><i class="ti ti-x"></i></button></div><div class="sup-modal-body">'+
+  var h='<div class="sup-modal-inner" style="width:1000px;height:92vh"><div class="sup-modal-header"><h3>운행일지</h3><button class="btn sm" data-act="lclose"><i class="ti ti-x"></i></button></div><div class="sup-modal-body">'+missingAdmin()+
     '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px">'+
     '<select data-l="carId" style="'+SEL_STYLE+'width:140px">'+CARS.map(function(c){ return '<option value="'+c.id+'"'+(c.id===logState.carId?' selected':'')+'>'+c.name+'</option>'; }).join('')+'</select>'+
     '<select data-l="ym" style="'+SEL_STYLE+'width:130px">'+months.map(function(m){ return '<option value="'+m+'"'+(m===logState.ym?' selected':'')+'>'+m.slice(0,4)+'년 '+(+m.slice(5))+'월</option>'; }).join('')+'</select>'+
@@ -785,9 +861,9 @@ document.addEventListener('click', async function(ev){
     // 휴대폰에서 고른 날짜: 이번 달이면 오늘, 다른 달이면 1일
     mobileSel=ymd(new Date()).slice(0,7)===ymd(monthCursor).slice(0,7)?ymd(new Date()):ymd(monthCursor); scrollToToday=true; render(); }
   else if(a==='day'&&isMobile()){ mobileSel=t.getAttribute('data-date'); render(); }
-  else if(a==='day'){ var dt=t.getAttribute('data-date'); if(dt>=ymd(new Date())) openForm({ date:dt }); else { pushLayer(); popup={type:'day',date:dt}; renderPopup(); } }
+  else if(a==='day'){ var dt=t.getAttribute('data-date'); if(dt>=ymd(new Date())) startNew({ date:dt }); else { pushLayer(); popup={type:'day',date:dt}; renderPopup(); } }
   else if(a==='daylist'){ pushLayer(); popup={type:'day',date:t.getAttribute('data-date')}; renderPopup(); }
-  else if(a==='new'){ openForm({ date:t.getAttribute('data-date')||null, car:t.getAttribute('data-car')||null }); }
+  else if(a==='new'){ startNew({ date:t.getAttribute('data-date')||null, car:t.getAttribute('data-car')||null }); }
   else if(a==='open'){ var id=t.getAttribute('data-id'); if(id){ pushLayer(); popup={type:'detail',id:id}; renderPopup(); } else openForm({ car:t.getAttribute('data-car') }); }
   else if(a==='carinfo'){ pushLayer(); popup={type:'car',carId:t.getAttribute('data-car')}; renderPopup(); }
   else if(a==='pclose'){ popup=null; renderPopup(); if(!logState) popLayer(); }
@@ -820,10 +896,38 @@ document.addEventListener('click', async function(ev){
     try{ await saveKm(r4, kv4); popup.vals={}; popup.kmEdit=false; toast(kv4.endKm!=null?'운행 기록을 저장했어요.':'출발 km를 저장했어요.'); render(); if(logState) loadLog(); }
     catch(e){ console.error(e); toast(e.code==='permission-denied'?'저장 권한이 없어요.':'저장하지 못했어요.'); }
   }
-  else if(a==='kmedit'){ popup.kmEdit=true; renderPopup(); }
+  else if(a==='kmopen'){ var kid=t.getAttribute('data-id'); if(popup) popup={type:'km',id:kid}; else { pushLayer(); popup={type:'km',id:kid}; } renderPopup(); setTimeout(function(){ var e=document.getElementById('km-end'); if(e&&!e.value) e.focus(); },60); }
+  else if(a==='kmnote'){ keepPopupVals(); popup.noteOn=true; renderPopup(); var tn=document.getElementById('ret-note'); if(tn) tn.focus(); }
+  else if(a==='kmstart'){ keepPopupVals(); popup.startOn=true; renderPopup(); var ts=document.getElementById('km-start'); if(ts) ts.focus(); }
+  else if(a==='kmskip'){ var sid=t.getAttribute('data-id'), gopts=popup&&popup.gate; kmSkip(sid); popup=null; renderPopup(); if(gopts) startNew(gopts); }
+  else if(a==='kmdone'){
+    var r5=list.filter(function(x){ return x.id===t.getAttribute('data-id'); })[0]; if(!r5) return;
+    var kv5=readKm(r5); if(!kv5) return;
+    var ne5=document.getElementById('ret-note'), note5=ne5?String(ne5.value).trim().slice(0,200):null, gate5=popup&&popup.gate;
+    try{
+      if(inUseNow(r5)){
+        // 운행 중에 적으면 = 지금 반납
+        var g5=group(r5), td5=ymd(new Date()), now5=nowHM();
+        var segs5=g5.filter(function(x){ return x.date<=td5; }).map(function(x){ return { date:x.date, start:x.start, end:x.date===td5?now5:x.end }; }).filter(function(x){ return x.end>x.start; });
+        if(!segs5.length) return;
+        await saveReservation({ carId:r5.carId, segs:segs5, type:'use', dest:r5.dest, purpose:r5.purpose, riders:r5.riders||[], riderPhones:r5.riderPhones||[], memo:r5.memo, returnedAt:now5, returnNote:note5!=null?note5:(r5.returnNote||''),
+          startKm:kv5.startKm, endKm:kv5.endKm, fuel:kv5.fuel }, g5);
+        await bumpCarKm(r5.carId, kv5.endKm, segs5[segs5.length-1].date+' '+now5);
+        toast('저장했어요. '+car(r5.carId).name+' 반납 완료!');
+      } else {
+        if(note5!=null) kv5.returnNote=note5;
+        await saveKm(r5, kv5);
+        toast('계기판 숫자를 저장했어요.');
+      }
+      popup=null; renderPopup();
+      if(gate5) startNew(gate5); else if(!logState) popLayer();
+      if(logState) loadLog();
+    }catch(e){ console.error(e); toast(e.code==='permission-denied'?'저장 권한이 없어요.':'저장하지 못했어요.'); }
+  }
   else if(a==='log'){ logState={ carId:logState&&logState.carId||CARS[0].id, ym:logState&&logState.ym||ymd(new Date()).slice(0,7), rows:null }; pushLayer(); loadLog(); }
   else if(a==='lclose'){ logState=null; renderLog(); popLayer(); }
   else if(a==='lxlsx'){ exportLog(); }
+  else if(a==='lcopy'){ copyText(missingText(allMissing())).then(function(ok){ toast(ok?'복사했어요. 단톡방에 붙여넣으세요.':'복사하지 못했어요.'); }); }
   else if(a==='lbase'){
     var bi=document.getElementById('l-base'), bv=bi?parseKm(bi.value):null;
     if(bv==null){ toast('지금 계기판 km를 숫자로 적어주세요.'); return; }
@@ -878,6 +982,7 @@ document.addEventListener('focusout', function(ev){
   if(ev.target.id==='f-dest') setTimeout(function(){ var sg=document.getElementById('dest-sug'); if(sg) sg.classList.remove('open'); },150);
 });
 document.addEventListener('input', function(ev){
+  if(ev.target.id==='km-end'||ev.target.id==='km-start'){ kmDiff(); return; }
   var f=ev.target.getAttribute&&ev.target.getAttribute('data-f'); if(!form) return;
   if(f==='dest'||f==='memo') form[f]=ev.target.value;
   if(f==='dest'){ form.destPicked=false; var sg=document.getElementById('dest-sug'); if(sg){ sg.innerHTML=destSug(form.dest); sg.classList.add('open'); } }
