@@ -248,7 +248,13 @@ function statusRow(){
       (function(){ var pn=lastNote(c.id, t+n); return pn?'<div class="cs-sub" style="color:#854F0B;margin-top:3px"><i class="ti ti-note"></i> '+esc(pn.returnNote)+'</div>':''; })()+'</div>';
   }).join('')+'</div>'+(NOTICE?'<div class="notice">'+esc(NOTICE)+'</div>':'');
 }
-function evLabel(r){ return r.type==='maint'?'정비':who(r)+(r.dest?' '+r.dest:''); }
+// 경로에서 들른 곳만 (회사·집·기타 빼고)
+var ENDS=['회사','집','기타'];
+function stopsOf(r){ return r.route?String(r.route).split('-').map(function(x){ return x.trim(); }).filter(function(x){ return x&&ENDS.indexOf(x)<0; }):(r.dest?[r.dest]:[]); }
+function mainDest(route, fallback){ var a=stopsOf({route:route}); return a[0]||fallback||''; }
+// 달력 표시: 운행일지에서 고친 경로를 그대로 따라감 (예: 홍길동 한미1공장 외1)
+function placeLabel(r){ var a=stopsOf(r); return a.length?a[0]+(a.length>1?' 외'+(a.length-1):''):''; }
+function evLabel(r){ if(r.type==='maint') return '정비'; var pl=placeLabel(r); return who(r)+(pl?' '+pl:''); }
 function monthView(){
   var m=monthCursor, y=m.getFullYear(), mo=m.getMonth(), t=ymd(new Date());
   var first=new Date(y,mo,1).getDay(), last=new Date(y,mo+1,0).getDate();
@@ -359,7 +365,7 @@ function renderPopup(){
     var callP=(r.riderPhones&&r.riderPhones[0])||r.ownerPhone, callN=r.riders&&r.riders[0]?short1(r.riders[0]):short1(r.ownerName);
     h='<div class="cal-popup-inner"><div class="cal-popup-header"><h4><span class="cs-dot" style="background:'+c.color+'"></span>'+c.name+(r.purpose?' <span class="badge-cat">'+esc(r.purpose)+'</span>':'')+'</h4><button class="btn sm" data-act="pclose"><i class="ti ti-x"></i></button></div>'+
       '<div class="cal-popup-body"><div class="dl">'+
-      '<div><span>업장</span><b>'+esc(r.dest||'-')+'</b></div>'+
+      '<div><span>업장</span><b>'+esc(r.dest||'-')+'</b></div>'+(r.route&&stopsOf(r).length>1?'<div><span>경로</span>'+esc(r.route)+'</div>':'')+
       '<div><span>일시</span><div><b>'+esc(rangeText(g))+'</b>'+(r.returnedAt?' <span class="badge-cat" style="background:#EAF3DE;color:#3B6D11">'+esc(r.returnedAt)+' 반납 완료</span>':'')+'</div></div>'+
       '<div><span>운전자</span><b>'+esc(whoFull(r))+'</b></div>'+
       (r.riders&&r.riders.length&&r.ownerName?'<div><span>등록</span>'+esc(r.ownerName)+(r.ownerPhone===me.phone?' (나)':'')+'</div>':'')+
@@ -549,13 +555,21 @@ function openSug(){
   var sg=document.getElementById('dest-sug'); if(!sg||!form) return;
   sg.innerHTML=destSug(form.destPicked?'':form.dest); sg.classList.add('open'); sg.scrollTop=0;
 }
+// 예약 수정에서 업장을 바꾸면 경로의 첫 업장도 같이 바꿈
+function syncRoute(o, dest){
+  if(!o.route) return '';
+  var parts=String(o.route).split('-').map(function(x){ return x.trim(); }).filter(Boolean);
+  var i=parts.indexOf(o.dest); if(i<0) i=parts.findIndex(function(x){ return ENDS.indexOf(x)<0; });
+  if(i<0) parts.unshift(dest); else parts[i]=dest;
+  return parts.join('-');
+}
 async function submitForm(){
   if(!form||!form.carIds.length||!formValid()) return;
   var segs=formSegs(), o0=form.olds[0];
   var rs=form.carIds.map(function(id){ var d=form.drivers[id]||''; return { carId:id, segs:segs, type:'use',
           dest:form.dest.trim(), purpose:form.purpose, riders:d?[d]:[], riderPhones:d&&phoneOf(d)?[phoneOf(d)]:[], memo:form.memo.trim(),
           returnedAt:(o0&&o0.returnedAt)||'', returnNote:(o0&&o0.returnNote)||'',
-          startKm:o0?o0.startKm:null, endKm:o0?o0.endKm:null, fuel:o0?o0.fuel:0, origin:o0?o0.origin:'', route:o0?o0.route:'', toll:o0?o0.toll:0, lateAdd:o0?!!o0.lateAdd:tKey(segs[0].date,segs[0].start)<tKey(ymd(new Date()),nowHM()) }; });
+          startKm:o0?o0.startKm:null, endKm:o0?o0.endKm:null, fuel:o0?o0.fuel:0, origin:o0?o0.origin:'', route:o0?syncRoute(o0, form.dest.trim()):'', toll:o0?o0.toll:0, lateAdd:o0?!!o0.lateAdd:tKey(segs[0].date,segs[0].start)<tKey(ymd(new Date()),nowHM()) }; });
   var olds=form.olds; form.busy=true; renderForm();
   try{
     await saveReservation(rs, olds);
@@ -803,6 +817,7 @@ async function saveKm(r, kv){
   if('endKm' in kv){ upd.endKm=kv.endKm; upd.fuel=kv.fuel||0; }
   if('returnNote' in kv) upd.returnNote=kv.returnNote;
   ['origin','route','toll'].forEach(function(k){ if(k in kv) upd[k]=kv[k]; });
+  if('route' in kv) upd.dest=mainDest(kv.route, r.dest);   // 예약 달력의 업장도 같이 바뀜
   g.forEach(function(x){ b.update(doc(db,'reservations',x.id), upd); });
   await b.commit();
   if(kv.endKm!=null) await bumpCarKm(r.carId, kv.endKm, tripEnd(list,r));
@@ -1043,7 +1058,7 @@ document.addEventListener('click', async function(ev){
         var g5=group(r5), td5=ymd(new Date()), now5=nowHM();
         var segs5=g5.filter(function(x){ return x.date<=td5; }).map(function(x){ return { date:x.date, start:x.start, end:x.date===td5?now5:x.end }; }).filter(function(x){ return x.end>x.start; });
         if(!segs5.length) return;
-        await saveReservation({ carId:r5.carId, segs:segs5, type:'use', dest:r5.dest, purpose:r5.purpose, riders:r5.riders||[], riderPhones:r5.riderPhones||[], memo:r5.memo, returnedAt:now5, returnNote:note5!=null?note5:(r5.returnNote||''),
+        await saveReservation({ carId:r5.carId, segs:segs5, type:'use', dest:'route' in kv5?mainDest(kv5.route, r5.dest):r5.dest, purpose:r5.purpose, riders:r5.riders||[], riderPhones:r5.riderPhones||[], memo:r5.memo, returnedAt:now5, returnNote:note5!=null?note5:(r5.returnNote||''),
           startKm:kv5.startKm, endKm:kv5.endKm, fuel:kv5.fuel, origin:'origin' in kv5?kv5.origin:r5.origin, route:'route' in kv5?kv5.route:r5.route, toll:'toll' in kv5?kv5.toll:r5.toll, lateAdd:r5.lateAdd }, g5);
         await bumpCarKm(r5.carId, kv5.endKm, segs5[segs5.length-1].date+' '+now5);
         toast('저장했어요. '+car(r5.carId).name+' 반납 완료!');
