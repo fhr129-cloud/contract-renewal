@@ -397,6 +397,7 @@ function renderPopup(){
       dayListHtml(popup.date)+'</div></div>';
   }
   el.className='cal-popup open'; el.innerHTML=h;
+  if(popup.type==='km') initStopSort();
 }
 
 // ── 예약 등록 (운영지원 등록과 같은 단계형 모달) ──────────────────
@@ -748,11 +749,30 @@ function routeStops(r){
 }
 function readStops(){
   if(!popup||!popup.stops) return;
+  if(popup._noRead){ popup._noRead=false; return; }   // 방금 끌어서 순서를 바꿈 → 화면 값 대신 바뀐 순서를 씀
   popup.stops=popup.stops.map(function(v,i){ var e=document.getElementById('km-stop-'+i); return e?e.value:v; });
   var de=document.getElementById('km-dest'); if(de) popup.dest=de.value;
 }
 function routeOf(){ readStops(); var a=popup.stops.map(function(x){ return String(x).trim(); }).filter(Boolean); var d=String(popup.dest||'').trim(); if(d) a.push(d); return a.join('-').slice(0,120); }
 function stopList(){ var names=['회사','집']; FIXED_SITES.concat(sites).forEach(function(n){ if(n&&names.indexOf(n)<0) names.push(n); }); return names; }
+// 경유지 끌어서 순서 바꾸기 (FS 앱 직원 순서와 같은 SortableJS, 필요할 때만 불러옴)
+function loadSortable(){
+  return new Promise(function(ok,no){ if(window.Sortable) return ok();
+    var sc=document.createElement('script'); sc.src='https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js'; sc.onload=function(){ ok(); }; sc.onerror=no; document.head.appendChild(sc); });
+}
+function initStopSort(){
+  var box=document.getElementById('stop-box'); if(!box||!popup||!popup.stops||popup.stops.length<2) return;
+  loadSortable().then(function(){
+    if(!box.isConnected) return;
+    Sortable.create(box,{ handle:'.stop-h', animation:150, ghostClass:'stop-ghost',
+      onEnd:function(){
+        keepPopupVals(); var cur=popup.stops.slice();
+        var order=[].slice.call(box.querySelectorAll('.stop-row')).map(function(el){ return +el.getAttribute('data-i'); });
+        popup.stops=order.map(function(i){ return cur[i]; });
+        popup._noRead=true; renderPopup();
+      }});
+  }).catch(function(){});
+}
 function routeFields(r){
   var o=pv('km-origin', r.origin||'회사'), stops=routeStops(r);
   var dot=function(c){ return '<span style="width:10px;height:10px;border-radius:50%;border:2px solid '+c+';flex-shrink:0"></span>'; };
@@ -762,8 +782,8 @@ function routeFields(r){
     '<datalist id="stop-list">'+stopList().map(function(n){ return '<option value="'+esc(n)+'">'; }).join('')+'</datalist>'+
     '<div style="border:.5px solid #bbb;border-radius:10px;overflow:hidden;background:#fff">'+
     '<div style="'+row+'">'+dot('#1D9E75')+'<select id="km-origin" data-for="'+r.id+'" style="'+inp+'appearance:auto;">'+['회사','집','기타'].map(function(x){ return '<option'+(x===o?' selected':'')+'>'+x+'</option>'; }).join('')+'</select><span style="font-size:11px;color:#aaa">출발</span></div>'+
-    stops.map(function(v,i){ return '<div style="'+row+'">'+dot('#999')+'<input id="km-stop-'+i+'" list="stop-list" placeholder="경유지 (업장 검색)" value="'+esc(v)+'" style="'+inp+'">'+
-      '<button type="button" data-act="stopdel" data-i="'+i+'" aria-label="경유지 빼기" style="width:24px;height:24px;border-radius:50%;border:1px solid #ccc;background:#fff;color:#888;font-size:16px;line-height:20px;padding:0;cursor:pointer">−</button></div>'; }).join('')+
+    '<div id="stop-box">'+stops.map(function(v,i){ return '<div class="stop-row" data-i="'+i+'" style="'+row+'">'+(stops.length>1?'<span class="stop-h" title="끌어서 순서 바꾸기">⠿</span>':'')+dot('#999')+'<input id="km-stop-'+i+'" list="stop-list" placeholder="경유지 (업장 검색)" value="'+esc(v)+'" style="'+inp+'">'+
+      '<button type="button" data-act="stopdel" data-i="'+i+'" aria-label="경유지 빼기" style="width:24px;height:24px;border-radius:50%;border:1px solid #ccc;background:#fff;color:#888;font-size:16px;line-height:20px;padding:0;cursor:pointer">−</button></div>'; }).join('')+'</div>'+
     '<div style="'+row+'border-bottom:none">'+dot('#E24B4A')+'<input id="km-dest" list="stop-list" placeholder="도착 (예: 회사, 집)" value="'+esc(popup.dest)+'" style="'+inp+'"><span style="font-size:11px;color:#aaa">도착</span></div></div>'+
     '<div style="display:flex;align-items:center;gap:8px;margin:8px 0 12px"><button type="button" class="btn sm" data-act="stopadd"><i class="ti ti-plus"></i> 경유지</button><span style="font-size:11px;color:#888">예약한 업장이 미리 들어가 있어요</span></div>'+
     '';
@@ -955,6 +975,7 @@ var LOG_CSS='.car-tabs{display:flex;gap:4px;border-bottom:.5px solid #e8e8e4;bac
   '.lg-div{display:flex;align-items:center;gap:8px;margin:10px 0;font-size:11px;font-weight:700;color:#B07D00;}.lg-div:before,.lg-div:after{content:"";flex:1;height:1px;background:#E8C766;}'+
   '.lg-late{display:inline-block;font-size:10px;font-weight:600;color:#854F0B;background:#FAEEDA;border-radius:4px;padding:0 5px;}.lg-t tr.off{cursor:pointer;}.lg-t tr.off:hover td{background:#F3F7FB;}.lg-flash td,.lg-card.lg-flash{animation:lgf 1.6s ease;}@keyframes lgf{0%,40%{background:#CFE3F7;}100%{}}'+
   '.ev-miss{width:6px;height:6px;border-radius:50%;background:#E24B4A;display:inline-block;margin-right:3px;flex-shrink:0;align-self:center;}'+
+  '.stop-h{cursor:grab;color:#bbb;font-size:16px;line-height:1;padding:8px 2px;margin-left:-4px;touch-action:none;user-select:none;}.stop-h:active{cursor:grabbing;}.stop-ghost{opacity:.4;background:#E6F1FB;}'+
   '.lg-in{display:inline-block;background:#185FA5;color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;}'+
   '.lg-mo{display:none;}.lg-card{background:#fff;border:.5px solid #e8e8e4;border-radius:10px;margin-bottom:6px;padding:9px 12px;display:flex;gap:10px;align-items:center;cursor:pointer;}'+
   '.lg-card .d{width:32px;text-align:center;font-weight:700;font-size:15px;line-height:1.1;}.lg-card .d small{display:block;font-size:10px;font-weight:500;color:#888;}'+
