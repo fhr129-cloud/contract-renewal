@@ -838,7 +838,7 @@ function logPage(){
   }
   var mt=D.months.map(function(x){ var cur=x.m===mo; return '<tr'+(cur?' class="cur"':'')+'><td class="c">'+x.m+'월</td><td class="n">'+(x.km!=null?x.km.toLocaleString():'')+'</td></tr>'; }).join('');
   h+='<div class="lg-pc"><div class="lg-sheet"><div class="lg-title">'+String(y).slice(2)+'년 '+mo+'월 차량운행일지</div>'+
-    '<div class="lg-info"><div class="k">차량</div><div>'+c.name+'</div><div class="k">유류구분</div><div>'+esc(c.fuel||'-')+'</div><div class="k">월 총 주행거리</div><div style="font-weight:700;color:#185FA5">'+D.tot.toLocaleString()+' km</div></div>'+
+    '<div class="lg-info"><div class="k">차량</div><div>'+c.name+'</div><div class="k">월 총 주행거리</div><div style="font-weight:700;color:#185FA5">'+D.tot.toLocaleString()+' km</div></div>'+
     '<div style="overflow-x:auto"><table class="lg-t"><tr><th style="width:34px">일</th><th>운행자</th><th>출발지</th><th>경유지 및 도착지</th><th>운행시작</th><th>운행종료</th><th>운행거리</th><th>통행료</th><th>주유</th></tr>'+body+
     '<tr class="tot"><th colspan="6" style="text-align:right">합계</th><th class="n">'+D.tot.toLocaleString()+'</th><th class="n">'+n0(D.toll)+'</th><th class="n">'+n0(D.fuel)+'</th></tr></table></div></div>'+
     '<div class="lg-side"><table class="lg-t"><tr><th>월</th><th>누적 km</th></tr>'+mt+'<tr class="tot"><th>년 누적</th><th class="n">'+D.year.toLocaleString()+'</th></tr></table>'+
@@ -859,7 +859,7 @@ var LOG_CSS='.car-tabs{display:flex;gap:4px;border-bottom:.5px solid #e8e8e4;bac
   '.lg-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}.lg-sum div{background:#fff;border:.5px solid #e8e8e4;border-radius:10px;padding:8px 12px;font-size:11px;color:#777;}.lg-sum b{display:block;font-size:16px;color:#1a1a18;margin-top:1px;}.lg-sum .red{border-color:#F7C1C1;}.lg-sum .red b{color:#A32D2D;}'+
   '.lg-pc{display:flex;gap:14px;align-items:flex-start;}.lg-sheet{flex:1;min-width:0;background:#fff;border:.5px solid #d8d8d2;border-radius:8px;overflow:hidden;}.lg-side{width:190px;flex-shrink:0;}'+
   '.lg-title{font-size:19px;font-weight:800;text-align:center;padding:12px 0;letter-spacing:1px;}'+
-  '.lg-info{display:grid;grid-template-columns:70px 1fr 80px 1fr 110px 1fr;border-top:.5px solid #cfcfc8;font-size:12px;}.lg-info div{padding:7px 8px;border-right:.5px solid #cfcfc8;}.lg-info div:last-child{border-right:none;}.lg-info .k{background:#EEF0F3;font-weight:600;text-align:center;}'+
+  '.lg-info{display:grid;grid-template-columns:70px 1fr 110px 1fr;border-top:.5px solid #cfcfc8;font-size:12px;}.lg-info div{padding:7px 8px;border-right:.5px solid #cfcfc8;}.lg-info div:last-child{border-right:none;}.lg-info .k{background:#EEF0F3;font-weight:600;text-align:center;}'+
   '.lg-t{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums;background:#fff;}.lg-t th,.lg-t td{border:.5px solid #cfcfc8;padding:5px 7px;white-space:nowrap;}.lg-t th{background:#EEF0F3;font-weight:600;color:#333;}'+
   '.lg-t .c{text-align:center;}.lg-t .n{text-align:right;}.lg-t .red{color:#C0392B;}.lg-t .blue{color:#1A5276;}.lg-t tr.off td{background:#FAFAF8;color:#bbb;}.lg-t tr.off td.red{color:#E7A9A1;}'+
   '.lg-t tr.row{cursor:pointer;}.lg-t tr.row:hover td{background:#F3F7FB;}.lg-t tr.me td{background:#F7FAFD;}.lg-t tr.ms td.kc{background:#FCEBEB;}.lg-t tr.cur td{background:#E6F1FB;font-weight:700;}.lg-t tr.tot th{background:#EEF0F3;}'+
@@ -901,7 +901,7 @@ async function exportLog(){
   if(!logState||!logState.pool){ toast('아직 불러오는 중이에요.'); return; }
   try{ await loadXlsx(); }catch(e){ toast('엑셀 도구를 불러오지 못했어요.'); return; }
   var c=car(logState.carId), ym=logState.ym, y=+ym.slice(0,4), mo=+ym.slice(5,7), D=logData(), last=new Date(y,mo,0).getDate();
-  var aoa=[[String(y).slice(2)+'년 '+mo+'월 차량운행일지'],['차량',c.name,'유류구분',c.fuel||'','월 총 주행거리',D.tot+' km'],[],
+  var aoa=[[String(y).slice(2)+'년 '+mo+'월 차량운행일지'],['차량',c.name,'월 총 주행거리',D.tot+' km'],[],
     ['일','운행자','출발지','경유지 및 도착지','운행시작','운행종료','운행거리','통행료','주유','','월','누적km']];
   var body=[];
   for(var dd=1; dd<=last; dd++){
