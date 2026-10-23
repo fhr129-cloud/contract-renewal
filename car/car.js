@@ -10,6 +10,8 @@ export var CARS = [
   { id:'ray2',   name:'레이(밴) 2327', short:'레이(밴)2327', plate:'', fuel:'휘발유', color:'#854F0B', bg:'#FAEEDA' },
   { id:'starex', name:'스타렉스', short:'스타렉스', plate:'', fuel:'경유', color:'#3B6D11', bg:'#EAF3DE' }   // fuel: 운행일지 '유류구분' 칸
 ];
+// 운행일지: 이 날짜부터 끝난 운행은 운행종료 숫자가 없으면 '비어 있음'으로 알림 (그 전 운행은 적어도 되고 안 적어도 됨)
+var KM_SINCE = '2026-10-23';
 var NOTICE = '';                 // 예: '키: 본사 1층 경영지원팀 · 주차: 본사 주차장 B구역'
 var SLOTS = { am:{label:'오전', s:'09:00', e:'13:00'}, pm:{label:'오후', s:'13:00', e:'18:00'}, day:{label:'종일', s:'09:00', e:'18:00'} };
 var PURPOSES = ['특식지원','이벤트지원','물품배송','정비검사','기타'];
@@ -576,7 +578,7 @@ async function submitForm(){
 function numOrNull(v){ return v==null||v===''||isNaN(+v)?null:+v; }
 function parseKm(v){ v=String(v==null?'':v).replace(/[^0-9]/g,''); return v?+v:null; }
 function fmtKm(n){ return n==null?'—':Number(n).toLocaleString(); }
-function kmOn(carId){ return !!carKm[carId]; }
+function kmOn(carId){ return true; }   // 계기판 숫자는 모든 차에서 항상 적을 수 있음
 function tKey(date,hm){ return date+' '+hm; }
 function poolGroup(pool,r){ if(!r.groupId) return [r]; return pool.filter(function(x){ return x.groupId===r.groupId; }).sort(function(a,b){ return a.date.localeCompare(b.date); }); }
 // 차 한 대의 운행 목록 (여러 날 예약은 하나로), 시작 시각 순
@@ -613,7 +615,8 @@ function endKmOf(pool,r){
 }
 function isEnded(pool,r){ return !!r.returnedAt||tripEnd(pool,r)<=tKey(ymd(new Date()),nowHM()); }
 // 기록 대상 운행인지 (기록 시작일 이후, 일반 예약)
-function inLog(pool,r){ var ck=carKm[r.carId]; return !!ck&&r.type!=='maint'&&poolGroup(pool,r)[0].date>=(ck.since||''); }
+// 숫자가 '꼭 있어야 하는' 운행인지 (KM_SINCE 또는 관리자가 기록 시작한 날 이후)
+function inLog(pool,r){ var ck=carKm[r.carId], since=(ck&&ck.since)||KM_SINCE; return r.type!=='maint'&&poolGroup(pool,r)[0].date>=since; }
 function needsKm(r){ return inLog(list,r)&&isEnded(list,r)&&endKmOf(list,r)==null; }
 
 // 내가 숫자를 적어야 하는 운행: 지금 타고 있는 차(운행 중) + 끝났는데 비어 있는 것
@@ -668,7 +671,7 @@ var KM_IN='width:100%;padding:9px 12px;border:1px solid #185FA5;border-radius:8p
 var SM_IN='width:100%;padding:8px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;background:#fff;color:#1a1a18;';
 // 상세 창: 운행 기록 버튼 (입력은 숫자 입력 창에서)
 function kmBox(r, g, inUse){
-  var on=kmOn(r.carId)&&inLog(list,r)&&r.type!=='maint', ended=isEnded(list,r);
+  var on=r.type!=='maint', ended=isEnded(list,r);
   if(!on){
     if(!inUse) return '';
     return '<div style="background:#F7FAFD;border:.5px solid #DCE9F5;border-radius:10px;padding:10px;margin:0 0 10px">'+
@@ -699,7 +702,7 @@ function sheetFoot(r){
 function kmSheet(r){
   if(popup.full&&isFutureTrip(r)) return planSheet(r);
   var c=car(r.carId), auto=autoStartKm(r), p=prevTrip(list,r), gate=popup.gate;
-  var fon=pv('fuelOn', !!r.fuel), noteOn=popup.noteOn||!!pv('ret-note'), tracked=kmOn(r.carId)&&inLog(list,r);
+  var fon=pv('fuelOn', !!r.fuel), noteOn=popup.noteOn||!!pv('ret-note'), tracked=r.type!=='maint', must=inLog(list,r);
   var startV=pv('km-start', r.startKm!=null?r.startKm:(auto!=null?auto:''));
   var ref=p&&p.endKm!=null?'앞 운행 '+esc(who(p))+' · '+(parseYmd(p.date).getMonth()+1)+'/'+parseYmd(p.date).getDate()+' 도착 '+fmtKm(p.endKm):(p?'<span style="color:#854F0B">앞 사람('+esc(who(p))+')이 숫자를 안 적었어요 — 탈 때 숫자를 알면 적어주세요</span>':(auto!=null?'관리자가 맞춘 기준 숫자':'첫 기록이에요'));
   var lab='font-size:12px;font-weight:600;margin-bottom:5px';
@@ -774,20 +777,21 @@ function startNew(opts){
 // 입력값 읽기 + 확인 (운행일지에서 열면 출발지·경유지·통행료도)
 function readKm(r, startOnly){ var kv=(popup&&popup.full&&isFutureTrip(r))?{}:readKm0(r, startOnly); if(!kv||startOnly) return kv;
   var o=document.getElementById('km-origin'), rt=document.getElementById('km-route'), tl=document.getElementById('km-toll');
-  if(!(kmOn(r.carId)&&inLog(list,r))){ var fc=document.getElementById('km-fuelchk'), fe=document.getElementById('km-fuel'); if(fc){ kv.fuel=fc.checked?(parseKm(fe&&fe.value)||0):0; } }
+  if(r.type==='maint'){ var fc=document.getElementById('km-fuelchk'), fe=document.getElementById('km-fuel'); if(fc){ kv.fuel=fc.checked?(parseKm(fe&&fe.value)||0):0; } }
   if(o) kv.origin=o.value; if(popup&&popup.stops) kv.route=routeOf(); else if(rt) kv.route=String(rt.value).trim().slice(0,120); if(tl) kv.toll=parseKm(tl.value)||0;
   return kv; }
 function readKm0(r, startOnly){
-  if(!kmOn(r.carId)||!inLog(list,r)) return { startKm:r.startKm==null?null:r.startKm, endKm:r.endKm==null?null:r.endKm, fuel:r.fuel||0 };
+  if(r.type==='maint') return { startKm:r.startKm==null?null:r.startKm, endKm:r.endKm==null?null:r.endKm, fuel:r.fuel||0 };
+  var must=inLog(list,r);
   var se=document.getElementById('km-start'), ee=document.getElementById('km-end'), fc=document.getElementById('km-fuelchk'), fe=document.getElementById('km-fuel');
   var sk=se?parseKm(se.value):(r.startKm!=null?r.startKm:null), auto=autoStartKm(r);
   // 자동으로 들어간 숫자를 그대로 두면 따로 저장하지 않음 (앞 기록이 바뀌면 같이 따라감)
   var keepStart=(sk!=null&&(sk!==auto||r.startKm!=null))?sk:null;
   if(startOnly){ if(sk==null){ toast('운행시작 숫자를 적어주세요.'); return null; } return { startKm:sk }; }
   var ek=ee?parseKm(ee.value):null;
-  if(ek==null){ toast('운행종료 숫자(내릴 때 계기판)를 적어주세요.'); if(ee) ee.focus(); return null; }
-  if(sk!=null&&ek<sk){ toast('운행종료('+fmtKm(ek)+')가 운행시작('+fmtKm(sk)+')보다 작아요. 다시 확인해주세요.'); return null; }
-  if(sk!=null&&ek-sk>1000&&!confirm('이번 운행이 '+(ek-sk).toLocaleString()+' km 맞나요?')) return null;
+  if(ek==null&&(must||inUseNow(r))){ toast('운행종료 숫자(내릴 때 계기판)를 적어주세요.'); if(ee) ee.focus(); return null; }
+  if(sk!=null&&ek!=null&&ek<sk){ toast('운행종료('+fmtKm(ek)+')가 운행시작('+fmtKm(sk)+')보다 작아요. 다시 확인해주세요.'); return null; }
+  if(sk!=null&&ek!=null&&ek-sk>1000&&!confirm('이번 운행이 '+(ek-sk).toLocaleString()+' km 맞나요?')) return null;
   var fuel=fc&&fc.checked?(parseKm(fe&&fe.value)||0):0;
   if(fc&&fc.checked&&!fuel){ toast('주유 금액을 적어주세요.'); return null; }
   return { startKm:keepStart, endKm:ek, fuel:fuel };
@@ -805,9 +809,9 @@ async function saveKm(r, kv){
 }
 // 그 차의 "최근 계기판 km"를 더 최근 기록일 때만 갱신
 async function bumpCarKm(carId, km, at){
-  if(km==null) return; var ck=carKm[carId]; if(!ck) return;
-  if(ck.at&&ck.at>at) return;
-  try{ await setDoc(doc(db,'carKm',carId), { km:km, at:at, by:me.phone }, { merge:true }); }catch(e){ console.warn('carKm', e.code); }
+  if(km==null) return; var ck=carKm[carId];
+  if(ck&&ck.at&&ck.at>at) return;
+  try{ await setDoc(doc(db,'carKm',carId), ck?{ km:km, at:at, by:me.phone }:{ km:km, at:at, by:me.phone, since:KM_SINCE }, { merge:true }); }catch(e){ console.warn('carKm', e.code); }
 }
 
 // ── 운행일지 탭 (모든 직원이 봄 · 종이 운행일지 모양) ──────────────────────────
@@ -832,10 +836,10 @@ function logPool(){
   return old.concat(list);
 }
 function logRowOf(pool,r){
-  var g=poolGroup(pool,r), a=g[0], s0=startKmOf(pool,r), e0=endKmOf(pool,r), on=inLog(pool,r);
+  var g=poolGroup(pool,r), a=g[0], s0=startKmOf(pool,r), e0=endKmOf(pool,r), on=r.type!=='maint', must=inLog(pool,r);
   return { r:r, id:r.id, date:a.date, day:+a.date.slice(8,10), multi:g.length>1, drv:users(r)[0]||r.ownerName||'', origin:r.origin||'회사', route:defRoute(r),
     s:on?s0:null, e:on?e0:null, d:(on&&s0!=null&&e0!=null?e0-s0:null), toll:+r.toll||0, fuel:+r.fuel||0,
-    miss:on&&isEnded(pool,r)&&e0==null, mine:isMine(r), byNext:on&&r.endKm==null&&e0!=null, driving:!isEnded(pool,r)&&tripStart(pool,r)<=tKey(ymd(new Date()),nowHM()), future:tripStart(pool,r)>tKey(ymd(new Date()),nowHM()), on:on };
+    miss:must&&isEnded(pool,r)&&e0==null, mine:isMine(r), byNext:on&&r.endKm==null&&e0!=null, driving:!isEnded(pool,r)&&tripStart(pool,r)<=tKey(ymd(new Date()),nowHM()), future:tripStart(pool,r)>tKey(ymd(new Date()),nowHM()), on:on };
 }
 function logData(){
   var pool=logPool(), c=logState.carId, ym=logState.ym, y=ym.slice(0,4), now=tKey(ymd(new Date()),nowHM());
@@ -856,8 +860,8 @@ function logPage(){
     '<select data-l="ym" style="'+SEL_STYLE+'">'+mlist.map(function(m){ return '<option value="'+m+'"'+(m===ym?' selected':'')+'>'+m.slice(0,4)+'년 '+(+m.slice(5))+'월</option>'; }).join('')+'</select>'+
     '<button class="btn" data-act="lxlsx"><i class="ti ti-download"></i> 엑셀</button><button class="btn primary" data-act="ladd"><i class="ti ti-plus"></i> 운행 추가</button></div>';
   if(isAdmin()){
-    h+=missingAdmin()+'<div class="lg-admin">'+(ck?'최근 계기판 <b>'+fmtKm(ck.km)+' km</b> <span style="color:#888">('+esc(ck.at||'')+' · 기록 시작 '+esc(ck.since||'')+')</span>':'<b style="color:#854F0B">'+c.name+'은(는) 아직 계기판 기록을 시작 안 했어요.</b>')+
-      '<span class="lg-admin-in"><input id="l-base" inputmode="numeric" placeholder="지금 계기판 km" style="'+SM_IN+'width:130px"><button class="btn sm" data-act="lbase">'+(ck?'맞추기':'기록 시작')+'</button></span></div>';
+    h+=missingAdmin()+'<div class="lg-admin">'+(ck?'최근 계기판 <b>'+fmtKm(ck.km)+' km</b> <span style="color:#888">('+esc(ck.at||'')+' · 기록 시작 '+esc(ck.since||'')+')</span>':'<span style="color:#777">기준 숫자 없음 · 계기판이 앞 기록과 다를 때만 맞추면 돼요</span>')+
+      '<span class="lg-admin-in"><input id="l-base" inputmode="numeric" placeholder="지금 계기판 km" style="'+SM_IN+'width:130px"><button class="btn sm" data-act="lbase">'+'맞추기'+'</button></span></div>';
   }
   if(!logState.pool){ return h+'<div class="empty-state">불러오는 중…</div>'; }
   var D=logData();
@@ -1038,7 +1042,7 @@ document.addEventListener('click', async function(ev){
       } else {
         if(note5!=null) kv5.returnNote=note5;
         await saveKm(r5, kv5);
-        toast(kv5.endKm===undefined?'경로를 저장했어요.':'계기판 숫자를 저장했어요.');
+        toast(kv5.endKm===undefined?'경로를 저장했어요.':'운행 기록을 저장했어요.');
       }
       popup=null; renderPopup();
       if(gate5) startNew(gate5); else popLayer();
@@ -1058,7 +1062,7 @@ document.addEventListener('click', async function(ev){
     var bi=document.getElementById('l-base'), bv=bi?parseKm(bi.value):null;
     if(bv==null){ toast('지금 계기판 km를 숫자로 적어주세요.'); return; }
     var ck=carKm[logState.carId];
-    if(!confirm(car(logState.carId).name+' 지금 계기판을 '+bv.toLocaleString()+' km로 맞출까요?'+(ck?'':'\n오늘부터 이 차의 운행 기록이 시작돼요.'))) return;
+    if(!confirm(car(logState.carId).name+' 지금 계기판을 '+bv.toLocaleString()+' km로 맞출까요?'+'')) return;
     try{ var at=ymd(new Date())+' '+nowHM();
       await setDoc(doc(db,'carKm',logState.carId), { km:bv, at:at, baseKm:bv, baseAt:at, since:ck&&ck.since||ymd(new Date()), by:me.phone });
       toast('계기판 km를 저장했어요.'); render(); }
