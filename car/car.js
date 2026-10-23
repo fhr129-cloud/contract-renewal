@@ -171,7 +171,7 @@ async function saveReservation(rs, olds){
           carId:r.carId, date:s.date, start:s.start, end:s.end, type:r.type, groupId:gid,
           ownerPhone:owner.ownerPhone, ownerName:owner.ownerName,
           dest:r.dest||'', purpose:r.purpose||'', riders:r.riders||[], riderPhones:r.riderPhones||[], memo:r.memo||'', returnedAt:r.returnedAt||'', returnNote:r.returnNote||'',
-          startKm:numOrNull(r.startKm), endKm:numOrNull(r.endKm), fuel:+r.fuel||0, origin:r.origin||'', route:r.route||'', toll:+r.toll||0,
+          startKm:numOrNull(r.startKm), endKm:numOrNull(r.endKm), fuel:+r.fuel||0, origin:r.origin||'', route:r.route||'', toll:+r.toll||0, lateAdd:!!r.lateAdd,
           createdAt:(reuse[i]&&reuse[i].createdAt)||serverTimestamp(), updatedAt:serverTimestamp(), updatedBy:me.phone
         });
         ranges[dayKey(r.carId,s.date)].push({ id:refs[i].id, start:s.start, end:s.end, who:r.type==='maint'?'정비':(r.riders&&r.riders[0]?short1(r.riders[0]):owner.ownerName) });
@@ -206,6 +206,7 @@ function render(){
   if(view==='log'){ app.innerHTML=topBar()+viewTabs()+'<div class="page-body">'+missingBanner()+logPage()+'</div>'; renderPopup(); renderForm(); if(!logState||(!logState.pool&&!logState.loading)) loadLog();
     // 운행일지 탭을 열면 PC 표에서 오늘 줄이 보이게
     var tr=document.getElementById('lg-today-row'); if(logScrollToday&&tr&&tr.offsetParent&&logState&&logState.pool){ logScrollToday=false; tr.scrollIntoView({block:'center'}); }
+    if(logFocus&&logState&&logState.pool){ var fe=[].slice.call(document.querySelectorAll('[data-rid="'+logFocus+'"]')).filter(function(x){ return x.offsetParent; })[0]; if(fe){ fe.scrollIntoView({block:'center'}); fe.classList.add('lg-flash'); } logFocus=null; }
     return; }
   app.innerHTML=topBar()+viewTabs()+'<div class="page-body">'+missingBanner()+statusRow()+monthView()+myList()+'</div>';
   var sc2=app.querySelector('.cal-scroll');
@@ -275,7 +276,7 @@ function monthView(){
        '<div class="cal-num" style="'+color+'">'+d+'</div>'+(hol?'<div class="cal-hol">'+hol+'</div>':'')+
        its.slice(0,3).map(function(r){ var c=car(r.carId);
          return '<div class="cal-event" data-act="open" data-id="'+r.id+'" style="background:'+(r.type==='maint'?'#F0F0EC':c.bg)+';color:'+(r.type==='maint'?'#666':c.color)+';">'+
-           '<span class="ev-t">'+esc(evLabel(r))+'</span><span class="ev-c">'+c.short+'</span></div>'; }).join('')+
+           (needsKm(r)?'<span class="ev-miss" title="계기판 숫자 비어 있음"></span>':'')+'<span class="ev-t">'+esc(evLabel(r))+'</span><span class="ev-c">'+c.short+'</span></div>'; }).join('')+
        (its.length>3?'<div class="cal-more" data-act="daylist" data-date="'+key+'">+'+(its.length-3)+'건</div>':'')+
        '</div>';
   }
@@ -333,7 +334,7 @@ function dayListHtml(date){
   return (its.length?its.map(function(r){ var c=car(r.carId);
       return '<div class="cal-sup-item" data-act="open" data-id="'+r.id+'"><div><div class="sup-biz">'+esc(r.dest||'-')+'</div><div class="sup-row-sub">'+r.start+'–'+r.end+' · '+esc(who(r))+(r.purpose?' · '+esc(r.purpose):'')+'</div></div>'+
         '<span class="badge-cat" style="background:'+c.bg+';color:'+c.color+'">'+c.short+'</span></div>'; }).join(''):'<div class="empty-state">예약이 없어요 · 모든 차 사용 가능</div>')+
-    (past?'':'<button class="btn primary full" data-act="new" data-date="'+date+'"><i class="ti ti-plus"></i> 이 날 예약 등록</button>');
+    '<button class="btn primary full" data-act="new" data-date="'+date+'"><i class="ti ti-plus"></i> '+(past?'이 날 지난 운행 추가':'이 날 예약 등록')+'</button>';
 }
 // 휴대폰 화면 여부 (폭 600px 이하)
 var mq=window.matchMedia('(max-width:600px)');
@@ -366,6 +367,7 @@ function renderPopup(){
       (function(){ if(r.returnedAt) return ''; var pn=lastNote(r.carId, g[0].date+g[0].start, r.id); return pn?'<div><span>직전 메모</span><span style="color:#854F0B">'+esc(pn.returnNote)+' <small style="color:#999">('+esc(who(pn))+', '+(parseYmd(pn.date).getMonth()+1)+'/'+parseYmd(pn.date).getDate()+')</small></span></div>':''; })()+'</div>'+
       (edit?(others?'<div class="warn">다른 사람 예약이에요. 관리자 권한으로 수정·취소할 수 있어요.</div>':'')+
         kmBox(r, g, inUse)+
+        '<div style="text-align:right;margin:-4px 0 8px"><button class="btn sm" data-act="golog" data-id="'+r.id+'"><i class="ti ti-notebook"></i> 운행일지에서 보기</button></div>'+
         '<div class="pbtns"><button class="btn" data-act="edit" data-id="'+r.id+'"><i class="ti ti-pencil"></i> 수정</button><button class="btn danger" data-act="cancel" data-id="'+r.id+'"><i class="ti ti-trash"></i> 예약 취소</button></div>'
         :(callP?'<div class="pbtns"><a class="btn" href="tel:'+esc(callP)+'"><i class="ti ti-phone"></i> '+esc(callN)+'에게 전화 ('+telFmt(callP)+')</a></div><div class="hint">다른 사람 예약은 보기만 가능해요.</div>':''))+
       '</div></div>';
@@ -551,11 +553,13 @@ async function submitForm(){
   var rs=form.carIds.map(function(id){ var d=form.drivers[id]||''; return { carId:id, segs:segs, type:'use',
           dest:form.dest.trim(), purpose:form.purpose, riders:d?[d]:[], riderPhones:d&&phoneOf(d)?[phoneOf(d)]:[], memo:form.memo.trim(),
           returnedAt:(o0&&o0.returnedAt)||'', returnNote:(o0&&o0.returnNote)||'',
-          startKm:o0?o0.startKm:null, endKm:o0?o0.endKm:null, fuel:o0?o0.fuel:0, origin:o0?o0.origin:'', route:o0?o0.route:'', toll:o0?o0.toll:0 }; });
+          startKm:o0?o0.startKm:null, endKm:o0?o0.endKm:null, fuel:o0?o0.fuel:0, origin:o0?o0.origin:'', route:o0?o0.route:'', toll:o0?o0.toll:0, lateAdd:o0?!!o0.lateAdd:tKey(segs[0].date,segs[0].start)<tKey(ymd(new Date()),nowHM()) }; });
   var olds=form.olds; form.busy=true; renderForm();
   try{
     await saveReservation(rs, olds);
-    toast(olds.length?'예약을 수정했어요.':(rs.length>1?rs.length+'대 예약했어요.':'예약했어요.'));
+    var late=!olds.length&&rs[0].lateAdd;
+    toast(late?'지난 운행을 추가했어요. 운행일지에서 줄을 눌러 숫자를 적어주세요.':olds.length?'예약을 수정했어요.':(rs.length>1?rs.length+'대 예약했어요.':'예약했어요.'));
+    if(view==='log'&&logState){ logState.ym=segs[0].date.slice(0,7); if(logState.ym.slice(0,4)!==logState.loadedY){ logState.pool=null; } }
     var d0=parseYmd(segs[0].date); form=null; monthCursor=firstOfMonth(d0); render(); popLayer();
   }catch(e){
     console.error(e); form.busy=false;
@@ -632,15 +636,15 @@ function missingBanner(){
     h+='<div style="background:#fff;border:1.5px solid #185FA5;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 2px 10px rgba(24,95,165,.12)">'+
       '<div style="font-size:12px;color:#185FA5;font-weight:600;display:flex;align-items:center;gap:6px">'+CAR_IC+'지금 내가 타고 있는 차</div>'+
       '<div style="font-size:16px;font-weight:700;margin:4px 0 2px">'+c.name+' · '+esc(drv.dest||'-')+'</div>'+
-      '<div style="font-size:12px;color:#777;margin-bottom:12px">'+esc(tripWhen(drv))+' · 내리면 계기판 숫자 하나만 적어주세요</div>'+
-      '<button class="btn primary full" style="margin:0;padding:13px;font-size:16px;font-weight:700;justify-content:center" data-act="kmopen" data-id="'+drv.id+'">계기판 숫자 적기</button></div>';
+      '<div style="font-size:12px;color:#777;margin-bottom:12px">'+esc(tripWhen(drv))+' · 내리면 운행종료 숫자만 적으면 돼요</div>'+
+      '<button class="btn primary full" style="margin:0;padding:13px;font-size:16px;font-weight:700;justify-content:center" data-act="kmopen" data-id="'+drv.id+'">운행 기록 적기</button></div>';
   }
   if(miss.length){ var r=miss[0], c2=car(r.carId);
     h+='<div style="background:#fff;border:1.5px solid #E24B4A;border-radius:14px;padding:14px;margin-bottom:12px">'+
       '<div style="font-size:12px;color:#A32D2D;font-weight:600">계기판 숫자가 비어 있어요'+(miss.length>1?' · '+miss.length+'건':'')+'</div>'+
       '<div style="font-size:15px;font-weight:700;margin:4px 0 2px">'+c2.name+' · '+esc(r.dest||'-')+'</div>'+
       '<div style="font-size:12px;color:#777;margin-bottom:12px">'+esc(tripWhen(r))+' · 그때 내릴 때 본 숫자를 적어주세요</div>'+
-      '<button class="btn primary full" style="margin:0;padding:13px;font-size:16px;font-weight:700;justify-content:center" data-act="kmopen" data-id="'+r.id+'">계기판 숫자 적기</button></div>';
+      '<button class="btn primary full" style="margin:0;padding:13px;font-size:16px;font-weight:700;justify-content:center" data-act="kmopen" data-id="'+r.id+'">운행 기록 적기</button></div>';
   }
   return h;
 }
@@ -673,8 +677,8 @@ function kmBox(r, g, inUse){
       '<button class="btn primary full" style="margin:0" data-act="return" data-id="'+r.id+'"><i class="ti ti-key"></i> 지금 반납 완료</button></div>';
   }
   if(inUse||(ended&&endKmOf(list,r)==null))
-    return '<button class="btn primary full" style="margin:0 0 10px;padding:12px;font-size:15px;font-weight:700;justify-content:center" data-act="kmopen" data-id="'+r.id+'">계기판 숫자 적기</button>';
-  if(ended) return '<div style="text-align:right;margin:-6px 0 8px"><button class="btn sm" data-act="kmopen" data-id="'+r.id+'"><i class="ti ti-pencil"></i> 계기판 숫자 고치기</button></div>';
+    return '<button class="btn primary full" style="margin:0 0 10px;padding:12px;font-size:15px;font-weight:700;justify-content:center" data-act="kmopen" data-id="'+r.id+'">운행 기록 적기</button>';
+  if(ended) return '<div style="text-align:right;margin:-6px 0 8px"><button class="btn sm" data-act="kmopen" data-id="'+r.id+'"><i class="ti ti-pencil"></i> 운행 기록 고치기</button></div>';
   return '';
 }
 // 계기판 숫자 입력 창: 큰 숫자 칸 하나 + 주유 체크 + (선택) 메모
@@ -684,39 +688,40 @@ function planSheet(r){
   return '<div class="cal-popup-inner" style="width:440px"><div class="cal-popup-header"><h4><span class="cs-dot" style="background:'+c.color+'"></span>'+c.name+' 운행 계획</h4><button class="btn sm" data-act="pclose"><i class="ti ti-x"></i></button></div><div class="cal-popup-body">'+
     '<div style="font-size:13px;margin-bottom:2px"><b>'+esc(tripWhen(r))+'</b> · '+esc(r.dest||'-')+'</div>'+
     '<div style="font-size:12px;color:#777;margin-bottom:12px">경로·통행료를 미리 적어둘 수 있어요. 계기판 숫자는 다녀와서 적어요.</div>'+routeFields(r)+
-    '<button class="btn primary full" style="margin:4px 0 0;padding:13px;font-size:16px;font-weight:700;justify-content:center" data-act="kmdone" data-id="'+r.id+'">경로 저장</button></div></div>';
+    '<button class="btn primary full" style="margin:4px 0 0;padding:13px;font-size:16px;font-weight:700;justify-content:center" data-act="kmdone" data-id="'+r.id+'">경로 저장</button>'+sheetFoot(r)+'</div></div>';
 }
+function autoStartKm(r){ return startKmOf(list, Object.assign({}, r, { startKm:null })); }
+function sheetFoot(r){
+  if(!popup.full||popup.gate||!canEdit(r)) return '';
+  return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px"><button class="btn" data-act="edit" data-id="'+r.id+'" style="justify-content:center"><i class="ti ti-pencil"></i> 예약 수정</button><button class="btn danger" data-act="cancel" data-id="'+r.id+'" style="justify-content:center"><i class="ti ti-trash"></i> 예약 취소</button></div>';
+}
+// 운행 기록 창 (어디서 열든 같은 창): 경로 · 운행시작 · 운행종료 · 주유 · 메모
 function kmSheet(r){
   if(popup.full&&isFutureTrip(r)) return planSheet(r);
-  var c=car(r.carId), base=startKmOf(list,r), p=prevTrip(list,r), gate=popup.gate, ck=carKm[r.carId];
-  var fon=pv('fuelOn', !!r.fuel), noteOn=popup.noteOn||!!pv('ret-note'), startOn=popup.startOn||r.startKm!=null, tracked=kmOn(r.carId)&&inLog(list,r);
-  var refTxt;
-  if(base!=null){
-    if(r.startKm!=null) refTxt='출발 숫자 '+fmtKm(base);
-    else if(p&&p.endKm!=null) refTxt='앞 사람 기록 '+fmtKm(base)+' <span style="color:#aaa">('+esc(who(p))+' · '+(parseYmd(p.date).getMonth()+1)+'/'+parseYmd(p.date).getDate()+')</span>';
-    else refTxt='기준 숫자 '+fmtKm(base);
-  } else refTxt=p?'<span style="color:#854F0B">앞 사람('+esc(who(p))+')이 숫자를 안 적었어요</span>':'앞 기록 없음';
-  var h='<div class="cal-popup-inner" style="width:440px"><div class="cal-popup-header"><h4>'+(gate?'<span style="color:#A32D2D">지난 운행 숫자가 비어 있어요</span>':'<span class="cs-dot" style="background:'+c.color+'"></span>'+c.name+' 계기판 숫자')+'</h4><button class="btn sm" data-act="pclose"><i class="ti ti-x"></i></button></div><div class="cal-popup-body">'+
-    '<div style="font-size:13px;margin-bottom:2px"><b>'+(gate?c.name+' · ':'')+esc(tripWhen(r))+'</b> · '+esc(r.dest||'-')+'</div>'+
-    '<div style="font-size:12px;color:#777;margin-bottom:10px">'+(gate?'그때 내릴 때 본 계기판 숫자를 적고 예약을 계속해요.':'차에서 내릴 때 계기판에 보이는 숫자 그대로 적어주세요.')+'</div>'+
-    (popup.full?routeFields(r):'')+
+  var c=car(r.carId), auto=autoStartKm(r), p=prevTrip(list,r), gate=popup.gate;
+  var fon=pv('fuelOn', !!r.fuel), noteOn=popup.noteOn||!!pv('ret-note'), tracked=kmOn(r.carId)&&inLog(list,r);
+  var startV=pv('km-start', r.startKm!=null?r.startKm:(auto!=null?auto:''));
+  var ref=p&&p.endKm!=null?'앞 운행 '+esc(who(p))+' · '+(parseYmd(p.date).getMonth()+1)+'/'+parseYmd(p.date).getDate()+' 도착 '+fmtKm(p.endKm):(p?'<span style="color:#854F0B">앞 사람('+esc(who(p))+')이 숫자를 안 적었어요 — 탈 때 숫자를 알면 적어주세요</span>':(auto!=null?'관리자가 맞춘 기준 숫자':'첫 기록이에요'));
+  var lab='font-size:12px;font-weight:600;margin-bottom:5px';
+  var h='<div class="cal-popup-inner" style="width:460px"><div class="cal-popup-header"><h4>'+(gate?'<span style="color:#A32D2D">지난 운행 숫자가 비어 있어요</span>':'<span class="cs-dot" style="background:'+c.color+'"></span>'+c.name+' 운행 기록')+'</h4><button class="btn sm" data-act="pclose"><i class="ti ti-x"></i></button></div><div class="cal-popup-body">'+
+    '<div style="font-size:13px;margin-bottom:10px"><b>'+(gate?c.name+' · ':'')+esc(tripWhen(r))+'</b> · '+esc(users(r)[0]||'')+(r.lateAdd?' <span class="lg-late">나중에 추가</span>':'')+'</div>'+
+    (popup.full?routeFields(r):'<div style="font-size:12px;color:#185FA5;margin:-4px 0 10px;cursor:pointer" data-act="kmfull">+ 경로·통행료도 적기 (지금: '+esc(defRoute(r))+')</div>')+
     (!tracked?'<div style="font-size:12px;color:#854F0B;background:#FAEEDA;border-radius:8px;padding:8px 10px">이 차는 아직 계기판 기록을 시작하지 않았어요 (관리자가 운행일지에서 시작).</div>':
-    (popup.full?'<div style="font-size:12px;font-weight:600;margin:4px 0 6px">운행종료 (내릴 때 계기판 숫자)</div>':'')+
-    '<input id="km-end" data-for="'+r.id+'" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="계기판 숫자" value="'+esc(pv('km-end', r.endKm!=null?r.endKm:''))+'" style="width:100%;height:60px;border:2px solid #185FA5;border-radius:12px;text-align:center;font-size:28px;font-weight:700;letter-spacing:1px;background:#fff;color:#1a1a18">'+
-    '<div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#777;background:#f7f7f5;border-radius:8px;padding:8px 10px;margin-top:8px"><span>'+refTxt+'</span><b id="km-diff" data-base="'+(base==null?'':base)+'" style="color:#185FA5;white-space:nowrap"></b></div>'+
-    (base==null&&p?(startOn?'<div style="font-size:12px;font-weight:600;margin:10px 0 6px">탈 때 본 숫자 <span style="font-weight:400;color:#888">(알면)</span></div><input id="km-start" data-for="'+r.id+'" inputmode="numeric" placeholder="예: 12376" value="'+esc(pv('km-start', r.startKm!=null?r.startKm:''))+'" style="'+SM_IN+'">'
-      :'<div style="font-size:12px;color:#185FA5;margin-top:8px;cursor:pointer" data-act="kmstart">+ 탈 때 본 숫자도 알면 적기</div>'):''))+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+        '<div><div style="'+lab+'">운행시작 <span style="font-weight:400;color:#999">(탈 때)</span></div><input id="km-start" data-for="'+r.id+'" inputmode="numeric" autocomplete="off" placeholder="계기판 숫자" value="'+esc(startV)+'" style="width:100%;height:50px;border:.5px solid #bbb;border-radius:10px;text-align:center;font-size:20px;font-weight:600;background:'+(r.startKm==null&&auto!=null?'#f7f7f5':'#fff')+';color:#1a1a18"></div>'+
+        '<div><div style="'+lab+'">운행종료 <span style="font-weight:400;color:#999">(내릴 때)</span></div><input id="km-end" data-for="'+r.id+'" inputmode="numeric" autocomplete="off" placeholder="계기판 숫자" value="'+esc(pv('km-end', r.endKm!=null?r.endKm:''))+'" style="width:100%;height:50px;border:2px solid #185FA5;border-radius:10px;text-align:center;font-size:20px;font-weight:700;background:#fff;color:#1a1a18"></div></div>'+
+      '<div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#777;background:#f7f7f5;border-radius:8px;padding:8px 10px;margin-top:8px"><span>'+ref+'</span><b id="km-diff" style="color:#185FA5;white-space:nowrap"></b></div>'+
+      '<div style="font-size:11px;color:#999;margin-top:4px">운행시작은 앞 운행의 도착 숫자가 자동으로 들어가요. 다르면 고쳐주세요.</div>')+
     '<label style="display:flex;align-items:center;gap:8px;font-size:14px;margin:14px 0 6px;cursor:pointer;width:max-content"><input type="checkbox" id="km-fuelchk" data-for="'+r.id+'" style="width:18px;height:18px;margin:0"'+(fon?' checked':'')+'> 주유했어요</label>'+
     (fon?'<input id="km-fuel" data-for="'+r.id+'" inputmode="numeric" placeholder="주유 금액 (원)" value="'+esc(pv('km-fuel', r.fuel||''))+'" style="'+SM_IN+'margin-bottom:6px">':'')+
     (noteOn?'<div style="font-size:12px;font-weight:600;margin:8px 0 6px">다음 사람에게 메모 <span style="font-weight:400;color:#888">(선택)</span></div><textarea id="ret-note" data-for="'+r.id+'" maxlength="200" placeholder="예: 주유 필요, 뒷범퍼 긁힘, 주차 B구역" style="'+SM_IN+'min-height:48px;resize:vertical">'+esc(pv('ret-note', r.returnNote||''))+'</textarea>'
       :'<div style="font-size:12px;color:#185FA5;margin:4px 0 0;cursor:pointer" data-act="kmnote">+ 다음 사람에게 메모 남기기 (선택)</div>')+
-    '<button class="btn primary full" style="margin:16px 0 0;padding:13px;font-size:16px;font-weight:700;justify-content:center" data-act="kmdone" data-id="'+r.id+'">'+(gate?'적고 예약 계속하기':'완료')+'</button>'+
+    '<button class="btn primary full" style="margin:16px 0 0;padding:13px;font-size:16px;font-weight:700;justify-content:center" data-act="kmdone" data-id="'+r.id+'">'+(gate?'적고 예약 계속하기':(inUseNow(r)?'저장하고 반납':'저장'))+'</button>'+
     (gate?'<div style="text-align:center;font-size:12px;color:#888;margin-top:10px;text-decoration:underline;cursor:pointer" data-act="kmskip" data-id="'+r.id+'">숫자를 몰라요 (다음 사람이 채워요)</div>':'')+
-    '</div></div>';
+    sheetFoot(r)+'</div></div>';
   setTimeout(kmDiff,0);
   return h;
 }
-// 운행일지에서 줄을 눌렀을 때: 출발지 · 경유지 및 도착지 · 통행료
 function defRoute(r){ return r.route||((r.dest||'')+'-회사'); }
 // 경유지: 네이버 지도 길찾기처럼 출발 → 경유지(추가·삭제) → 도착 한 줄씩
 function routeStops(r){
@@ -749,13 +754,12 @@ function routeFields(r){
 }
 // 숫자를 치는 동안 이번 운행 거리 표시
 function kmDiff(){
-  var e=document.getElementById('km-end'), d=document.getElementById('km-diff'); if(!e||!d) return;
-  var se=document.getElementById('km-start'), b=se&&parseKm(se.value)!=null?parseKm(se.value):(d.getAttribute('data-base')===''?null:+d.getAttribute('data-base'));
-  var v=parseKm(e.value);
+  var e=document.getElementById('km-end'), d=document.getElementById('km-diff'), se=document.getElementById('km-start'); if(!e||!d) return;
+  var v=parseKm(e.value), b=se?parseKm(se.value):null;
   d.style.color='#185FA5';
   if(v==null||b==null){ d.textContent=''; return; }
-  if(v<b){ d.textContent='앞 기록보다 작아요'; d.style.color='#A32D2D'; return; }
-  d.textContent='+'+(v-b).toLocaleString()+' km';
+  if(v<b){ d.textContent='종료가 시작보다 작아요'; d.style.color='#A32D2D'; return; }
+  d.textContent='운행거리 '+(v-b).toLocaleString()+' km';
   if(v-b>1000) d.style.color='#A32D2D';
 }
 // K4: 안 적은 운행이 있으면 새 예약 전에 먼저 묻기 ("몰라요"로 넘긴 건 그날 하루는 안 물음)
@@ -776,16 +780,17 @@ function readKm(r, startOnly){ var kv=(popup&&popup.full&&isFutureTrip(r))?{}:re
 function readKm0(r, startOnly){
   if(!kmOn(r.carId)||!inLog(list,r)) return { startKm:r.startKm==null?null:r.startKm, endKm:r.endKm==null?null:r.endKm, fuel:r.fuel||0 };
   var se=document.getElementById('km-start'), ee=document.getElementById('km-end'), fc=document.getElementById('km-fuelchk'), fe=document.getElementById('km-fuel');
-  var sk=se?parseKm(se.value):(r.startKm!=null?r.startKm:null);
-  if(startOnly){ if(sk==null){ toast('출발 km를 숫자로 적어주세요.'); return null; } return { startKm:sk }; }
+  var sk=se?parseKm(se.value):(r.startKm!=null?r.startKm:null), auto=autoStartKm(r);
+  // 자동으로 들어간 숫자를 그대로 두면 따로 저장하지 않음 (앞 기록이 바뀌면 같이 따라감)
+  var keepStart=(sk!=null&&(sk!==auto||r.startKm!=null))?sk:null;
+  if(startOnly){ if(sk==null){ toast('운행시작 숫자를 적어주세요.'); return null; } return { startKm:sk }; }
   var ek=ee?parseKm(ee.value):null;
-  if(ek==null){ toast('계기판 숫자를 적어주세요.'); if(ee) ee.focus(); return null; }
-  var base=sk!=null?sk:startKmOf(list,r);
-  if(base!=null&&ek<base){ toast('적은 숫자('+fmtKm(ek)+')가 앞 기록('+fmtKm(base)+')보다 작아요. 다시 확인해주세요.'); return null; }
-  if(base!=null&&ek-base>1000&&!confirm('이번 운행이 '+(ek-base).toLocaleString()+' km 맞나요?')) return null;
+  if(ek==null){ toast('운행종료 숫자(내릴 때 계기판)를 적어주세요.'); if(ee) ee.focus(); return null; }
+  if(sk!=null&&ek<sk){ toast('운행종료('+fmtKm(ek)+')가 운행시작('+fmtKm(sk)+')보다 작아요. 다시 확인해주세요.'); return null; }
+  if(sk!=null&&ek-sk>1000&&!confirm('이번 운행이 '+(ek-sk).toLocaleString()+' km 맞나요?')) return null;
   var fuel=fc&&fc.checked?(parseKm(fe&&fe.value)||0):0;
   if(fc&&fc.checked&&!fuel){ toast('주유 금액을 적어주세요.'); return null; }
-  return { startKm:se?sk:(r.startKm==null?null:r.startKm), endKm:ek, fuel:fuel };
+  return { startKm:keepStart, endKm:ek, fuel:fuel };
 }
 // 예약 문서에 km만 저장 (시간은 그대로)
 async function saveKm(r, kv){
@@ -806,7 +811,7 @@ async function bumpCarKm(carId, km, at){
 }
 
 // ── 운행일지 탭 (모든 직원이 봄 · 종이 운행일지 모양) ──────────────────────────
-var view='res', logScrollToday=false;          // res: 예약 · log: 운행일지
+var view='res', logScrollToday=false, logFocus=null;          // res: 예약 · log: 운행일지
 var logState=null;       // {carId, ym, pool:올해 예약, loadedY, loading}
 function viewTabs(){
   return '<div class="car-tabs"><span class="'+(view==='res'?'on':'')+'" data-act="view" data-v="res">예약</span><span class="'+(view==='log'?'on':'')+'" data-act="view" data-v="log">운행일지</span></div>';
@@ -849,7 +854,7 @@ function logPage(){
   var mlist=[]; for(var i=0;i<14;i++){ var d=new Date(); d=new Date(d.getFullYear(),d.getMonth()-i,1); mlist.push(ymd(d).slice(0,7)); }
   var h='<div class="lg-bar"><select data-l="carId" style="'+SEL_STYLE+'">'+CARS.map(function(x){ return '<option value="'+x.id+'"'+(x.id===c.id?' selected':'')+'>'+x.name+'</option>'; }).join('')+'</select>'+
     '<select data-l="ym" style="'+SEL_STYLE+'">'+mlist.map(function(m){ return '<option value="'+m+'"'+(m===ym?' selected':'')+'>'+m.slice(0,4)+'년 '+(+m.slice(5))+'월</option>'; }).join('')+'</select>'+
-    '<button class="btn" data-act="lxlsx"><i class="ti ti-download"></i> 엑셀</button></div>';
+    '<button class="btn" data-act="lxlsx"><i class="ti ti-download"></i> 엑셀</button><button class="btn primary" data-act="ladd"><i class="ti ti-plus"></i> 운행 추가</button></div>';
   if(isAdmin()){
     h+=missingAdmin()+'<div class="lg-admin">'+(ck?'최근 계기판 <b>'+fmtKm(ck.km)+' km</b> <span style="color:#888">('+esc(ck.at||'')+' · 기록 시작 '+esc(ck.since||'')+')</span>':'<b style="color:#854F0B">'+c.name+'은(는) 아직 계기판 기록을 시작 안 했어요.</b>')+
       '<span class="lg-admin-in"><input id="l-base" inputmode="numeric" placeholder="지금 계기판 km" style="'+SM_IN+'width:130px"><button class="btn sm" data-act="lbase">'+(ck?'맞추기':'기록 시작')+'</button></span></div>';
@@ -862,10 +867,10 @@ function logPage(){
   for(var dd=1; dd<=last; dd++){
     var key=ym+'-'+pad(dd), dow=new Date(y,mo-1,dd).getDay(), hol=getHoliday(key), rs=D.rows.filter(function(x){ return x.day===dd; });
     var dcls=(dow===0||hol)?'red':(dow===6?'blue':''), isToday=key===ymd(new Date()), tcls=isToday?' today':'', dlab=dd+(isToday?'<span class="lg-today">오늘</span>':'');
-    if(!rs.length){ body+='<tr class="off'+tcls+'"'+(isToday?' id="lg-today-row"':'')+'><td class="c '+dcls+'">'+dlab+'</td><td></td><td></td><td>'+esc(hol||'')+'</td><td class="n">–</td><td class="n">–</td><td></td><td></td><td></td></tr>'; continue; }
+    if(!rs.length){ body+='<tr class="off'+tcls+'"'+(isToday?' id="lg-today-row"':'')+' data-act="ladd" data-date="'+key+'" title="이 날 운행 추가"><td class="c '+dcls+'">'+dlab+'</td><td></td><td></td><td>'+esc(hol||'')+'</td><td class="n">–</td><td class="n">–</td><td></td><td></td><td></td></tr>'; continue; }
     rs.forEach(function(x){
       var endCell=x.future?'<span style="color:#888">예정</span>':x.miss?(x.mine||isAdmin()?'<span class="lg-in">숫자 적기</span>':'<span class="red">비어 있음</span>'):(x.driving?'<span style="color:#185FA5">운행 중</span>':fmtKm(x.e)+(x.byNext?'<small title="다음 사람 출발 숫자로 채움">*</small>':''));
-      body+='<tr class="row'+(x.miss?' ms':'')+(x.mine?' me':'')+(x.future?' fut':'')+tcls+'"'+(isToday&&!body.includes('id="lg-today-row"')?' id="lg-today-row"':'')+' data-act="lrow" data-id="'+x.id+'"><td class="c '+dcls+'">'+dlab+'</td><td>'+esc(x.drv)+'</td><td class="c">'+esc(x.origin)+'</td><td>'+esc(x.route)+(x.multi?' <small style="color:#888">(여러 날)</small>':'')+'</td>'+
+      body+='<tr class="row'+(x.miss?' ms':'')+(x.mine?' me':'')+(x.future?' fut':'')+tcls+'"'+(isToday&&!body.includes('id="lg-today-row"')?' id="lg-today-row"':'')+' data-act="lrow" data-id="'+x.id+'" data-rid="'+x.id+'"><td class="c '+dcls+'">'+dlab+'</td><td>'+esc(x.drv)+'</td><td class="c">'+esc(x.origin)+'</td><td>'+esc(x.route)+(x.multi?' <small style="color:#888">(여러 날)</small>':'')+(x.r.lateAdd?' <span class="lg-late">나중에 추가</span>':'')+'</td>'+
         '<td class="n kc">'+(x.future?'':x.on?fmtKm(x.s):'–')+'</td><td class="n kc">'+(x.future?endCell:x.on?endCell:'–')+'</td><td class="n">'+(x.d!=null?x.d.toLocaleString():'')+'</td><td class="n">'+n0(x.toll)+'</td><td class="n">'+n0(x.fuel)+'</td></tr>';
     });
   }
@@ -884,14 +889,14 @@ function logPage(){
       var dow=parseYmd(x.date).getDay(), col=(dow===0||getHoliday(x.date))?'#C0392B':(dow===6?'#1A5276':'#1a1a18');
       var k=x.future?'<span style="color:#888;font-size:12px">예정</span>':!x.on?'<span style="color:#aaa;font-size:12px">기록 전</span>':x.miss?(x.mine||isAdmin()?'<span class="lg-in">숫자 적기</span>':'<span style="color:#A32D2D;font-size:12px">비어 있음</span>'):x.driving?'<span style="color:#185FA5;font-size:12px">운행 중</span>':(x.d!=null?x.d.toLocaleString()+' km':'')+'<small>'+fmtKm(x.s)+' → '+fmtKm(x.e)+'</small>';
       var isT=x.date===todayK;
-      return pre+'<div class="lg-card'+(x.miss?' ms':'')+(x.future?' fut':'')+(isT?' today':'')+'" data-act="lrow" data-id="'+x.id+'"><div class="d" style="color:'+col+'">'+x.day+'<small>'+(isT?'오늘':DOW[dow])+'</small></div><div class="m"><div class="r1">'+esc(x.route)+'</div><div class="r2">'+esc(x.drv)+(x.mine?' (나)':'')+(x.toll?' · 통행료 '+n0(x.toll):'')+(x.fuel?' · 주유 '+n0(x.fuel):'')+'</div></div><div class="k">'+k+'</div></div>';
+      return pre+'<div class="lg-card'+(x.miss?' ms':'')+(x.future?' fut':'')+(isT?' today':'')+'" data-act="lrow" data-id="'+x.id+'" data-rid="'+x.id+'"><div class="d" style="color:'+col+'">'+x.day+'<small>'+(isT?'오늘':DOW[dow])+'</small></div><div class="m"><div class="r1">'+esc(x.route)+'</div><div class="r2">'+esc(x.drv)+(x.mine?' (나)':'')+(x.r.lateAdd?' · <span class="lg-late">나중에 추가</span>':'')+(x.toll?' · 통행료 '+n0(x.toll):'')+(x.fuel?' · 주유 '+n0(x.fuel):'')+'</div></div><div class="k">'+k+'</div></div>';
     }).join('')+(!divDone?todayDiv():''):'<div class="empty-state">이 달에는 운행이 없어요.</div>')+'</div>';
   return h;
 }
 var LOG_CSS='.car-tabs{display:flex;gap:4px;border-bottom:.5px solid #e8e8e4;background:#fff;padding:0 16px;}'+
   '.car-tabs span{padding:11px 14px;font-size:14px;color:#888;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;}'+
   '.car-tabs span.on{color:#185FA5;border-color:#185FA5;font-weight:600;}'+
-  '.lg-bar{display:flex;gap:8px;align-items:center;margin-bottom:12px;}.lg-bar select{max-width:170px;}.lg-bar .btn{margin-left:auto;}'+
+  '.lg-bar{display:flex;gap:8px;align-items:center;margin-bottom:12px;}.lg-bar select{max-width:170px;}.lg-bar .btn[data-act=lxlsx]{margin-left:auto;}'+
   '.lg-admin{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:#F7FAFD;border:.5px solid #DCE9F5;border-radius:10px;padding:9px 12px;margin-bottom:12px;font-size:12px;}.lg-admin-in{margin-left:auto;display:flex;gap:6px;align-items:center;}'+
   '.lg-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}.lg-sum div{background:#fff;border:.5px solid #e8e8e4;border-radius:10px;padding:8px 12px;font-size:11px;color:#777;}.lg-sum b{display:block;font-size:16px;color:#1a1a18;margin-top:1px;}.lg-sum .red{border-color:#F7C1C1;}.lg-sum .red b{color:#A32D2D;}'+
   '.lg-pc{display:flex;gap:14px;align-items:flex-start;}.lg-sheet{flex:1;min-width:0;background:#fff;border:.5px solid #d8d8d2;border-radius:8px;overflow:hidden;}.lg-side{width:190px;flex-shrink:0;}'+
@@ -903,12 +908,14 @@ var LOG_CSS='.car-tabs{display:flex;gap:4px;border-bottom:.5px solid #e8e8e4;bac
   '.lg-t tr.today td{background:#FFF7DB !important;}.lg-t tr.today td:first-child{box-shadow:inset 3px 0 0 #E0A100;font-weight:700;color:#1a1a18;}.lg-today{display:inline-block;margin-left:4px;font-size:10px;font-weight:700;color:#fff;background:#E0A100;border-radius:4px;padding:0 4px;vertical-align:1px;}'+
   '.lg-t tr.fut td{color:#888;}.lg-card.fut{background:#FAFAF8;}.lg-card.fut .r1{color:#555;}.lg-card.today{border:1.5px solid #E0A100;background:#FFFBEA;}'+
   '.lg-div{display:flex;align-items:center;gap:8px;margin:10px 0;font-size:11px;font-weight:700;color:#B07D00;}.lg-div:before,.lg-div:after{content:"";flex:1;height:1px;background:#E8C766;}'+
+  '.lg-late{display:inline-block;font-size:10px;font-weight:600;color:#854F0B;background:#FAEEDA;border-radius:4px;padding:0 5px;}.lg-t tr.off{cursor:pointer;}.lg-t tr.off:hover td{background:#F3F7FB;}.lg-flash td,.lg-card.lg-flash{animation:lgf 1.6s ease;}@keyframes lgf{0%,40%{background:#CFE3F7;}100%{}}'+
+  '.ev-miss{width:6px;height:6px;border-radius:50%;background:#E24B4A;display:inline-block;margin-right:3px;flex-shrink:0;align-self:center;}'+
   '.lg-in{display:inline-block;background:#185FA5;color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;}'+
   '.lg-mo{display:none;}.lg-card{background:#fff;border:.5px solid #e8e8e4;border-radius:10px;margin-bottom:6px;padding:9px 12px;display:flex;gap:10px;align-items:center;cursor:pointer;}'+
   '.lg-card .d{width:32px;text-align:center;font-weight:700;font-size:15px;line-height:1.1;}.lg-card .d small{display:block;font-size:10px;font-weight:500;color:#888;}'+
   '.lg-card .m{flex:1;min-width:0;}.lg-card .r1{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.lg-card .r2{font-size:11px;color:#777;margin-top:2px;}'+
   '.lg-card .k{text-align:right;font-size:13px;font-weight:700;white-space:nowrap;}.lg-card .k small{display:block;font-size:10px;color:#999;font-weight:400;}.lg-card.ms{border-color:#F7C1C1;background:#FFF8F8;}'+
-  '@media(max-width:760px){.lg-pc{display:none;}.lg-mo{display:block;}.lg-bar select{flex:1;max-width:none;}}';
+  '@media(max-width:760px){.lg-pc{display:none;}.lg-mo{display:block;}.lg-bar{flex-wrap:wrap;}.lg-bar select{flex:1 1 40%;max-width:none;}.lg-bar .btn{flex:1;justify-content:center;}.lg-bar .btn[data-act=lxlsx]{margin-left:0;}}';
 function ensureLogCss(){ if(document.getElementById('lg-css')) return; var st=document.createElement('style'); st.id='lg-css'; st.textContent=LOG_CSS; document.head.appendChild(st); }
 // 관리자: 숫자 안 적은 운행 (최근 두 달, 차 전체) + 단톡방 안내 문구
 function allMissing(){
@@ -918,7 +925,7 @@ function allMissing(){
 function mdw(x){ var d=parseYmd(x); return (d.getMonth()+1)+'/'+d.getDate()+' ('+DOW[d.getDay()]+')'; }
 function missingText(ms){
   return '[차량 운행일지] 계기판 숫자가 비어 있어요.\n'+ms.map(function(r){ return '· '+(users(r)[0]||r.ownerName||'')+' — '+mdw(group(r)[0].date)+' '+car(r.carId).name; }).join('\n')+
-    '\n차량 예약 앱 맨 위 [계기판 숫자 적기]에서 숫자만 적어주세요!';
+    '\n차량 예약 앱 맨 위 [운행 기록 적기]에서 운행종료 숫자만 적어주세요!';
 }
 function missingAdmin(){
   var ms=allMissing(); if(!ms.length) return '';
@@ -981,7 +988,8 @@ document.addEventListener('click', async function(ev){
   else if(a==='cancel'){
     var r2=list.filter(function(x){ return x.id===t.getAttribute('data-id'); })[0]; if(!r2) return;
     var g=group(r2);
-    if(!confirm(rangeText(g)+' '+car(r2.carId).name+' 예약을 취소할까요?')) return;
+    if(!confirm(rangeText(g)+' '+car(r2.carId).name+' 예약을 취소할까요?\n운행일지에서도 같이 지워져요.')) return;
+    if(g.some(function(x){ return x.endKm!=null; })&&!confirm('계기판 숫자까지 적은 운행이에요. 정말 지울까요?')) return;
     try{ await cancelReservation(g); popup=null; renderPopup(); popLayer(); toast('예약을 취소했어요.'); }
     catch(e){ console.error(e); toast(e.code==='permission-denied'?'본인 예약만 취소할 수 있어요.':'취소하지 못했어요.'); }
   }
@@ -995,7 +1003,7 @@ document.addEventListener('click', async function(ev){
     if(!segs.length) return;
     try{
       await saveReservation({ carId:r3.carId, segs:segs, type:'use', dest:r3.dest, purpose:r3.purpose, riders:r3.riders||[], riderPhones:r3.riderPhones||[], memo:r3.memo, returnedAt:now, returnNote:String(note).trim().slice(0,200),
-        startKm:kv.startKm, endKm:kv.endKm, fuel:kv.fuel, origin:r3.origin, route:r3.route, toll:r3.toll }, g3);
+        startKm:kv.startKm, endKm:kv.endKm, fuel:kv.fuel, origin:r3.origin, route:r3.route, toll:r3.toll, lateAdd:r3.lateAdd }, g3);
       await bumpCarKm(r3.carId, kv.endKm, segs[segs.length-1].date+' '+now);
       popup=null; renderPopup(); popLayer(); toast('반납 완료! '+car(r3.carId).name+', 이제 다른 사람이 쓸 수 있어요.');
     }catch(e){ console.error(e); toast(e.code==='permission-denied'?'반납 처리 권한이 없어요.':'반납 처리하지 못했어요.'); }
@@ -1009,6 +1017,7 @@ document.addEventListener('click', async function(ev){
   else if(a==='kmopen'){ var kid=t.getAttribute('data-id'); if(popup) popup={type:'km',id:kid}; else { pushLayer(); popup={type:'km',id:kid}; } renderPopup(); setTimeout(function(){ var e=document.getElementById('km-end'); if(e&&!e.value) e.focus(); },60); }
   else if(a==='stopadd'){ keepPopupVals(); popup.stops.push(''); renderPopup(); var ns=document.getElementById('km-stop-'+(popup.stops.length-1)); if(ns) ns.focus(); }
   else if(a==='stopdel'){ keepPopupVals(); popup.stops.splice(+t.getAttribute('data-i'),1); if(!popup.stops.length) popup.stops=['']; renderPopup(); }
+  else if(a==='kmfull'){ keepPopupVals(); popup.full=true; renderPopup(); }
   else if(a==='kmnote'){ keepPopupVals(); popup.noteOn=true; renderPopup(); var tn=document.getElementById('ret-note'); if(tn) tn.focus(); }
   else if(a==='kmstart'){ keepPopupVals(); popup.startOn=true; renderPopup(); var ts=document.getElementById('km-start'); if(ts) ts.focus(); }
   else if(a==='kmskip'){ var sid=t.getAttribute('data-id'), gopts=popup&&popup.gate; kmSkip(sid); popup=null; renderPopup(); if(gopts) startNew(gopts); }
@@ -1023,7 +1032,7 @@ document.addEventListener('click', async function(ev){
         var segs5=g5.filter(function(x){ return x.date<=td5; }).map(function(x){ return { date:x.date, start:x.start, end:x.date===td5?now5:x.end }; }).filter(function(x){ return x.end>x.start; });
         if(!segs5.length) return;
         await saveReservation({ carId:r5.carId, segs:segs5, type:'use', dest:r5.dest, purpose:r5.purpose, riders:r5.riders||[], riderPhones:r5.riderPhones||[], memo:r5.memo, returnedAt:now5, returnNote:note5!=null?note5:(r5.returnNote||''),
-          startKm:kv5.startKm, endKm:kv5.endKm, fuel:kv5.fuel, origin:'origin' in kv5?kv5.origin:r5.origin, route:'route' in kv5?kv5.route:r5.route, toll:'toll' in kv5?kv5.toll:r5.toll }, g5);
+          startKm:kv5.startKm, endKm:kv5.endKm, fuel:kv5.fuel, origin:'origin' in kv5?kv5.origin:r5.origin, route:'route' in kv5?kv5.route:r5.route, toll:'toll' in kv5?kv5.toll:r5.toll, lateAdd:r5.lateAdd }, g5);
         await bumpCarKm(r5.carId, kv5.endKm, segs5[segs5.length-1].date+' '+now5);
         toast('저장했어요. '+car(r5.carId).name+' 반납 완료!');
       } else {
@@ -1036,6 +1045,9 @@ document.addEventListener('click', async function(ev){
     }catch(e){ console.error(e); toast(e.code==='permission-denied'?'저장 권한이 없어요.':'저장하지 못했어요.'); }
   }
   else if(a==='view'){ view=t.getAttribute('data-v'); if(view==='res') scrollToToday=true; else logScrollToday=true; ensureLog(); render(); window.scrollTo(0,0); }
+  else if(a==='ladd'){ ensureLog(); openForm({ date:t.getAttribute('data-date')||ymd(new Date()), car:logState.carId }); }
+  else if(a==='golog'){ var gr=list.filter(function(x){ return x.id===t.getAttribute('data-id'); })[0]; if(!gr) return; ensureLog(); var g0=group(gr)[0];
+    logState.carId=gr.carId; if(logState.ym.slice(0,4)!==g0.date.slice(0,4)) logState.pool=null; logState.ym=g0.date.slice(0,7); logFocus=gr.id; popup=null; renderPopup(); popLayer(); view='log'; render(); }
   else if(a==='lrow'){ var lr=logPool().filter(function(x){ return x.id===t.getAttribute('data-id'); })[0]; if(!lr) return;
     if(canEdit(lr)&&list.some(function(x){ return x.id===lr.id; })){ pushLayer(); popup={type:'km',id:lr.id,full:true}; renderPopup(); }
     else if(list.some(function(x){ return x.id===lr.id; })){ pushLayer(); popup={type:'detail',id:lr.id}; renderPopup(); }
