@@ -652,7 +652,7 @@ function kmLine(r){
 }
 // 상세 창: 입력칸 값이 화면 갱신에도 남도록
 function keepPopupVals(){
-  if(!popup) return; popup.vals=popup.vals||{};
+  if(!popup) return; popup.vals=popup.vals||{}; readStops();
   ['ret-note','km-start','km-end','km-fuel','km-origin','km-route','km-toll'].forEach(function(id){ var e=document.getElementById(id); if(e&&e.getAttribute('data-for')===popup.id) popup.vals[id]=e.value; });
   var fc=document.getElementById('km-fuelchk'); if(fc&&fc.getAttribute('data-for')===popup.id) popup.vals.fuelOn=fc.checked;
 }
@@ -706,13 +706,34 @@ function kmSheet(r){
 }
 // 운행일지에서 줄을 눌렀을 때: 출발지 · 경유지 및 도착지 · 통행료
 function defRoute(r){ return r.route||((r.dest||'')+'-회사'); }
+// 경유지: 네이버 지도 길찾기처럼 출발 → 경유지(추가·삭제) → 도착 한 줄씩
+function routeStops(r){
+  if(!popup.stops){ var parts=defRoute(r).split('-').map(function(x){ return x.trim(); }).filter(Boolean);
+    popup.dest=parts.length>1?parts.pop():'회사'; popup.stops=parts.length?parts:['']; }
+  return popup.stops;
+}
+function readStops(){
+  if(!popup||!popup.stops) return;
+  popup.stops=popup.stops.map(function(v,i){ var e=document.getElementById('km-stop-'+i); return e?e.value:v; });
+  var de=document.getElementById('km-dest'); if(de) popup.dest=de.value;
+}
+function routeOf(){ readStops(); var a=popup.stops.map(function(x){ return String(x).trim(); }).filter(Boolean); var d=String(popup.dest||'').trim(); if(d) a.push(d); return a.join('-').slice(0,120); }
+function stopList(){ var names=['회사','집']; FIXED_SITES.concat(sites).forEach(function(n){ if(n&&names.indexOf(n)<0) names.push(n); }); return names; }
 function routeFields(r){
-  var o=pv('km-origin', r.origin||'회사');
-  return '<div style="display:grid;grid-template-columns:96px 1fr;gap:8px;margin-bottom:4px">'+
-    '<div><div style="font-size:12px;font-weight:600;margin-bottom:5px">출발지</div><select id="km-origin" data-for="'+r.id+'" style="'+SEL_STYLE+'">'+['회사','집','기타'].map(function(x){ return '<option'+(x===o?' selected':'')+'>'+x+'</option>'; }).join('')+'</select></div>'+
-    '<div><div style="font-size:12px;font-weight:600;margin-bottom:5px">경유지 및 도착지</div><input id="km-route" data-for="'+r.id+'" maxlength="120" value="'+esc(pv('km-route', defRoute(r)))+'" style="'+SM_IN+'"></div></div>'+
-    '<div style="font-size:11px;color:#888;margin-bottom:10px">예약한 업장이 미리 들어가 있어요. 들른 곳만 "-"로 이어서 추가하세요. 예: 한미1공장-한국바이린-회사</div>'+
+  var o=pv('km-origin', r.origin||'회사'), stops=routeStops(r);
+  var dot=function(c){ return '<span style="width:10px;height:10px;border-radius:50%;border:2px solid '+c+';flex-shrink:0"></span>'; };
+  var inp='flex:1;min-width:0;border:none;outline:none;font-size:14px;padding:10px 0;background:transparent;color:#1a1a18;font-family:inherit;';
+  var row='display:flex;align-items:center;gap:10px;padding:0 10px;border-bottom:.5px solid #eee;';
+  var h='<div style="font-size:12px;font-weight:600;margin-bottom:5px">경로</div>'+
+    '<datalist id="stop-list">'+stopList().map(function(n){ return '<option value="'+esc(n)+'">'; }).join('')+'</datalist>'+
+    '<div style="border:.5px solid #bbb;border-radius:10px;overflow:hidden;background:#fff">'+
+    '<div style="'+row+'">'+dot('#1D9E75')+'<select id="km-origin" data-for="'+r.id+'" style="'+inp+'appearance:auto;">'+['회사','집','기타'].map(function(x){ return '<option'+(x===o?' selected':'')+'>'+x+'</option>'; }).join('')+'</select><span style="font-size:11px;color:#aaa">출발</span></div>'+
+    stops.map(function(v,i){ return '<div style="'+row+'">'+dot('#999')+'<input id="km-stop-'+i+'" list="stop-list" placeholder="경유지 (업장 검색)" value="'+esc(v)+'" style="'+inp+'">'+
+      '<button type="button" data-act="stopdel" data-i="'+i+'" aria-label="경유지 빼기" style="width:24px;height:24px;border-radius:50%;border:1px solid #ccc;background:#fff;color:#888;font-size:16px;line-height:20px;padding:0;cursor:pointer">−</button></div>'; }).join('')+
+    '<div style="'+row+'border-bottom:none">'+dot('#E24B4A')+'<input id="km-dest" list="stop-list" placeholder="도착 (예: 회사, 집)" value="'+esc(popup.dest)+'" style="'+inp+'"><span style="font-size:11px;color:#aaa">도착</span></div></div>'+
+    '<div style="display:flex;align-items:center;gap:8px;margin:8px 0 12px"><button type="button" class="btn sm" data-act="stopadd"><i class="ti ti-plus"></i> 경유지</button><span style="font-size:11px;color:#888">예약한 업장이 미리 들어가 있어요</span></div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px"><div><div style="font-size:12px;font-weight:600;margin-bottom:5px">통행료 (원)</div><input id="km-toll" data-for="'+r.id+'" inputmode="numeric" placeholder="0" value="'+esc(pv('km-toll', r.toll||''))+'" style="'+SM_IN+'"></div><div></div></div>';
+  return h;
 }
 // 숫자를 치는 동안 이번 운행 거리 표시
 function kmDiff(){
@@ -738,7 +759,7 @@ function startNew(opts){
 function readKm(r, startOnly){ var kv=readKm0(r, startOnly); if(!kv||startOnly) return kv;
   var o=document.getElementById('km-origin'), rt=document.getElementById('km-route'), tl=document.getElementById('km-toll');
   if(!(kmOn(r.carId)&&inLog(list,r))){ var fc=document.getElementById('km-fuelchk'), fe=document.getElementById('km-fuel'); if(fc){ kv.fuel=fc.checked?(parseKm(fe&&fe.value)||0):0; } }
-  if(o) kv.origin=o.value; if(rt) kv.route=String(rt.value).trim().slice(0,120); if(tl) kv.toll=parseKm(tl.value)||0;
+  if(o) kv.origin=o.value; if(popup&&popup.stops) kv.route=routeOf(); else if(rt) kv.route=String(rt.value).trim().slice(0,120); if(tl) kv.toll=parseKm(tl.value)||0;
   return kv; }
 function readKm0(r, startOnly){
   if(!kmOn(r.carId)||!inLog(list,r)) return { startKm:r.startKm==null?null:r.startKm, endKm:r.endKm==null?null:r.endKm, fuel:r.fuel||0 };
@@ -967,6 +988,8 @@ document.addEventListener('click', async function(ev){
     catch(e){ console.error(e); toast(e.code==='permission-denied'?'저장 권한이 없어요.':'저장하지 못했어요.'); }
   }
   else if(a==='kmopen'){ var kid=t.getAttribute('data-id'); if(popup) popup={type:'km',id:kid}; else { pushLayer(); popup={type:'km',id:kid}; } renderPopup(); setTimeout(function(){ var e=document.getElementById('km-end'); if(e&&!e.value) e.focus(); },60); }
+  else if(a==='stopadd'){ keepPopupVals(); popup.stops.push(''); renderPopup(); var ns=document.getElementById('km-stop-'+(popup.stops.length-1)); if(ns) ns.focus(); }
+  else if(a==='stopdel'){ keepPopupVals(); popup.stops.splice(+t.getAttribute('data-i'),1); if(!popup.stops.length) popup.stops=['']; renderPopup(); }
   else if(a==='kmnote'){ keepPopupVals(); popup.noteOn=true; renderPopup(); var tn=document.getElementById('ret-note'); if(tn) tn.focus(); }
   else if(a==='kmstart'){ keepPopupVals(); popup.startOn=true; renderPopup(); var ts=document.getElementById('km-start'); if(ts) ts.focus(); }
   else if(a==='kmskip'){ var sid=t.getAttribute('data-id'), gopts=popup&&popup.gate; kmSkip(sid); popup=null; renderPopup(); if(gopts) startNew(gopts); }
