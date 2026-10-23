@@ -395,6 +395,11 @@ function openForm(opts){
     multiDay:!!(a&&b&&b.date>a.date)
   };
   if(a&&a.riders&&a.riders[0]) form.drivers[a.carId]=a.riders[0];
+  // 경유지: 저장된 경로(업장-경유지…-도착)에서 업장 다음부터 도착 전까지
+  form.stops=[]; form.routeEnd='회사';
+  if(a&&a.route){ var rp=String(a.route).split('-').map(function(x){ return x.trim(); }).filter(Boolean);
+    if(rp.length>1&&ENDS.indexOf(rp[rp.length-1])>=0) form.routeEnd=rp.pop();
+    if(rp.length&&rp[0]===a.dest) rp.shift(); form.stops=rp; }
   if(!a&&opts.car){ var myN=myStaffName(); if(myN) form.drivers[opts.car]=myN; }
   pushLayer(); popup=null; renderPopup(); renderForm();
 }
@@ -493,7 +498,12 @@ function renderForm(){
     h+='</div>';
   }
   if(s5){
-    h+='<div class="step">'+grp('업장 선택 *','<div class="searchable-select"><input id="f-dest" type="text" autocomplete="off" placeholder="업장명 검색..." value="'+esc(form.dest)+'" data-f="dest"><div id="dest-sug" class="ss-dropdown"></div></div>')+'</div>';
+    h+='<div class="step">'+grp('업장 선택 *','<div class="searchable-select"><input id="f-dest" type="text" autocomplete="off" placeholder="업장명 검색..." value="'+esc(form.dest)+'" data-f="dest"><div id="dest-sug" class="ss-dropdown"></div></div>')+
+      // 경유지 (선택): 업장 다음에 들를 곳
+      '<datalist id="fstop-list">'+stopList().map(function(n){ return '<option value="'+esc(n)+'">'; }).join('')+'</datalist>'+
+      (form.stops.length?'<div style="margin-top:8px">'+form.stops.map(function(v,i){ return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="width:8px;height:8px;border-radius:50%;border:2px solid #999;flex-shrink:0"></span><input list="fstop-list" data-f="stop" data-i="'+i+'" placeholder="경유지 (업장 검색)" value="'+esc(v)+'" style="'+SM_IN+'flex:1"><button type="button" data-act="fstopdel" data-i="'+i+'" aria-label="경유지 빼기" style="width:26px;height:26px;border-radius:50%;border:1px solid #ccc;background:#fff;color:#888;font-size:16px;line-height:22px;padding:0;cursor:pointer;flex-shrink:0">−</button></div>'; }).join('')+'</div>':'')+
+      '<button type="button" class="btn sm" data-act="fstopadd" style="margin-top:'+(form.stops.length?'2':'8')+'px"><i class="ti ti-plus"></i> 경유지 추가 <span style="color:#999;font-weight:400">(선택)</span></button>'+
+      '</div>';
   }
   if(s6u){
     h+='<div class="step"><div class="g2">'+grp('카테고리 *','<select data-f="purpose" style="'+SEL_STYLE+'">'+(form.purpose?'':'<option value="">선택...</option>')+
@@ -528,13 +538,11 @@ function openSug(){
   var sg=document.getElementById('dest-sug'); if(!sg||!form) return;
   sg.innerHTML=destSug(form.destPicked?'':form.dest); sg.classList.add('open'); sg.scrollTop=0;
 }
-// 예약 수정에서 업장을 바꾸면 경로의 첫 업장도 같이 바꿈
-function syncRoute(o, dest){
-  if(!o.route) return '';
-  var parts=String(o.route).split('-').map(function(x){ return x.trim(); }).filter(Boolean);
-  var i=parts.indexOf(o.dest); if(i<0) i=parts.findIndex(function(x){ return ENDS.indexOf(x)<0; });
-  if(i<0) parts.unshift(dest); else parts[i]=dest;
-  return parts.join('-');
+// 등록 창의 업장 + 경유지 → 경로 (경유지가 없고 예전 경로도 없으면 비워둠 = 업장-회사)
+function formRoute(o0){
+  var st=(form.stops||[]).map(function(x){ return String(x).trim(); }).filter(Boolean);
+  if(!st.length&&!(o0&&o0.route)) return '';
+  return [form.dest.trim()].concat(st).concat([form.routeEnd||'회사']).filter(Boolean).join('-');
 }
 async function submitForm(){
   if(!form||!form.carIds.length||!formValid()) return;
@@ -542,7 +550,7 @@ async function submitForm(){
   var rs=form.carIds.map(function(id){ var d=form.drivers[id]||''; return { carId:id, segs:segs, type:'use',
           dest:form.dest.trim(), purpose:form.purpose, riders:d?[d]:[], riderPhones:d&&phoneOf(d)?[phoneOf(d)]:[], memo:form.memo.trim(),
           returnedAt:(o0&&o0.returnedAt)||'', returnNote:(o0&&o0.returnNote)||'',
-          startKm:o0?o0.startKm:null, endKm:o0?o0.endKm:null, fuel:o0?o0.fuel:0, origin:o0?o0.origin:'', route:o0?syncRoute(o0, form.dest.trim()):'', toll:o0?o0.toll:0, lateAdd:o0?!!o0.lateAdd:tKey(segs[0].date,segs[0].start)<tKey(ymd(new Date()),nowHM()) }; });
+          startKm:o0?o0.startKm:null, endKm:o0?o0.endKm:null, fuel:o0?o0.fuel:0, origin:o0?o0.origin:'', route:formRoute(o0), toll:o0?o0.toll:0, lateAdd:o0?!!o0.lateAdd:tKey(segs[0].date,segs[0].start)<tKey(ymd(new Date()),nowHM()) }; });
   var olds=form.olds; form.busy=true; renderForm();
   try{
     await saveReservation(rs, olds);
@@ -1072,6 +1080,8 @@ document.addEventListener('click', async function(ev){
       if(myN&&!used&&!form.drivers[cid]) form.drivers[cid]=myN; }
     renderForm(); }
 
+  else if(a==='fstopadd'){ form.stops.push(''); renderForm(); var fi=document.querySelectorAll('[data-f=stop]'); if(fi.length) fi[fi.length-1].focus(); }
+  else if(a==='fstopdel'){ form.stops.splice(+t.getAttribute('data-i'),1); renderForm(); }
   else if(a==='save'){ submitForm(); }
   else if(a==='dpick'){ form.dest=t.getAttribute('data-v'); form.destPicked=true; var inp=document.getElementById('f-dest'); if(inp){ inp.value=form.dest; inp.blur(); } renderForm(); }
 });
@@ -1084,6 +1094,7 @@ document.addEventListener('change', function(ev){
   if(lf&&logState){ if(lf==='ly'||lf==='lm'){ logState.ym=(lf==='ly'?ev.target.value:logState.ym.slice(0,4))+'-'+(lf==='lm'?ev.target.value:logState.ym.slice(5,7)); lf='ym'; } else logState[lf]=ev.target.value; if(lf==='ym'&&logState.ym.slice(0,4)!==logState.loadedY){ logState.pool=null; loadLog(); } render(); return; }
   if(ev.target.id==='km-fuelchk'){ keepPopupVals(); renderPopup(); var fa=document.getElementById('km-fuel'); if(fa&&ev.target.checked) fa.focus(); return; }
   var f=ev.target.getAttribute&&ev.target.getAttribute('data-f'); if(!f||!form) return;
+  if(f==='stop'){ form.stops[+ev.target.getAttribute('data-i')]=ev.target.value; return; }
   if(f==='date'){ if(!ev.target.value) return; var len=form.date&&form.multiDay?datesBetween(form.date,form.endDate).length-1:0; form.date=ev.target.value; form.endDate=ymd(addDays(parseYmd(form.date),len)); }
   else if(f==='multiDay'){ form.multiDay=ev.target.checked; if(!form.multiDay) form.endDate=form.date; }
   else if(f==='endDate'){ var v=ev.target.value; form.endDate=v&&v>form.date?v:form.date; }
@@ -1105,6 +1116,7 @@ document.addEventListener('input', function(ev){
   if(ev.target.id==='km-end'||ev.target.id==='km-start'){ kmDiff(); return; }
   var f=ev.target.getAttribute&&ev.target.getAttribute('data-f'); if(!form) return;
   if(f==='dest'||f==='memo') form[f]=ev.target.value;
+  if(f==='stop'){ form.stops[+ev.target.getAttribute('data-i')]=ev.target.value; return; }
   if(f==='dest'){ form.destPicked=false; var sg=document.getElementById('dest-sug'); if(sg){ sg.innerHTML=destSug(form.dest); sg.classList.add('open'); } }
 });
 window.addEventListener('popstate', function(){ if(form){ form=null; renderForm(); } else if(popup){ popup=null; renderPopup(); } });
