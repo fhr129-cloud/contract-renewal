@@ -396,7 +396,7 @@ function openForm(opts){
   };
   if(a&&a.riders&&a.riders[0]) form.drivers[a.carId]=a.riders[0];
   // 경유지: 저장된 경로(업장-경유지…-도착)에서 업장 다음부터 도착 전까지
-  form.stops=[]; form.routeEnd='회사';
+  form.stops=[]; form.routeEnd='회사'; form.origin=(a&&a.origin)||'회사';
   if(a&&a.route){ var rp=String(a.route).split('-').map(function(x){ return x.trim(); }).filter(Boolean);
     if(rp.length>1&&ENDS.indexOf(rp[rp.length-1])>=0) form.routeEnd=rp.pop();
     if(rp.length&&rp[0]===a.dest) rp.shift(); form.stops=rp; }
@@ -498,12 +498,7 @@ function renderForm(){
     h+='</div>';
   }
   if(s5){
-    h+='<div class="step">'+grp('업장 선택 *','<div class="searchable-select"><input id="f-dest" type="text" autocomplete="off" placeholder="업장명 검색..." value="'+esc(form.dest)+'" data-f="dest"><div id="dest-sug" class="ss-dropdown"></div></div>')+
-      // 경유지 (선택): 업장 다음에 들를 곳
-      '<datalist id="fstop-list">'+stopList().map(function(n){ return '<option value="'+esc(n)+'">'; }).join('')+'</datalist>'+
-      (form.stops.length?'<div style="margin-top:8px">'+form.stops.map(function(v,i){ return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="width:8px;height:8px;border-radius:50%;border:2px solid #999;flex-shrink:0"></span><input list="fstop-list" data-f="stop" data-i="'+i+'" placeholder="경유지 (업장 검색)" value="'+esc(v)+'" style="'+SM_IN+'flex:1"><button type="button" data-act="fstopdel" data-i="'+i+'" aria-label="경유지 빼기" style="width:26px;height:26px;border-radius:50%;border:1px solid #ccc;background:#fff;color:#888;font-size:16px;line-height:22px;padding:0;cursor:pointer;flex-shrink:0">−</button></div>'; }).join('')+'</div>':'')+
-      '<button type="button" class="btn sm" data-act="fstopadd" style="margin-top:'+(form.stops.length?'2':'8')+'px"><i class="ti ti-plus"></i> 경유지 추가 <span style="color:#999;font-weight:400">(선택)</span></button>'+
-      '</div>';
+    h+='<div class="step">'+formRouteBox()+'</div>';
   }
   if(s6u){
     h+='<div class="step"><div class="g2">'+grp('카테고리 *','<select data-f="purpose" style="'+SEL_STYLE+'">'+(form.purpose?'':'<option value="">선택...</option>')+
@@ -516,7 +511,7 @@ function renderForm(){
   h+='</div><div class="sup-modal-footer"><span class="foot-hint">'+hint+'</span><button class="btn" data-act="fclose">취소</button><button class="btn primary" data-act="save"'+(canSave?'':' disabled')+'>'+(form.busy?'저장 중…':form.editIds.length?'수정 저장':'등록')+'</button></div></div>';
   var prev=document.getElementById('form-body'), y=prev?prev.scrollTop:0, before=form._n||0;
   el.className='sup-modal open'; el.innerHTML=h;
-  var body=document.getElementById('form-body'); body.scrollTop=y;
+  var body=document.getElementById('form-body'); body.scrollTop=y; initFormStopSort();
   var steps=body.querySelectorAll('.step'); form._n=steps.length;
   if(steps.length>before&&before>0){ var lastS=steps[steps.length-1]; lastS.classList.add('sup-step-anim'); setTimeout(function(){ lastS.scrollIntoView({behavior:'smooth',block:'nearest'}); },80); }
 }
@@ -539,9 +534,33 @@ function openSug(){
   sg.innerHTML=destSug(form.destPicked?'':form.dest); sg.classList.add('open'); sg.scrollTop=0;
 }
 // 등록 창의 업장 + 경유지 → 경로 (경유지가 없고 예전 경로도 없으면 비워둠 = 업장-회사)
+// 등록 창 경로: 운행 카드와 같은 모양 (출발 → 업장 → 경유지 → 도착)
+function formRouteBox(){
+  var dot=function(c){ return '<span style="width:10px;height:10px;border-radius:50%;border:2px solid '+c+';flex-shrink:0"></span>'; };
+  var inp='flex:1;min-width:0;border:none;outline:none;font-size:14px;padding:10px 0;background:transparent;color:#1a1a18;font-family:inherit;';
+  var row='display:flex;align-items:center;gap:10px;padding:0 10px;border-bottom:.5px solid #eee;';
+  var many=form.stops.length>1;
+  return '<div style="font-size:12px;font-weight:600;color:#666;margin-bottom:5px">경로 * <span style="font-weight:400;color:#999">(첫 업장이 예약 업장)</span></div>'+
+    '<datalist id="fstop-list">'+stopList().map(function(n){ return '<option value="'+esc(n)+'">'; }).join('')+'</datalist>'+
+    '<div style="border:.5px solid #bbb;border-radius:10px;background:#fff">'+
+    '<div style="'+row+'">'+dot('#1D9E75')+'<select data-f="origin" style="'+inp+'appearance:auto;">'+['회사','집','기타'].map(function(x){ return '<option'+(x===form.origin?' selected':'')+'>'+x+'</option>'; }).join('')+'</select><span style="font-size:11px;color:#aaa">출발</span></div>'+
+    '<div style="'+row+'">'+dot('#185FA5')+'<div class="searchable-select" style="flex:1;min-width:0"><input id="f-dest" type="text" autocomplete="off" placeholder="업장 검색 (필수)" value="'+esc(form.dest)+'" data-f="dest" style="'+inp+'width:100%"><div id="dest-sug" class="ss-dropdown"></div></div><span style="font-size:11px;color:#185FA5;font-weight:600">업장</span></div>'+
+    '<div id="fstop-box">'+form.stops.map(function(v,i){ return '<div class="fstop-row" data-i="'+i+'" style="'+row+'">'+(many?'<span class="stop-h" title="끌어서 순서 바꾸기">⠿</span>':'')+dot('#999')+'<input list="fstop-list" data-f="stop" data-i="'+i+'" placeholder="경유지 (업장 검색)" value="'+esc(v)+'" style="'+inp+'">'+
+      '<button type="button" data-act="fstopdel" data-i="'+i+'" aria-label="경유지 빼기" style="width:24px;height:24px;border-radius:50%;border:1px solid #ccc;background:#fff;color:#888;font-size:16px;line-height:20px;padding:0;cursor:pointer">−</button></div>'; }).join('')+'</div>'+
+    '<div style="'+row+'border-bottom:none">'+dot('#E24B4A')+'<input list="fstop-list" data-f="routeEnd" placeholder="도착 (예: 회사, 집)" value="'+esc(form.routeEnd)+'" style="'+inp+'"><span style="font-size:11px;color:#aaa">도착</span></div></div>'+
+    '<div style="margin:8px 0 2px"><button type="button" class="btn sm" data-act="fstopadd"><i class="ti ti-plus"></i> 경유지</button></div>';
+}
+function initFormStopSort(){
+  var box=document.getElementById('fstop-box'); if(!box||!form||form.stops.length<2) return;
+  loadSortable().then(function(){ if(!box.isConnected) return;
+    Sortable.create(box,{ handle:'.stop-h', animation:150, ghostClass:'stop-ghost', onEnd:function(){
+      var cur=form.stops.slice(), order=[].slice.call(box.querySelectorAll('.fstop-row')).map(function(el){ return +el.getAttribute('data-i'); });
+      form.stops=order.map(function(i){ return cur[i]; }); renderForm(); } });
+  }).catch(function(){});
+}
 function formRoute(o0){
   var st=(form.stops||[]).map(function(x){ return String(x).trim(); }).filter(Boolean);
-  if(!st.length&&!(o0&&o0.route)) return '';
+  if(!st.length&&!(o0&&o0.route)&&(form.routeEnd||'회사')==='회사') return '';
   return [form.dest.trim()].concat(st).concat([form.routeEnd||'회사']).filter(Boolean).join('-');
 }
 async function submitForm(){
@@ -550,7 +569,7 @@ async function submitForm(){
   var rs=form.carIds.map(function(id){ var d=form.drivers[id]||''; return { carId:id, segs:segs, type:'use',
           dest:form.dest.trim(), purpose:form.purpose, riders:d?[d]:[], riderPhones:d&&phoneOf(d)?[phoneOf(d)]:[], memo:form.memo.trim(),
           returnedAt:(o0&&o0.returnedAt)||'', returnNote:(o0&&o0.returnNote)||'',
-          startKm:o0?o0.startKm:null, endKm:o0?o0.endKm:null, fuel:o0?o0.fuel:0, origin:o0?o0.origin:'', route:formRoute(o0), toll:o0?o0.toll:0, lateAdd:o0?!!o0.lateAdd:tKey(segs[0].date,segs[0].start)<tKey(ymd(new Date()),nowHM()) }; });
+          startKm:o0?o0.startKm:null, endKm:o0?o0.endKm:null, fuel:o0?o0.fuel:0, origin:form.origin||'회사', route:formRoute(o0), toll:o0?o0.toll:0, lateAdd:o0?!!o0.lateAdd:tKey(segs[0].date,segs[0].start)<tKey(ymd(new Date()),nowHM()) }; });
   var olds=form.olds; form.busy=true; renderForm();
   try{
     await saveReservation(rs, olds);
@@ -746,14 +765,14 @@ function routeFields(r){
   var dot=function(c){ return '<span style="width:10px;height:10px;border-radius:50%;border:2px solid '+c+';flex-shrink:0"></span>'; };
   var inp='flex:1;min-width:0;border:none;outline:none;font-size:14px;padding:10px 0;background:transparent;color:#1a1a18;font-family:inherit;';
   var row='display:flex;align-items:center;gap:10px;padding:0 10px;border-bottom:.5px solid #eee;';
-  var h='<div style="font-size:12px;font-weight:600;margin-bottom:5px">경로</div>'+
+  var h='<div style="font-size:12px;font-weight:600;margin-bottom:5px">경로 <span style="font-weight:400;color:#999">(첫 업장이 예약 업장)</span></div>'+
     '<datalist id="stop-list">'+stopList().map(function(n){ return '<option value="'+esc(n)+'">'; }).join('')+'</datalist>'+
     '<div style="border:.5px solid #bbb;border-radius:10px;overflow:hidden;background:#fff">'+
     '<div style="'+row+'">'+dot('#1D9E75')+'<select id="km-origin" data-for="'+r.id+'" style="'+inp+'appearance:auto;">'+['회사','집','기타'].map(function(x){ return '<option'+(x===o?' selected':'')+'>'+x+'</option>'; }).join('')+'</select><span style="font-size:11px;color:#aaa">출발</span></div>'+
-    '<div id="stop-box">'+stops.map(function(v,i){ return '<div class="stop-row" data-i="'+i+'" style="'+row+'">'+(stops.length>1?'<span class="stop-h" title="끌어서 순서 바꾸기">⠿</span>':'')+dot('#999')+'<input id="km-stop-'+i+'" list="stop-list" placeholder="경유지 (업장 검색)" value="'+esc(v)+'" style="'+inp+'">'+
+    '<div id="stop-box">'+stops.map(function(v,i){ return '<div class="stop-row" data-i="'+i+'" style="'+row+'">'+(stops.length>1?'<span class="stop-h" title="끌어서 순서 바꾸기">⠿</span>':'')+dot(i===0?'#185FA5':'#999')+'<input id="km-stop-'+i+'" list="stop-list" placeholder="'+(i===0?'업장':'경유지')+' (업장 검색)" value="'+esc(v)+'" style="'+inp+'">'+(i===0?'<span style="font-size:11px;color:#185FA5;font-weight:600">업장</span>':'')+
       '<button type="button" data-act="stopdel" data-i="'+i+'" aria-label="경유지 빼기" style="width:24px;height:24px;border-radius:50%;border:1px solid #ccc;background:#fff;color:#888;font-size:16px;line-height:20px;padding:0;cursor:pointer">−</button></div>'; }).join('')+'</div>'+
     '<div style="'+row+'border-bottom:none">'+dot('#E24B4A')+'<input id="km-dest" list="stop-list" placeholder="도착 (예: 회사, 집)" value="'+esc(popup.dest)+'" style="'+inp+'"><span style="font-size:11px;color:#aaa">도착</span></div></div>'+
-    '<div style="display:flex;align-items:center;gap:8px;margin:8px 0 12px"><button type="button" class="btn sm" data-act="stopadd"><i class="ti ti-plus"></i> 경유지</button><span style="font-size:11px;color:#888">예약한 업장이 미리 들어가 있어요</span></div>'+
+    '<div style="margin:8px 0 12px"><button type="button" class="btn sm" data-act="stopadd"><i class="ti ti-plus"></i> 경유지</button></div>'+
     '';
   return h;
 }
@@ -1095,6 +1114,7 @@ document.addEventListener('change', function(ev){
   if(ev.target.id==='km-fuelchk'){ keepPopupVals(); renderPopup(); var fa=document.getElementById('km-fuel'); if(fa&&ev.target.checked) fa.focus(); return; }
   var f=ev.target.getAttribute&&ev.target.getAttribute('data-f'); if(!f||!form) return;
   if(f==='stop'){ form.stops[+ev.target.getAttribute('data-i')]=ev.target.value; return; }
+  if(f==='routeEnd'||f==='origin'){ form[f]=ev.target.value; return; }
   if(f==='date'){ if(!ev.target.value) return; var len=form.date&&form.multiDay?datesBetween(form.date,form.endDate).length-1:0; form.date=ev.target.value; form.endDate=ymd(addDays(parseYmd(form.date),len)); }
   else if(f==='multiDay'){ form.multiDay=ev.target.checked; if(!form.multiDay) form.endDate=form.date; }
   else if(f==='endDate'){ var v=ev.target.value; form.endDate=v&&v>form.date?v:form.date; }
@@ -1117,6 +1137,7 @@ document.addEventListener('input', function(ev){
   var f=ev.target.getAttribute&&ev.target.getAttribute('data-f'); if(!form) return;
   if(f==='dest'||f==='memo') form[f]=ev.target.value;
   if(f==='stop'){ form.stops[+ev.target.getAttribute('data-i')]=ev.target.value; return; }
+  if(f==='routeEnd'){ form.routeEnd=ev.target.value; return; }
   if(f==='dest'){ form.destPicked=false; var sg=document.getElementById('dest-sug'); if(sg){ sg.innerHTML=destSug(form.dest); sg.classList.add('open'); } }
 });
 window.addEventListener('popstate', function(){ if(form){ form=null; renderForm(); } else if(popup){ popup=null; renderPopup(); } });
