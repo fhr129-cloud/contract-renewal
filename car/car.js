@@ -868,14 +868,30 @@ function logData(){
   var tot=0, toll=0, fuel=0, miss=0; rows.forEach(function(x){ if(x.d!=null) tot+=x.d; toll+=x.toll; fuel+=x.fuel; if(x.miss) miss++; });
   return { rows:rows, spans:spans, months:months, tot:tot, toll:toll, fuel:fuel, miss:miss, year:months.reduce(function(s2,x){ return s2+(x.km||0); },0) };
 }
-function spanTxt(x){ function md(d){ return (+d.slice(5,7))+'/'+(+d.slice(8,10)); } return md(x.date)+' ~ '+md(x.endDate)+' · '+x.dates.length+'일'; }
+// 이 달 표에 들어갈 운행 (여러 날 운행은 이 달에 걸친 날짜들 mdates)
+function monthItems(D, ym){
+  var seen={}, out=[];
+  D.rows.concat(D.spans).forEach(function(x){ if(seen[x.id]) return; seen[x.id]=1;
+    var md=x.dates.filter(function(d){ return d.slice(0,7)===ym; }); if(!md.length) return;
+    out.push(Object.assign({}, x, { mdates:md, first:md[0] })); });
+  return out;
+}
+function dayPlan(items, key){
+  var conts=items.filter(function(x){ return x.first!==key&&x.mdates.indexOf(key)>=0; });
+  var starts=items.filter(function(x){ return x.first===key; }).sort(function(a,b){ return (a.date+a.r.start).localeCompare(b.date+b.r.start); });
+  return { conts:conts, starts:starts };
+}
+function dowTxt(key){ return DOW[parseYmd(key).getDay()]; }
+function spanDays(x){ return x.dates.map(function(d){ return dowTxt(d); }).join('·'); }
+function spanTxt(x){ return (+x.date.slice(8,10))+'~'+(+x.endDate.slice(8,10))+' · '+x.dates.length+'일'; }
 function n0(v){ return v?Number(v).toLocaleString():''; }
 function logPage(){
   ensureLog();
   var c=car(logState.carId), ym=logState.ym, y=+ym.slice(0,4), mo=+ym.slice(5,7), ck=carKm[c.id];
-  var mlist=[]; for(var i=0;i<14;i++){ var d=new Date(); d=new Date(d.getFullYear(),d.getMonth()-i,1); mlist.push(ymd(d).slice(0,7)); }
+  var nowY=new Date().getFullYear(), years=[nowY-1,nowY,nowY+1]; if(years.indexOf(y)<0) years.push(y); years.sort();
   var h='<div class="lg-bar"><select data-l="carId" style="'+SEL_STYLE+'">'+CARS.map(function(x){ return '<option value="'+x.id+'"'+(x.id===c.id?' selected':'')+'>'+x.name+'</option>'; }).join('')+'</select>'+
-    '<select data-l="ym" style="'+SEL_STYLE+'">'+mlist.map(function(m){ return '<option value="'+m+'"'+(m===ym?' selected':'')+'>'+m.slice(0,4)+'년 '+(+m.slice(5))+'월</option>'; }).join('')+'</select>'+
+    '<select data-l="ly" style="'+SEL_STYLE+'width:100px">'+years.map(function(v){ return '<option value="'+v+'"'+(v===y?' selected':'')+'>'+v+'년</option>'; }).join('')+'</select>'+
+    '<select data-l="lm" style="'+SEL_STYLE+'width:84px">'+[1,2,3,4,5,6,7,8,9,10,11,12].map(function(v){ return '<option value="'+pad(v)+'"'+(v===mo?' selected':'')+'>'+v+'월</option>'; }).join('')+'</select>'+
     '<button class="btn" data-act="lxlsx"><i class="ti ti-download"></i> 엑셀</button><button class="btn primary" data-act="ladd"><i class="ti ti-plus"></i> 운행 추가</button></div>';
   if(isAdmin()){
     h+=missingAdmin()+'<div class="lg-admin">'+(ck?'최근 계기판 <b>'+fmtKm(ck.km)+' km</b> <span style="color:#888">('+esc(ck.at||'')+' · 기록 시작 '+esc(ck.since||'')+')</span>':'<span style="color:#777">기준 숫자 없음 · 계기판이 앞 기록과 다를 때만 맞추면 돼요</span>')+
@@ -885,19 +901,21 @@ function logPage(){
   var D=logData();
   h+='<div class="lg-sum"><div>이번 달 주행<b>'+D.tot.toLocaleString()+' km</b></div><div>올해 누적<b>'+D.year.toLocaleString()+' km</b></div><div class="'+(D.miss?'red':'')+'">비어 있음<b>'+D.miss+'칸</b></div></div>';
   // PC: 종이 양식 표
-  var last=new Date(y,mo,0).getDate(), body='';
+  var last=new Date(y,mo,0).getDate(), body='', items=monthItems(D, ym);
   for(var dd=1; dd<=last; dd++){
-    var key=ym+'-'+pad(dd), dow=new Date(y,mo-1,dd).getDay(), hol=getHoliday(key), rs=D.rows.filter(function(x){ return x.day===dd; });
-    var cs=D.spans.filter(function(x){ return x.date!==key&&x.dates.indexOf(key)>=0; });
-    var dcls=(dow===0||hol)?'red':(dow===6?'blue':''), isToday=key===ymd(new Date()), tcls=isToday?' today':'', dlab=dd+(isToday?'<span class="lg-today">오늘</span>':'');
-    if(!rs.length&&!cs.length){ body+='<tr class="off'+tcls+'"'+(isToday?' id="lg-today-row"':'')+' data-act="ladd" data-date="'+key+'" title="이 날 운행 추가"><td class="c '+dcls+'">'+dlab+'</td><td></td><td></td><td>'+esc(hol||'')+'</td><td class="n">–</td><td class="n">–</td><td></td><td></td></tr>'; continue; }
-    rs.forEach(function(x){
+    var key=ym+'-'+pad(dd), dow=new Date(y,mo-1,dd).getDay(), hol=getHoliday(key), P=dayPlan(items,key);
+    var dcls=(dow===0||hol)?'red':(dow===6?'blue':''), isToday=key===ymd(new Date()), tcls=isToday?' today':'';
+    var dlab=dd+' <span class="lg-dow">('+DOW[dow]+')</span>'+(isToday?'<span class="lg-today">오늘</span>':'');
+    var tid=function(){ return isToday&&!body.includes('id="lg-today-row"')?' id="lg-today-row"':''; };
+    if(!P.conts.length&&!P.starts.length){ body+='<tr class="off'+tcls+'"'+tid()+' data-act="ladd" data-date="'+key+'" title="이 날 운행 추가"><td class="c '+dcls+'">'+dlab+'</td><td></td><td></td><td>'+esc(hol||'')+'</td><td class="n">–</td><td class="n">–</td><td></td><td></td></tr>'; continue; }
+    // 여러 날 운행의 이어지는 날: 날짜 칸만 (내용은 위 줄과 합쳐져 있음)
+    P.conts.forEach(function(x){ body+='<tr class="cday'+tcls+'"'+tid()+' data-act="lrow" data-id="'+x.id+'"><td class="c '+dcls+'">'+dlab+'</td></tr>'; });
+    P.starts.forEach(function(x){
+      var k=x.mdates.length, rs=k>1?' rowspan="'+k+'"':'', sp=k>1?' span':'';
       var endCell=x.future?'<span style="color:#888">예정</span>':x.miss?(x.mine||isAdmin()?'<span class="lg-in">숫자 적기</span>':'<span class="red">비어 있음</span>'):(x.driving?'<span style="color:#185FA5">운행 중</span>':fmtKm(x.e));
-      body+='<tr class="row'+(x.miss?' ms':'')+(x.mine?' me':'')+(x.future?' fut':'')+tcls+'"'+(isToday&&!body.includes('id="lg-today-row"')?' id="lg-today-row"':'')+' data-act="lrow" data-id="'+x.id+'" data-rid="'+x.id+'"><td class="c '+dcls+'">'+dlab+'</td><td>'+esc(x.drv)+'</td><td class="c">'+esc(x.origin)+'</td><td>'+esc(x.route)+(x.multi?' <small style="color:#185FA5">('+spanTxt(x)+')</small>':'')+(x.r.lateAdd?' <span class="lg-late">나중에 추가</span>':'')+'</td>'+
-        '<td class="n kc">'+(x.future?'':x.on?fmtKm(x.s):'–')+'</td><td class="n kc">'+(x.future?endCell:x.on?endCell:'–')+'</td><td class="n">'+(x.d!=null?x.d.toLocaleString():'')+'</td><td class="n">'+n0(x.fuel)+'</td></tr>';
-    });
-    cs.forEach(function(x){
-      body+='<tr class="row cont'+(x.mine?' me':'')+tcls+'"'+(isToday&&!body.includes('id="lg-today-row"')?' id="lg-today-row"':'')+' data-act="lrow" data-id="'+x.id+'"><td class="c '+dcls+'">'+dlab+'</td><td>'+esc(x.drv)+'</td><td></td><td>↳ '+(+x.date.slice(5,7))+'/'+(+x.date.slice(8,10))+'부터 이어서 · '+esc(x.route)+'</td><td></td><td></td><td></td><td></td></tr>';
+      body+='<tr class="row'+(x.miss?' ms':'')+(x.mine?' me':'')+(x.future?' fut':'')+tcls+'"'+tid()+' data-act="lrow" data-id="'+x.id+'" data-rid="'+x.id+'"><td class="c '+dcls+'">'+dlab+'</td>'+
+        '<td class="'+sp+(k>1?' bar':'')+'"'+rs+'>'+esc(x.drv)+'</td><td class="c'+sp+'"'+rs+'>'+esc(x.origin)+'</td><td class="'+sp+'"'+rs+'>'+esc(x.route)+(x.multi?'<span class="lg-rng">'+spanTxt(x)+'</span>':'')+(x.r.lateAdd?' <span class="lg-late">나중에 추가</span>':'')+'</td>'+
+        '<td class="n kc'+sp+'"'+rs+'>'+(x.future?'':fmtKm(x.s))+'</td><td class="n kc'+sp+'"'+rs+'>'+endCell+'</td><td class="n'+sp+'"'+rs+'>'+(x.d!=null?x.d.toLocaleString():'')+'</td><td class="n'+sp+'"'+rs+'>'+n0(x.fuel)+'</td></tr>';
     });
   }
   var mt=D.months.map(function(x){ var cur=x.m===mo; return '<tr'+(cur?' class="cur"':'')+'><td class="c">'+x.m+'월</td><td class="n">'+(x.km!=null?x.km.toLocaleString():'')+'</td></tr>'; }).join('');
@@ -909,12 +927,13 @@ function logPage(){
   // 휴대폰: 하루 한 줄 카드 (최신이 위)
   var todayK=ymd(new Date()), divDone=ym!==todayK.slice(0,7);
   var todayDiv=function(){ return '<div class="lg-div"><span>오늘 '+mdw(todayK)+'</span></div>'; };
-  h+='<div class="lg-mo">'+(D.rows.length?D.rows.slice().reverse().map(function(x){
-      var pre=''; if(!divDone&&x.date<=todayK){ divDone=true; if(x.date<todayK) pre=todayDiv(); }
-      var dow=parseYmd(x.date).getDay(), col=(dow===0||getHoliday(x.date))?'#C0392B':(dow===6?'#1A5276':'#1a1a18');
+  var mitems=items.slice().sort(function(a,b){ return (a.first+a.r.start).localeCompare(b.first+b.r.start); });
+  h+='<div class="lg-mo">'+(mitems.length?mitems.slice().reverse().map(function(x){
+      var pre=''; if(!divDone&&x.first<=todayK){ divDone=true; if(x.mdates[x.mdates.length-1]<todayK) pre=todayDiv(); }
+      var dow=parseYmd(x.first).getDay(), col=(dow===0||getHoliday(x.date))?'#C0392B':(dow===6?'#1A5276':'#1a1a18');
       var k=x.future?'<span style="color:#888;font-size:12px">예정</span>':!x.on?'<span style="color:#aaa;font-size:12px">기록 전</span>':x.miss?(x.mine||isAdmin()?'<span class="lg-in">숫자 적기</span>':'<span style="color:#A32D2D;font-size:12px">비어 있음</span>'):x.driving?'<span style="color:#185FA5;font-size:12px">운행 중</span>':(x.d!=null?x.d.toLocaleString()+' km':'')+'<small>'+fmtKm(x.s)+' → '+fmtKm(x.e)+'</small>';
-      var isT=x.date===todayK;
-      return pre+'<div class="lg-card'+(x.miss?' ms':'')+(x.future?' fut':'')+(isT?' today':'')+'" data-act="lrow" data-id="'+x.id+'" data-rid="'+x.id+'"><div class="d" style="color:'+col+'">'+x.day+'<small>'+(isT?'오늘':DOW[dow])+'</small></div><div class="m"><div class="r1">'+esc(x.route)+'</div>'+(x.multi?'<div class="r2" style="color:#185FA5">'+spanTxt(x)+'</div>':'')+'<div class="r2">'+esc(x.drv)+(x.mine?' (나)':'')+(x.r.lateAdd?' · <span class="lg-late">나중에 추가</span>':'')+(x.fuel?' · 주유 '+n0(x.fuel):'')+'</div></div><div class="k">'+k+'</div></div>';
+      var isT=x.mdates.indexOf(todayK)>=0;
+      return pre+'<div class="lg-card'+(x.miss?' ms':'')+(x.future?' fut':'')+(isT?' today':'')+'" data-act="lrow" data-id="'+x.id+'" data-rid="'+x.id+'"><div class="d" style="color:'+col+'">'+(+x.first.slice(8,10))+'<small'+(x.multi?' style="color:#185FA5;font-weight:700;font-size:11px"':'')+'>'+(x.multi?'~'+(+x.endDate.slice(8,10)):(isT?'오늘':DOW[dow]))+'</small></div><div class="m"><div class="r1">'+esc(x.route)+'</div><div class="r2">'+esc(x.drv)+(x.mine?' (나)':'')+(x.multi?' · <b style="color:#185FA5">'+x.dates.length+'일</b> ('+spanDays(x)+')':'')+(x.r.lateAdd?' · <span class="lg-late">나중에 추가</span>':'')+(x.fuel?' · 주유 '+n0(x.fuel):'')+'</div></div><div class="k">'+k+'</div></div>';
     }).join('')+(!divDone?todayDiv():''):'<div class="empty-state">이 달에는 운행이 없어요.</div>')+'</div>';
   return h;
 }
@@ -928,10 +947,11 @@ var LOG_CSS='.car-tabs{display:flex;gap:4px;border-bottom:.5px solid #e8e8e4;bac
   '.lg-title{font-size:19px;font-weight:800;text-align:center;padding:12px 0;letter-spacing:1px;}'+
   '.lg-info{display:grid;grid-template-columns:70px 1fr 110px 1fr;border-top:.5px solid #cfcfc8;font-size:12px;}.lg-info div{padding:7px 8px;border-right:.5px solid #cfcfc8;}.lg-info div:last-child{border-right:none;}.lg-info .k{background:#EEF0F3;font-weight:600;text-align:center;}'+
   '.lg-t{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums;background:#fff;}.lg-t th,.lg-t td{border:.5px solid #cfcfc8;padding:5px 7px;white-space:nowrap;}.lg-t th{background:#EEF0F3;font-weight:600;color:#333;}'+
-  '.lg-t .c{text-align:center;}.lg-t .n{text-align:right;}.lg-t .red{color:#C0392B;}.lg-t .blue{color:#1A5276;}.lg-t tr.off td{background:#FAFAF8;color:#bbb;}.lg-t tr.off td.red{color:#E7A9A1;}'+
+  '.lg-t .c{text-align:center;}.lg-t td:first-child{white-space:nowrap;}.lg-t .n{text-align:right;}.lg-t .red{color:#C0392B;}.lg-t .blue{color:#1A5276;}.lg-t tr.off td{background:#FAFAF8;color:#bbb;}.lg-t tr.off td.red{color:#E7A9A1;}'+
   '.lg-t tr.row{cursor:pointer;}.lg-t tr.row:hover td{background:#F3F7FB;}.lg-t tr.me td{background:#F7FAFD;}.lg-t tr.ms td.kc{background:#FCEBEB;}.lg-t tr.cur td{background:#E6F1FB;font-weight:700;}.lg-t tr.tot th{background:#EEF0F3;}'+
   '.lg-t tr.today td{background:#FFF7DB !important;}.lg-t tr.today td:first-child{box-shadow:inset 3px 0 0 #E0A100;font-weight:700;color:#1a1a18;}.lg-today{display:inline-block;margin-left:4px;font-size:10px;font-weight:700;color:#fff;background:#E0A100;border-radius:4px;padding:0 4px;vertical-align:1px;}'+
-  '.lg-t tr.fut td{color:#888;}.lg-t tr.cont td{color:#8aa0b5;background:#FBFCFE;}'+'.lg-card.fut{background:#FAFAF8;}.lg-card.fut .r1{color:#555;}.lg-card.today{border:1.5px solid #E0A100;background:#FFFBEA;}'+
+  '.lg-t tr.fut td{color:#888;}.lg-t td.span{background:#F3F8FD;vertical-align:middle;}.lg-t tr.fut td.span{background:#F7F9FB;}.lg-t td.bar{box-shadow:inset 3px 0 0 #185FA5;}.lg-t tr.cday{cursor:pointer;}.lg-dow{font-size:11px;font-weight:400;opacity:.8;}'+
+  '.lg-rng{display:inline-block;font-size:10px;font-weight:700;color:#185FA5;background:#E6F1FB;border-radius:4px;padding:1px 6px;margin-left:6px;}'+'.lg-card.fut{background:#FAFAF8;}.lg-card.fut .r1{color:#555;}.lg-card.today{border:1.5px solid #E0A100;background:#FFFBEA;}'+
   '.lg-div{display:flex;align-items:center;gap:8px;margin:10px 0;font-size:11px;font-weight:700;color:#B07D00;}.lg-div:before,.lg-div:after{content:"";flex:1;height:1px;background:#E8C766;}'+
   '.lg-late{display:inline-block;font-size:10px;font-weight:600;color:#854F0B;background:#FAEEDA;border-radius:4px;padding:0 5px;}.lg-t tr.off{cursor:pointer;}.lg-t tr.off:hover td{background:#F3F7FB;}.lg-flash td,.lg-card.lg-flash{animation:lgf 1.6s ease;}@keyframes lgf{0%,40%{background:#CFE3F7;}100%{}}'+
   '.ev-miss{width:6px;height:6px;border-radius:50%;background:#E24B4A;display:inline-block;margin-right:3px;flex-shrink:0;align-self:center;}'+
@@ -940,7 +960,7 @@ var LOG_CSS='.car-tabs{display:flex;gap:4px;border-bottom:.5px solid #e8e8e4;bac
   '.lg-card .d{width:32px;text-align:center;font-weight:700;font-size:15px;line-height:1.1;}.lg-card .d small{display:block;font-size:10px;font-weight:500;color:#888;}'+
   '.lg-card .m{flex:1;min-width:0;}.lg-card .r1{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.lg-card .r2{font-size:11px;color:#777;margin-top:2px;}'+
   '.lg-card .k{text-align:right;font-size:13px;font-weight:700;white-space:nowrap;}.lg-card .k small{display:block;font-size:10px;color:#999;font-weight:400;}.lg-card.ms{border-color:#F7C1C1;background:#FFF8F8;}'+
-  '@media(max-width:760px){.lg-pc{display:none;}.lg-mo{display:block;}.lg-bar{flex-wrap:wrap;}.lg-bar select{flex:1 1 40%;max-width:none;}.lg-bar .btn{flex:1;justify-content:center;}.lg-bar .btn[data-act=lxlsx]{margin-left:0;}}';
+  '@media(max-width:760px){.lg-pc{display:none;}.lg-mo{display:block;}.lg-bar{flex-wrap:wrap;}.lg-bar select{flex:1 1 26%;max-width:none;width:auto !important;min-width:0;}.lg-bar .btn{flex:1;justify-content:center;}.lg-bar .btn[data-act=lxlsx]{margin-left:0;}}';
 function ensureLogCss(){ if(document.getElementById('lg-css')) return; var st=document.createElement('style'); st.id='lg-css'; st.textContent=LOG_CSS; document.head.appendChild(st); }
 // 관리자: 숫자 안 적은 운행 (최근 두 달, 차 전체) + 단톡방 안내 문구
 function allMissing(){
@@ -975,21 +995,21 @@ async function exportLog(){
   var c=car(logState.carId), ym=logState.ym, y=+ym.slice(0,4), mo=+ym.slice(5,7), D=logData(), last=new Date(y,mo,0).getDate();
   var aoa=[[String(y).slice(2)+'년 '+mo+'월 차량운행일지'],['차량',c.name,'월 총 주행거리',D.tot+' km'],[],
     ['일','운행자','출발지','경유지 및 도착지','운행시작','운행종료','운행거리','주유','','월','누적km']];
-  var body=[];
+  var body=[], merges=[{s:{r:0,c:0},e:{r:0,c:7}}], items=monthItems(D, ym), startAt={};
   for(var dd=1; dd<=last; dd++){
-    var key=ym+'-'+pad(dd), rs=D.rows.filter(function(x){ return x.day===dd; }), hol=getHoliday(key);
-    var cs=D.spans.filter(function(x){ return x.date!==key&&x.dates.indexOf(key)>=0; });
-    if(!rs.length&&!cs.length) body.push([dd,'','',hol||'','','','','']);
-    rs.forEach(function(x){ body.push([dd,x.drv,x.origin,x.route+(x.multi?' ('+spanTxt(x)+')':''),x.s==null?'':x.s,x.miss?'비어 있음':(x.e==null?'':x.e),x.d==null?'':x.d,x.fuel||'']); });
-    cs.forEach(function(x){ body.push([dd,x.drv,'','↳ '+(+x.date.slice(5,7))+'/'+(+x.date.slice(8,10))+'부터 이어서','','','','']); });
+    var key=ym+'-'+pad(dd), hol=getHoliday(key), P=dayPlan(items,key), dl=dd+' ('+dowTxt(key)+')';
+    if(!P.conts.length&&!P.starts.length) body.push([dl,'','',hol||'','','','','']);
+    P.conts.forEach(function(){ body.push([dl,'','','','','','','']); });
+    P.starts.forEach(function(x){ var k=x.mdates.length; if(k>1) merges.push.apply(merges,[1,2,3,4,5,6,7].map(function(cc){ return {s:{r:4+body.length,c:cc},e:{r:4+body.length+k-1,c:cc}}; }));
+      body.push([dl,x.drv,x.origin,x.route+(x.multi?' ('+spanTxt(x)+')':''),x.s==null?'':x.s,x.miss?'비어 있음':(x.e==null?'':x.e),x.d==null?'':x.d,x.fuel||'']); });
   }
   body.push(['합계','','','','','',D.tot,D.fuel||'']);
   body.forEach(function(row,i){ var r=row.slice(); while(r.length<8) r.push('');
     if(i<12){ r.push('',D.months[i].m+'월',D.months[i].km==null?'':D.months[i].km); } else if(i===12){ r.push('','년 누적',D.year); }
     aoa.push(r); });
   var ws=XLSX.utils.aoa_to_sheet(aoa);
-  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:7}}];
-  ws['!cols']=[{wch:5},{wch:13},{wch:8},{wch:44},{wch:10},{wch:10},{wch:9},{wch:9},{wch:2},{wch:8},{wch:10}];
+  ws['!merges']=merges;
+  ws['!cols']=[{wch:8},{wch:13},{wch:8},{wch:44},{wch:10},{wch:10},{wch:9},{wch:9},{wch:2},{wch:8},{wch:10}];
   var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, (c.short+' '+ym).replace(/[\\\/?*\[\]:]/g,''));
   XLSX.writeFile(wb, '차량운행일지_'+c.short+'_'+ym+'.xlsx');
 }
@@ -1114,7 +1134,7 @@ document.addEventListener('click', function(ev){
 });
 document.addEventListener('change', function(ev){
   var lf=ev.target.getAttribute&&ev.target.getAttribute('data-l');
-  if(lf&&logState){ logState[lf]=ev.target.value; if(lf==='ym'&&logState.ym.slice(0,4)!==logState.loadedY){ logState.pool=null; loadLog(); } render(); return; }
+  if(lf&&logState){ if(lf==='ly'||lf==='lm'){ logState.ym=(lf==='ly'?ev.target.value:logState.ym.slice(0,4))+'-'+(lf==='lm'?ev.target.value:logState.ym.slice(5,7)); lf='ym'; } else logState[lf]=ev.target.value; if(lf==='ym'&&logState.ym.slice(0,4)!==logState.loadedY){ logState.pool=null; loadLog(); } render(); return; }
   if(ev.target.id==='km-fuelchk'){ keepPopupVals(); renderPopup(); var fa=document.getElementById('km-fuel'); if(fa&&ev.target.checked) fa.focus(); return; }
   var f=ev.target.getAttribute&&ev.target.getAttribute('data-f'); if(!f||!form) return;
   if(f==='date'){ if(!ev.target.value) return; var len=form.date&&form.multiDay?datesBetween(form.date,form.endDate).length-1:0; form.date=ev.target.value; form.endDate=ymd(addDays(parseYmd(form.date),len)); }
