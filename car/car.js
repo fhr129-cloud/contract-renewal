@@ -14,7 +14,9 @@ export var CARS = [
 var KM_SINCE = '2026-10-23';
 var NOTICE = '';                 // 예: '키: 본사 1층 경영지원팀 · 주차: 본사 주차장 B구역'
 var SLOTS = { am:{label:'오전', s:'09:00', e:'13:00'}, pm:{label:'오후', s:'13:00', e:'18:00'}, day:{label:'종일', s:'09:00', e:'18:00'} };
-var PURPOSES = ['특식지원','이벤트지원','물품배송','정비검사','기타'];
+var PURPOSES = ['특식지원','이벤트지원','물품배송','차량정비','기타'];
+var REPAIR = '차량정비';          // 이 카테고리는 운전자를 고르지 않음 · 계기판 숫자 필수 아님
+function isRepair(r){ return !!r&&(r.purpose===REPAIR||r.purpose==='정비검사'); }
 
 // ── 아이콘 (선 아이콘, 장식용) ──────────────────────────
 var ICON = {
@@ -68,7 +70,7 @@ function lastNote(carId, before, exceptId){
 // 예약자: 등록할 때 고른 사람(최대 2명). 예전 예약은 등록한 사람.
 function users(r){ return r.riders&&r.riders.length?r.riders:(r.ownerName?[r.ownerName]:[]); }
 function short1(n){ return String(n||'').split(' ')[0]; }
-function who(r){ if(r.type==='maint') return '정비'; var u=users(r); return u.length>1?short1(u[0])+' 외'+(u.length-1):short1(u[0]); }
+function who(r){ if(r.type==='maint'||isRepair(r)) return '정비'; var u=users(r); return u.length>1?short1(u[0])+' 외'+(u.length-1):short1(u[0]); }
 function whoFull(r){ return users(r).join(', '); }
 function isMine(r){ var m=short1(me.name); return r.ownerPhone===me.phone||(r.riderPhones||[]).indexOf(me.phone)>=0||users(r).some(function(n){ return short1(n)===m; }); }
 function phoneOf(n){ var x=staffList.filter(function(s){ return s.n===n; })[0]; return x&&x.p||''; }
@@ -254,7 +256,7 @@ function stopsOf(r){ return r.route?String(r.route).split('-').map(function(x){ 
 function mainDest(route, fallback){ var a=stopsOf({route:route}); return a[0]||fallback||''; }
 // 달력 표시: 운행일지에서 고친 경로를 그대로 따라감 (예: 홍길동 한미1공장 외1)
 function placeLabel(r){ var a=stopsOf(r); return a.length?a[0]+(a.length>1?' 외'+(a.length-1):''):''; }
-function evLabel(r){ if(r.type==='maint') return '정비'; var pl=placeLabel(r); return who(r)+(pl?' '+pl:''); }
+function evLabel(r){ if(r.type==='maint') return '정비'; var pl=placeLabel(r); return (isRepair(r)?'🔧 정비':who(r))+(pl?' '+pl:''); }
 function monthView(){
   var m=monthCursor, y=m.getFullYear(), mo=m.getMonth(), t=ymd(new Date());
   var first=new Date(y,mo,1).getDay(), last=new Date(y,mo+1,0).getDate();
@@ -441,16 +443,17 @@ function renderForm(){
   var cars=CARS.map(function(c){ return { c:c, cf:valid?conflictsFor(c.id):null }; });
   // 시간을 바꿔서 겹치게 된 차는 선택에서 뺌
   form.carIds=form.carIds.filter(function(id){ return !cars.some(function(x){ return x.c.id===id&&x.cf; }); });
-  var driversOk=form.carIds.length>0&&form.carIds.every(function(id){ return !!form.drivers[id]; });
+  var repair=form.purpose===REPAIR||form.purpose==='정비검사';
+  var driversOk=form.carIds.length>0&&(repair||form.carIds.every(function(id){ return !!form.drivers[id]; }));
 
   // 단계별로 하나씩 열림 (수정할 때는 전부 보임)
   var s2=!!form.date;                                    // 시간(오전/오후/종일)
   var s3=s2&&(op||multi||!!form.slot);                   // 출발·종료 시간
-  var s4=s3&&valid;                                      // 차량
-  var s5=s4&&driversOk;                                  // 업장 (차·운전자 다 고른 뒤)
+  var sCat=s3&&valid;                                    // 카테고리 (차량정비면 운전자 안 고름)
+  var s4=sCat&&!!form.purpose;                           // 차량 (+운전자)
+  var s5=s4&&driversOk;                                  // 경로 (차·운전자 다 고른 뒤)
   var s6=s5&&!!form.dest.trim();
-  var s6u=s6;                                            // 카테고리
-  var s7=s6u&&!!form.purpose;                            // 상세 내용
+  var s7=s6;                                             // 상세 내용
   var canSave=s7&&!form.busy;
 
   var h='<div class="sup-modal-inner"><div class="sup-modal-header"><h3>'+(form.editIds.length?'차량 예약 수정':'차량 예약 등록')+'</h3><button class="btn sm" data-act="fclose"><i class="ti ti-x"></i></button></div><div class="sup-modal-body" id="form-body">';
@@ -471,6 +474,11 @@ function renderForm(){
        grp('종료 시간 *'+(multi?' (마지막 날)':''),timeSelect('end',form.end))+'</div>'+
        (form.start&&form.end&&!valid?'<div class="err">종료 시간이 출발보다 늦어야 해요.</div>':'')+'</div>';
   }
+  if(sCat){
+    h+='<div class="step"><div class="g2">'+grp('카테고리 *','<select data-f="purpose" style="'+SEL_STYLE+'">'+(form.purpose?'':'<option value="">선택...</option>')+
+      PURPOSES.map(function(p){ return '<option'+(form.purpose===p?' selected':'')+'>'+p+'</option>'; }).join('')+(form.purpose&&PURPOSES.indexOf(form.purpose)<0?'<option selected>'+esc(form.purpose)+'</option>':'')+'</select>')+'<div></div></div>'+
+      (repair?'<div class="hint l" style="margin:-4px 0 6px">차량정비는 운전자를 고르지 않아요. 계기판 숫자도 안 적어도 돼요.</div>':'')+'</div>';
+  }
   if(s4){
     var multiOk=!form.editIds.length;
     h+='<div class="step">'+grp('차량 *','<div class="carpicks">'+cars.map(function(x){ var c=x.c, on=form.carIds.indexOf(c.id)>=0;
@@ -479,7 +487,7 @@ function renderForm(){
         '<div class="cp-s'+(x.cf?' bad':'')+'" style="font-size:12px">'+(x.cf?esc(who(x.cf.r))+' '+x.cf.r.start+'–'+x.cf.r.end+(x.cf.date!==form.date?' ('+(parseYmd(x.cf.date).getMonth()+1)+'/'+parseYmd(x.cf.date).getDate()+')':''):'비어 있음')+'</div></div>'; }).join('')+'</div>'+
       (cars.every(function(x){ return x.cf; })?'<div class="err">이 시간엔 빈 차가 없어요. 시간을 바꿔보세요.</div>':''), multiOk?'(여러 대 선택 가능)':'');
     // 고른 차마다 운전자 1명
-    if(form.carIds.length){
+    if(form.carIds.length&&!repair){
       var people=staffList.slice();
       Object.keys(form.drivers).forEach(function(k){ var n=form.drivers[k]; if(n&&!people.some(function(x){ return x.n===n; })) people.push({ n:n, g:'' }); });
       var groups=[]; people.forEach(function(x){ if(groups.indexOf(x.g)<0) groups.push(x.g); });
@@ -500,14 +508,10 @@ function renderForm(){
   if(s5){
     h+='<div class="step">'+formRouteBox()+'</div>';
   }
-  if(s6u){
-    h+='<div class="step"><div class="g2">'+grp('카테고리 *','<select data-f="purpose" style="'+SEL_STYLE+'">'+(form.purpose?'':'<option value="">선택...</option>')+
-      PURPOSES.map(function(p){ return '<option'+(form.purpose===p?' selected':'')+'>'+p+'</option>'; }).join('')+'</select>')+'<div></div></div></div>';
-  }
   if(s7){
     h+='<div class="step">'+grp('상세 내용','<textarea placeholder="용무 간략히 (짐, 특이사항 등)" data-f="memo">'+esc(form.memo)+'</textarea>')+'</div>';
   }
-  var hint=!s2?'시작일을 골라주세요.':!s3?'시간을 골라주세요.':!s4?'출발·종료 시간을 확인해주세요.':!s5?(form.carIds.length?'운전자를 골라주세요.':'차량을 골라주세요.'):!s6?'업장을 골라주세요.':!s7?'카테고리를 골라주세요.':esc(rangeText(formSegs()))+' · '+form.carIds.map(function(id){ return car(id).name; }).join(', ');
+  var hint=!s2?'시작일을 골라주세요.':!s3?'시간을 골라주세요.':!sCat?'출발·종료 시간을 확인해주세요.':!s4?'카테고리를 골라주세요.':!s5?(form.carIds.length?'운전자를 골라주세요.':'차량을 골라주세요.'):!s6?(repair?'정비소를 적어주세요.':'업장을 골라주세요.'):esc(rangeText(formSegs()))+' · '+form.carIds.map(function(id){ return car(id).name; }).join(', ');
   h+='</div><div class="sup-modal-footer"><span class="foot-hint">'+hint+'</span><button class="btn" data-act="fclose">취소</button><button class="btn primary" data-act="save"'+(canSave?'':' disabled')+'>'+(form.busy?'저장 중…':form.editIds.length?'수정 저장':'등록')+'</button></div></div>';
   var prev=document.getElementById('form-body'), y=prev?prev.scrollTop:0, before=form._n||0;
   el.className='sup-modal open'; el.innerHTML=h;
@@ -539,12 +543,12 @@ function formRouteBox(){
   var dot=function(c){ return '<span style="width:10px;height:10px;border-radius:50%;border:2px solid '+c+';flex-shrink:0"></span>'; };
   var inp='flex:1;min-width:0;border:none;outline:none;font-size:14px;padding:10px 0;background:transparent;color:#1a1a18;font-family:inherit;';
   var row='display:flex;align-items:center;gap:10px;padding:0 10px;border-bottom:.5px solid #eee;';
-  var many=form.stops.length>1;
-  return '<div style="font-size:12px;font-weight:600;color:#666;margin-bottom:5px">경로 * <span style="font-weight:400;color:#999">(첫 업장이 예약 업장)</span></div>'+
+  var many=form.stops.length>1, rp=form.purpose===REPAIR||form.purpose==='정비검사';
+  return '<div style="font-size:12px;font-weight:600;color:#666;margin-bottom:5px">경로 * <span style="font-weight:400;color:#999">('+(rp?'첫 줄이 정비소':'첫 업장이 예약 업장')+')</span></div>'+
     '<datalist id="fstop-list">'+stopList().map(function(n){ return '<option value="'+esc(n)+'">'; }).join('')+'</datalist>'+
     '<div style="border:.5px solid #bbb;border-radius:10px;background:#fff">'+
     '<div style="'+row+'">'+dot('#1D9E75')+'<select data-f="origin" style="'+inp+'appearance:auto;">'+['회사','집','기타'].map(function(x){ return '<option'+(x===form.origin?' selected':'')+'>'+x+'</option>'; }).join('')+'</select><span style="font-size:11px;color:#aaa">출발</span></div>'+
-    '<div style="'+row+'">'+dot('#185FA5')+'<div class="searchable-select" style="flex:1;min-width:0"><input id="f-dest" type="text" autocomplete="off" placeholder="업장 검색 (필수)" value="'+esc(form.dest)+'" data-f="dest" style="'+inp+'width:100%"><div id="dest-sug" class="ss-dropdown"></div></div><span style="font-size:11px;color:#185FA5;font-weight:600">업장</span></div>'+
+    '<div style="'+row+'">'+dot('#185FA5')+'<div class="searchable-select" style="flex:1;min-width:0"><input id="f-dest" type="text" autocomplete="off" placeholder="'+(rp?'정비소 (예: 블루핸즈 평택점)':'업장 검색 (필수)')+'" value="'+esc(form.dest)+'" data-f="dest" style="'+inp+'width:100%"><div id="dest-sug" class="ss-dropdown"></div></div><span style="font-size:11px;color:#185FA5;font-weight:600">'+(rp?'정비소':'업장')+'</span></div>'+
     '<div id="fstop-box">'+form.stops.map(function(v,i){ return '<div class="fstop-row" data-i="'+i+'" style="'+row+'">'+(many?'<span class="stop-h" title="끌어서 순서 바꾸기">⠿</span>':'')+dot('#999')+'<input list="fstop-list" data-f="stop" data-i="'+i+'" placeholder="경유지 (업장 검색)" value="'+esc(v)+'" style="'+inp+'">'+
       '<button type="button" data-act="fstopdel" data-i="'+i+'" aria-label="경유지 빼기" style="width:24px;height:24px;border-radius:50%;border:1px solid #ccc;background:#fff;color:#888;font-size:16px;line-height:20px;padding:0;cursor:pointer">−</button></div>'; }).join('')+'</div>'+
     '<div style="'+row+'border-bottom:none">'+dot('#E24B4A')+'<input list="fstop-list" data-f="routeEnd" placeholder="도착 (예: 회사, 집)" value="'+esc(form.routeEnd)+'" style="'+inp+'"><span style="font-size:11px;color:#aaa">도착</span></div></div>'+
@@ -566,7 +570,8 @@ function formRoute(o0){
 async function submitForm(){
   if(!form||!form.carIds.length||!formValid()) return;
   var segs=formSegs(), o0=form.olds[0];
-  var rs=form.carIds.map(function(id){ var d=form.drivers[id]||''; return { carId:id, segs:segs, type:'use',
+  var repairF=form.purpose===REPAIR||form.purpose==='정비검사';
+  var rs=form.carIds.map(function(id){ var d=repairF?'':(form.drivers[id]||''); return { carId:id, segs:segs, type:'use',
           dest:form.dest.trim(), purpose:form.purpose, riders:d?[d]:[], riderPhones:d&&phoneOf(d)?[phoneOf(d)]:[], memo:form.memo.trim(),
           returnedAt:(o0&&o0.returnedAt)||'', returnNote:(o0&&o0.returnNote)||'',
           startKm:o0?o0.startKm:null, endKm:o0?o0.endKm:null, fuel:o0?o0.fuel:0, origin:form.origin||'회사', route:formRoute(o0), toll:o0?o0.toll:0, lateAdd:o0?!!o0.lateAdd:tKey(segs[0].date,segs[0].start)<tKey(ymd(new Date()),nowHM()) }; });
@@ -574,7 +579,7 @@ async function submitForm(){
   try{
     await saveReservation(rs, olds);
     var late=!olds.length&&rs[0].lateAdd;
-    toast(late?'지난 운행을 추가했어요. 운행일지에서 줄을 눌러 숫자를 적어주세요.':olds.length?'예약을 수정했어요.':(rs.length>1?rs.length+'대 예약했어요.':'예약했어요.'));
+    toast(late&&repairF?'지난 차량정비를 추가했어요.':late?'지난 운행을 추가했어요. 운행일지에서 줄을 눌러 숫자를 적어주세요.':olds.length?'예약을 수정했어요.':(rs.length>1?rs.length+'대 예약했어요.':'예약했어요.'));
     if(view==='log'&&logState){ logState.ym=segs[0].date.slice(0,7); if(logState.ym.slice(0,4)!==logState.loadedY){ logState.pool=null; } }
     var d0=parseYmd(segs[0].date); form=null; monthCursor=firstOfMonth(d0); render(); popLayer();
   }catch(e){
@@ -606,12 +611,12 @@ function tripStart(pool,r){ var g=poolGroup(pool,r); return tKey(g[0].date,g[0].
 function tripEnd(pool,r){ var g=poolGroup(pool,r), b=g[g.length-1]; return tKey(b.date,b.end); }
 function prevTrip(pool,r){
   var st=tripStart(pool,r), best=null, bk='';
-  tripsOf(pool,r.carId).forEach(function(x){ if(x.id===r.id||(r.groupId&&x.groupId===r.groupId)) return; var e=tripEnd(pool,x); if(e<=st&&e>bk){ best=x; bk=e; } });
+  tripsOf(pool,r.carId).forEach(function(x){ if(x.id===r.id||(r.groupId&&x.groupId===r.groupId)) return; if(isRepair(x)&&x.endKm==null) return; var e=tripEnd(pool,x); if(e<=st&&e>bk){ best=x; bk=e; } });
   return best;
 }
 function nextTrip(pool,r){
   var en=tripEnd(pool,r), best=null, bk='9';
-  tripsOf(pool,r.carId).forEach(function(x){ if(x.id===r.id||(r.groupId&&x.groupId===r.groupId)) return; var s0=tripStart(pool,x); if(s0>=en&&s0<bk){ best=x; bk=s0; } });
+  tripsOf(pool,r.carId).forEach(function(x){ if(x.id===r.id||(r.groupId&&x.groupId===r.groupId)) return; if(isRepair(x)&&x.startKm==null) return; var s0=tripStart(pool,x); if(s0>=en&&s0<bk){ best=x; bk=s0; } });
   return best;
 }
 // 출발 km: 직접 적은 값 → 앞 운행 도착 km(또는 앞 운행 출발에서 더 앞 사람) → 관리자가 넣은 기준 km
@@ -630,7 +635,7 @@ function endKmOf(pool,r){
 function isEnded(pool,r){ return !!r.returnedAt||tripEnd(pool,r)<=tKey(ymd(new Date()),nowHM()); }
 // 기록 대상 운행인지 (기록 시작일 이후, 일반 예약)
 // 숫자가 '꼭 있어야 하는' 운행인지 (KM_SINCE 또는 관리자가 기록 시작한 날 이후)
-function inLog(pool,r){ var ck=carKm[r.carId], since=(ck&&ck.since)||KM_SINCE; return r.type!=='maint'&&poolGroup(pool,r)[0].date>=since; }
+function inLog(pool,r){ var ck=carKm[r.carId], since=(ck&&ck.since)||KM_SINCE; return r.type!=='maint'&&!isRepair(r)&&poolGroup(pool,r)[0].date>=since; }
 function needsKm(r){ return inLog(list,r)&&isEnded(list,r)&&endKmOf(list,r)==null; }
 
 // 내가 숫자를 적어야 하는 운행: 지금 타고 있는 차(운행 중) + 끝났는데 비어 있는 것
@@ -694,8 +699,8 @@ function tripCard(r){
     '</h4><button class="btn sm" data-act="pclose"><i class="ti ti-x"></i></button></div><div class="cal-popup-body">'+
     '<div class="dl">'+
       '<div><span>일시</span><b>'+(gate?c.name+' · ':'')+esc(rangeText(g))+(r.lateAdd?' <span class="lg-late">나중에 추가</span>':'')+'</b></div>'+
-      '<div><span>운전자</span><b>'+esc(whoFull(r))+'</b></div>'+
-      (r.riders&&r.riders.length&&r.ownerName&&short1(r.riders[0])!==short1(r.ownerName)?'<div><span>등록</span>'+esc(r.ownerName)+'</div>':'')+
+      (isRepair(r)?'<div><span>등록</span>'+esc(r.ownerName||'')+'</div>':'<div><span>운전자</span><b>'+esc(whoFull(r))+'</b></div>')+
+      (!isRepair(r)&&r.riders&&r.riders.length&&r.ownerName&&short1(r.riders[0])!==short1(r.ownerName)?'<div><span>등록</span>'+esc(r.ownerName)+'</div>':'')+
       (r.memo?'<div><span>상세 내용</span>'+esc(r.memo)+'</div>':'')+
       (pn?'<div><span>앞 사람 메모</span><span style="color:#854F0B">'+esc(pn.returnNote)+' <small style="color:#999">('+esc(who(pn))+')</small></span></div>':'')+
       (!edit?'<div><span>경로</span>'+esc(defRoute(r))+'</div>'+kmLine(r)+(r.returnNote?'<div><span>남긴 메모</span>'+esc(r.returnNote)+'</div>':''):'')+
@@ -859,9 +864,9 @@ function logPool(){
 }
 function logRowOf(pool,r){
   var g=poolGroup(pool,r), a=g[0], s0=startKmOf(pool,r), e0=endKmOf(pool,r), on=r.type!=='maint', must=inLog(pool,r);
-  return { r:r, id:r.id, date:a.date, day:+a.date.slice(8,10), multi:g.length>1, dates:g.map(function(x){ return x.date; }), endDate:g[g.length-1].date, drv:users(r)[0]||r.ownerName||'', origin:r.origin||'회사', route:defRoute(r),
+  return { r:r, id:r.id, date:a.date, day:+a.date.slice(8,10), multi:g.length>1, dates:g.map(function(x){ return x.date; }), endDate:g[g.length-1].date, drv:isRepair(r)?'차량정비':(users(r)[0]||r.ownerName||''), origin:r.origin||'회사', route:defRoute(r),
     s:on?s0:null, e:on?e0:null, d:(on&&s0!=null&&e0!=null?e0-s0:null), toll:+r.toll||0, fuel:+r.fuel||0,
-    miss:must&&isEnded(pool,r)&&e0==null, mine:isMine(r), byNext:on&&r.endKm==null&&e0!=null, driving:!isEnded(pool,r)&&tripStart(pool,r)<=tKey(ymd(new Date()),nowHM()), future:tripStart(pool,r)>tKey(ymd(new Date()),nowHM()), on:on };
+    miss:must&&isEnded(pool,r)&&e0==null, mine:isMine(r)&&!isRepair(r), repair:isRepair(r), byNext:on&&r.endKm==null&&e0!=null, driving:!isEnded(pool,r)&&tripStart(pool,r)<=tKey(ymd(new Date()),nowHM()), future:tripStart(pool,r)>tKey(ymd(new Date()),nowHM()), on:on };
 }
 function logData(){
   var pool=logPool(), c=logState.carId, ym=logState.ym, y=ym.slice(0,4), now=tKey(ymd(new Date()),nowHM());
@@ -922,7 +927,7 @@ function logPage(){
       var endCell=x.future?'<span style="color:#888">예정</span>':x.miss?(x.mine||isAdmin()?'<span class="lg-in">숫자 적기</span>':'<span class="red">비어 있음</span>'):(x.driving?'<span style="color:#185FA5">운행 중</span>':fmtKm(x.e));
       body+='<tr class="row'+(x.miss?' ms':'')+(x.mine?' me':'')+(x.future?' fut':'')+tcls+'"'+tid()+' data-act="lrow" data-id="'+x.id+'" data-rid="'+x.id+'"><td class="c '+dcls+'">'+dlab+'</td>'+
         '<td class="'+sp+(k>1?' bar':'')+'"'+rs+'>'+esc(x.drv)+'</td><td class="c'+sp+'"'+rs+'>'+esc(x.origin)+'</td><td class="'+sp+'"'+rs+'>'+esc(x.route)+(x.multi?'<span class="lg-rng">'+spanTxt(x)+'</span>':'')+(x.r.lateAdd?' <span class="lg-late">나중에 추가</span>':'')+'</td>'+
-        '<td class="n kc'+sp+'"'+rs+'>'+(x.future?'':fmtKm(x.s))+'</td><td class="n kc'+sp+'"'+rs+'>'+endCell+'</td><td class="n'+sp+'"'+rs+'>'+(x.d!=null?x.d.toLocaleString():'')+'</td><td class="n'+sp+'"'+rs+'>'+n0(x.fuel)+'</td></tr>';
+        '<td class="n kc'+sp+'"'+rs+'>'+(x.future||(x.repair&&x.s==null)?'':fmtKm(x.s))+'</td><td class="n kc'+sp+'"'+rs+'>'+(x.repair&&x.e==null&&!x.future?'<span style="color:#888">🔧 정비</span>':endCell)+'</td><td class="n'+sp+'"'+rs+'>'+(x.d!=null?x.d.toLocaleString():'')+'</td><td class="n'+sp+'"'+rs+'>'+n0(x.fuel)+'</td></tr>';
     });
   }
   var mt=D.months.map(function(x){ var cur=x.m===mo; return '<tr'+(cur?' class="cur"':'')+'><td class="c">'+x.m+'월</td><td class="n">'+(x.km!=null?x.km.toLocaleString():'')+'</td></tr>'; }).join('');
@@ -938,7 +943,7 @@ function logPage(){
   h+='<div class="lg-mo">'+(mitems.length?mitems.slice().reverse().map(function(x){
       var pre=''; if(!divDone&&x.first<=todayK){ divDone=true; if(x.mdates[x.mdates.length-1]<todayK) pre=todayDiv(); }
       var dow=parseYmd(x.first).getDay(), col=(dow===0||getHoliday(x.date))?'#C0392B':(dow===6?'#1A5276':'#1a1a18');
-      var k=x.future?'<span style="color:#888;font-size:12px">예정</span>':!x.on?'<span style="color:#aaa;font-size:12px">기록 전</span>':x.miss?(x.mine||isAdmin()?'<span class="lg-in">숫자 적기</span>':'<span style="color:#A32D2D;font-size:12px">비어 있음</span>'):x.driving?'<span style="color:#185FA5;font-size:12px">운행 중</span>':(x.d!=null?x.d.toLocaleString()+' km':'')+'<small>'+fmtKm(x.s)+' → '+fmtKm(x.e)+'</small>';
+      var k=x.future?'<span style="color:#888;font-size:12px">예정</span>':(x.repair&&x.e==null)?'<span style="color:#888;font-size:12px">🔧 정비</span>':!x.on?'<span style="color:#aaa;font-size:12px">기록 전</span>':x.miss?(x.mine||isAdmin()?'<span class="lg-in">숫자 적기</span>':'<span style="color:#A32D2D;font-size:12px">비어 있음</span>'):x.driving?'<span style="color:#185FA5;font-size:12px">운행 중</span>':(x.d!=null?x.d.toLocaleString()+' km':'')+'<small>'+fmtKm(x.s)+' → '+fmtKm(x.e)+'</small>';
       var isT=x.mdates.indexOf(todayK)>=0;
       return pre+'<div class="lg-card'+(x.miss?' ms':'')+(x.future?' fut':'')+(isT?' today':'')+'" data-act="lrow" data-id="'+x.id+'" data-rid="'+x.id+'"><div class="d" style="color:'+col+'">'+(+x.first.slice(8,10))+'<small'+(x.multi?' style="color:#185FA5;font-weight:700;font-size:11px"':'')+'>'+(x.multi?'~'+(+x.endDate.slice(8,10)):(isT?'오늘':DOW[dow]))+'</small></div><div class="m"><div class="r1">'+esc(x.route)+'</div><div class="r2">'+esc(x.drv)+(x.mine?' (나)':'')+(x.multi?' · <b style="color:#185FA5">'+x.dates.length+'일</b> ('+spanDays(x)+')':'')+(x.r.lateAdd?' · <span class="lg-late">나중에 추가</span>':'')+(x.fuel?' · 주유 '+n0(x.fuel):'')+'</div></div><div class="k">'+k+'</div></div>';
     }).join('')+(!divDone?todayDiv():''):'<div class="empty-state">이 달에는 운행이 없어요.</div>')+'</div>';
