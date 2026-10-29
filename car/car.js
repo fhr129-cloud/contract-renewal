@@ -78,7 +78,7 @@ function toast(msg){ var t=document.getElementById('toast'); t.textContent=msg; 
 
 // 같은 날 예약은 항상 차 순서(레이 5653 → 레이 2327 → 스타렉스), 같은 차 안에서는 시간 순
 function carIdx(id){ for(var i=0;i<CARS.length;i++) if(CARS[i].id===id) return i; return 99; }
-function itemsOn(date,carId){ return list.filter(function(r){ return r.date===date&&(!carId||r.carId===carId); }).sort(function(a,b){ return (carIdx(a.carId)-carIdx(b.carId))||a.start.localeCompare(b.start); }); }
+function itemsOn(date,carId){ return list.filter(function(r){ return r.date===date&&(!carId||r.carId===carId); }).sort(function(a,b){ return a.start.localeCompare(b.start)||(carIdx(a.carId)-carIdx(b.carId))||a.start.localeCompare(b.start); }); }
 
 // ── Firestore ──────────────────────────
 function listen(){
@@ -687,7 +687,16 @@ function tripState(r){
   if(needsKm(r)) return { t:'숫자 없음', c:'#A32D2D', bg:'#FCEBEB' };
   return { t:'완료', c:'#3B6D11', bg:'#EAF3DE' };
 }
-function autoStartKm(r){ return startKmOf(list, Object.assign({}, r, { startKm:null })); }
+// 운행시작 자동값: 이 차의 가장 최근 운행종료 숫자 (이 운행 시작 전 기록 중), 없으면 관리자가 맞춘 숫자
+function chainStartKm(r){ return startKmOf(list, Object.assign({}, r, { startKm:null })); }
+function lastEndTrip(r){
+  var st=tripStart(list,r), best=null, bk='';
+  tripsOf(list,r.carId).forEach(function(x){ if(x.id===r.id||(r.groupId&&x.groupId===r.groupId)||x.endKm==null) return; var e=tripEnd(list,x); if(e<=st&&e>bk){ best=x; bk=e; } });
+  var ck=carKm[r.carId];
+  if(ck&&ck.baseAt&&ck.baseAt<=st&&ck.baseAt>=bk) return { km:ck.baseKm, base:true };
+  return best?{ km:best.endKm, trip:best }:null;
+}
+function autoStartKm(r){ var L=lastEndTrip(r); return L?L.km:chainStartKm(r); }
 function tripCard(r){
   var c=car(r.carId), g=group(r), st=tripState(r), edit=canEdit(r), gate=popup.gate, fut=isFutureTrip(r), inUse=inUseNow(r);
   var others=edit&&isAdmin()&&r.ownerPhone!==me.phone&&(r.riderPhones||[]).indexOf(me.phone)<0;
@@ -703,20 +712,21 @@ function tripCard(r){
       (!isRepair(r)&&r.riders&&r.riders.length&&r.ownerName&&short1(r.riders[0])!==short1(r.ownerName)?'<div><span>등록</span>'+esc(r.ownerName)+'</div>':'')+
       (r.memo?'<div><span>상세 내용</span>'+esc(r.memo)+'</div>':'')+
       (pn?'<div><span>앞 사람 메모</span><span style="color:#854F0B">'+esc(pn.returnNote)+' <small style="color:#999">('+esc(who(pn))+')</small></span></div>':'')+
-      (!edit?'<div><span>경로</span>'+esc(defRoute(r))+'</div>'+kmLine(r)+(r.returnNote?'<div><span>남긴 메모</span>'+esc(r.returnNote)+'</div>':''):'')+
+      '<div><span>경로</span><span>'+routeView(r)+'</span></div>'+
+      (!edit?kmLine(r)+(r.returnNote?'<div><span>남긴 메모</span>'+esc(r.returnNote)+'</div>':''):'')+
     '</div>';
   if(!edit){
     var callP=(r.riderPhones&&r.riderPhones[0])||r.ownerPhone, callN=r.riders&&r.riders[0]?short1(r.riders[0]):short1(r.ownerName);
     return h+(callP?'<div class="pbtns"><a class="btn" href="tel:'+esc(callP)+'"><i class="ti ti-phone"></i> '+esc(callN)+'에게 전화 ('+telFmt(callP)+')</a></div>':'')+'</div></div>';
   }
   if(others) h+='<div class="warn">다른 사람 운행이에요. 관리자라서 고칠 수 있어요.</div>';
-  h+=routeFields(r);
   if(fut){
-    h+='<div style="font-size:12px;color:#888;background:#f7f7f5;border-radius:8px;padding:8px 10px">운행시작·운행종료 숫자는 다녀와서 적어요.</div>';
+    h+='<div style="font-size:12px;color:#888;background:#f7f7f5;border-radius:8px;padding:8px 10px;margin-bottom:10px">운행시작·운행종료 숫자는 다녀와서 적어요. 경로·시간은 [예약 수정]에서 바꿔요.</div>';
   } else {
     var auto=autoStartKm(r), p=prevTrip(list,r), fon=pv('fuelOn', !!r.fuel), noteOn=popup.noteOn||!!pv('ret-note')||!!r.returnNote;
     var startV=pv('km-start', r.startKm!=null?r.startKm:(auto!=null?auto:''));
-    var ref=p&&p.endKm!=null?'앞 운행 '+esc(who(p))+' · '+(parseYmd(p.date).getMonth()+1)+'/'+parseYmd(p.date).getDate()+' 종료 '+fmtKm(p.endKm):(p?'<span style="color:#854F0B">앞 운행('+esc(who(p))+') 숫자가 없어요 — 탈 때 숫자를 알면 적어주세요</span>':'첫 기록이에요');
+    var L=lastEndTrip(r), lt=L&&L.trip;
+    var ref=lt?'최근 운행종료 '+esc(who(lt))+' · '+(parseYmd(lt.date).getMonth()+1)+'/'+parseYmd(lt.date).getDate()+' · '+fmtKm(lt.endKm)+(p&&p.id!==lt.id&&p.endKm==null?' <span style="color:#854F0B">(바로 앞 '+esc(who(p))+' 운행은 숫자 없음)</span>':''):(L&&L.base?'관리자가 맞춘 숫자 '+fmtKm(L.km):'첫 기록이에요 — 탈 때 계기판 숫자를 적어주세요');
     h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
         '<div><div style="'+lab+'">운행시작 <span style="font-weight:400;color:#999">(탈 때)</span></div><input id="km-start" data-for="'+r.id+'" inputmode="numeric" autocomplete="off" placeholder="계기판 숫자" value="'+esc(startV)+'" style="width:100%;height:50px;border:.5px solid #bbb;border-radius:10px;text-align:center;font-size:20px;font-weight:600;background:'+(r.startKm==null&&auto!=null?'#f7f7f5':'#fff')+';color:#1a1a18"></div>'+
         '<div><div style="'+lab+'">운행종료 <span style="font-weight:400;color:#999">(내릴 때)</span></div><input id="km-end" data-for="'+r.id+'" inputmode="numeric" autocomplete="off" placeholder="계기판 숫자" value="'+esc(pv('km-end', r.endKm!=null?r.endKm:''))+'" style="width:100%;height:50px;border:2px solid #185FA5;border-radius:10px;text-align:center;font-size:20px;font-weight:700;background:#fff;color:#1a1a18"></div></div>'+
@@ -726,11 +736,16 @@ function tripCard(r){
       (noteOn?'<div style="font-size:12px;font-weight:600;margin:8px 0 6px">다음 사람에게 메모 <span style="font-weight:400;color:#888">(선택)</span></div><textarea id="ret-note" data-for="'+r.id+'" maxlength="200" placeholder="예: 주유 필요, 뒷범퍼 긁힘, 주차 B구역" style="'+SM_IN+'min-height:48px;resize:vertical">'+esc(pv('ret-note', r.returnNote||''))+'</textarea>'
         :'<div style="font-size:12px;color:#185FA5;margin:4px 0 0;cursor:pointer" data-act="kmnote">+ 다음 사람에게 메모 남기기 (선택)</div>');
   }
-  h+='<button class="btn primary full" style="margin:16px 0 0;padding:13px;font-size:16px;font-weight:700;justify-content:center" data-act="kmdone" data-id="'+r.id+'">'+(gate?'적고 예약 계속하기':(inUse?'저장하고 운행 끝내기':'저장'))+'</button>';
+  if(!fut) h+='<button class="btn primary full" style="margin:16px 0 0;padding:13px;font-size:16px;font-weight:700;justify-content:center" data-act="kmdone" data-id="'+r.id+'">'+(gate?'적고 예약 계속하기':(inUse?'저장하고 운행 끝내기':'저장'))+'</button>';
   if(gate) h+='<div style="text-align:center;font-size:12px;color:#888;margin-top:10px;text-decoration:underline;cursor:pointer" data-act="kmskip" data-id="'+r.id+'">숫자를 몰라요 (다음 사람이 채워요)</div>';
   else h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px"><button class="btn" data-act="edit" data-id="'+r.id+'" style="justify-content:center"><i class="ti ti-pencil"></i> 예약 수정</button><button class="btn danger" data-act="cancel" data-id="'+r.id+'" style="justify-content:center"><i class="ti ti-trash"></i> 예약 취소</button></div>';
   setTimeout(kmDiff,0);
   return h+'</div></div>';
+}
+// 경로 보기 (출발 → 업장 → 경유지 → 도착), 수정은 예약 수정에서만
+function routeView(r){
+  var parts=defRoute(r).split('-').map(function(x){ return x.trim(); }).filter(Boolean);
+  return [esc(r.origin||'회사')].concat(parts.map(function(x,i){ return i===0&&!isRepair(r)?'<b>'+esc(x)+'</b>':esc(x); })).join(' <span style="color:#bbb">→</span> ');
 }
 function defRoute(r){ return r.route||((r.dest||'')+'-회사'); }
 // 경유지: 네이버 지도 길찾기처럼 출발 → 경유지(추가·삭제) → 도착 한 줄씩
@@ -812,7 +827,7 @@ function readKm0(r, startOnly){
   var se=document.getElementById('km-start'), ee=document.getElementById('km-end'), fc=document.getElementById('km-fuelchk'), fe=document.getElementById('km-fuel');
   var sk=se?parseKm(se.value):(r.startKm!=null?r.startKm:null), auto=autoStartKm(r);
   // 자동으로 들어간 숫자를 그대로 두면 따로 저장하지 않음 (앞 기록이 바뀌면 같이 따라감)
-  var keepStart=(sk!=null&&(sk!==auto||r.startKm!=null))?sk:null;
+  var chain=chainStartKm(r), keepStart=(sk!=null&&(sk!==chain||r.startKm!=null))?sk:null;
   if(startOnly){ if(sk==null){ toast('운행시작 숫자를 적어주세요.'); return null; } return { startKm:sk }; }
   var ek=ee?parseKm(ee.value):null;
   if(ek==null&&(must||inUseNow(r))){ toast('운행종료 숫자(내릴 때 계기판)를 적어주세요.'); if(ee) ee.focus(); return null; }
