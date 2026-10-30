@@ -1346,7 +1346,7 @@ function renderWeekView(){
     var dStr=localDateStr(d),isToday=dStr===todayStr;
     var hday=getHoliday(dStr);
     var wdColor=i===5?'color:#1A5276;':i===6?'color:#C0392B;':'';
-    html+='<div class="week-header'+(isToday?' today-col':'')+(hday?' holiday':'')+'" style="'+(hday?'color:#E24B4A;':wdColor)+'">' +dayLabels[i]+'<br><div style="display:flex;align-items:center;justify-content:center;gap:3px;"><span style="font-weight:600;">'+d.getDate()+'</span>'+(hday?'<span style="font-size:8px;font-weight:400;color:#E24B4A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:36px;">'+hday+'</span>':'')+' </div></div>';
+    html+='<div class="week-header'+(isToday?' today-col':'')+(hday?' holiday':'')+'" style="'+(hday?'color:#E24B4A;':wdColor)+'">' +dayLabels[i]+'<br><div style="display:flex;align-items:center;justify-content:center;gap:3px;"><span class="wk-num" style="font-weight:600;">'+d.getDate()+'</span>'+(hday?'<span style="font-size:8px;font-weight:400;color:#E24B4A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:36px;">'+hday+'</span>':'')+' </div></div>';
   });
 
   // 팀공지 행
@@ -1423,6 +1423,8 @@ function renderWeekView(){
   });
   html+='</div>';
   var calEl=document.getElementById('calendar'); if(calEl) calEl.innerHTML=html;
+  // 오늘 열 맨 아래 칸에 테두리 마무리
+  if(calEl){ var tcs=calEl.querySelectorAll('.week-cell.today-col'); if(tcs.length) tcs[tcs.length-1].classList.add('today-last'); }
   // 모바일: 오늘 열로 자동 스크롤
   if(weekOffset===0&&calEl){
     setTimeout(function(){
