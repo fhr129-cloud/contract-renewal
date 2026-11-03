@@ -205,21 +205,27 @@ function drawMap(list, focus, label, ring){
   var minLa=la[cut], maxLa=la[la.length-1-cut], minLn=ln[cut], maxLn=ln[ln.length-1-cut];
   var cLa=(minLa+maxLa)/2, cLn=(minLn+maxLn)/2, kx=Math.cos(cLa*Math.PI/180);
   var sx=Math.max((maxLn-minLn)*kx,0.03), sy=Math.max(maxLa-minLa,0.03), pad=40;
-  var sc=Math.min((W-2*pad)/sx,(H-2*pad)/sy);
-  function P(co){ return [W/2+(co.lng-cLn)*kx*sc, H/2-(co.lat-cLa)*sc]; }
+  var padT=(ring||focus)?58:pad;   // 위쪽 버튼 줄 아래부터 그림
+  var sc=Math.min((W-2*pad)/sx,(H-padT-pad)/sy), cy0=padT+(H-padT-pad)/2;
+  function P(co){ return [W/2+(co.lng-cLn)*kx*sc, cy0-(co.lat-cLa)*sc]; }
   function PC(co){ var p=P(co); return [Math.max(14,Math.min(W-14,p[0])), Math.max(14,Math.min(H-14,p[1]))]; }
   // 화면에서 22px 안에 있는 업장끼리 묶기
   var cl=[];
+  if(ring){ var c0=P(ring.s.co); cl.push({ items:[ring.s], sx:c0[0], sy:c0[1], x:c0[0], y:c0[1], center:true }); }   // 기준 업장은 자리 고정
   pts.forEach(function(s){ if(ring&&s===ring.s) return; var p=focus?P(s.co):PC(s.co), hit=null;
-    for(var i=0;i<cl.length;i++){ var c=cl[i]; if(Math.hypot(c.x-p[0],c.y-p[1])<22){ hit=c; break; } }
+    for(var i=0;i<cl.length;i++){ var c=cl[i]; if(!c.center&&Math.hypot(c.x-p[0],c.y-p[1])<22){ hit=c; break; } }
     if(hit){ hit.items.push(s); hit.sx+=p[0]; hit.sy+=p[1]; hit.x=hit.sx/hit.items.length; hit.y=hit.sy/hit.items.length; }
     else cl.push({ items:[s], sx:p[0], sy:p[1], x:p[0], y:p[1] });
   });
   // 동그라미끼리 겹치면 다시 합침 (겹친 숫자가 안 보이게)
-  function rad(c){ var n=c.items.length; return n===1?8:Math.min(11+n,18); }
+  function rad(c){ var n=c.items.length; return (n===1?8:Math.min(11+n,18))+(c.center?5:0); }
   for(var merged=true; merged;){ merged=false;
     for(var i=0;i<cl.length&&!merged;i++) for(var j=i+1;j<cl.length;j++){ var A=cl[i], B=cl[j];
-      if(Math.hypot(A.x-B.x,A.y-B.y)<rad(A)+rad(B)+3){ A.items=A.items.concat(B.items); A.sx+=B.sx; A.sy+=B.sy; A.x=A.sx/A.items.length; A.y=A.sy/A.items.length; cl.splice(j,1); merged=true; break; } } }
+      if(Math.hypot(A.x-B.x,A.y-B.y)<rad(A)+rad(B)+3){
+        if(B.center){ var T=A; A=B; B=T; }                       // 기준 업장 쪽으로 합치고 자리는 그대로
+        A.items=A.items.concat(B.items);
+        if(!A.center){ A.sx+=B.sx; A.sy+=B.sy; A.x=A.sx/A.items.length; A.y=A.sy/A.items.length; }
+        cl.splice(cl.indexOf(B),1); merged=true; break; } } }
   var svg='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="display:block">';
   // 시 이름 (흐리게)
   cities().forEach(function(c){ if(c.rest) return; var cs=c.items.filter(function(s){ return s.co; }); if(!cs.length) return;
@@ -230,11 +236,16 @@ function drawMap(list, focus, label, ring){
     svg+='<circle cx="'+rc[0]+'" cy="'+rc[1]+'" r="'+rr+'" fill="rgba(55,138,221,.06)" stroke="#378ADD" stroke-width="1.2" stroke-dasharray="5 4"/>'+
       '<text x="'+rc[0]+'" y="'+(rc[1]-rr-6)+'" text-anchor="middle" font-size="11" fill="#378ADD">'+fmtKm(ring.km)+'</text>'; }
   var hq=P(HQ); svg+='<g><circle cx="'+hq[0]+'" cy="'+hq[1]+'" r="9" fill="#A32D2D"/><text x="'+hq[0]+'" y="'+(hq[1]+4)+'" text-anchor="middle" font-size="11" fill="#fff">★</text><text x="'+hq[0]+'" y="'+(hq[1]+22)+'" text-anchor="middle" font-size="11" fill="#A32D2D" font-weight="600">본사</text></g>';
+  // 동그라미 → 그 위에 이름표 (이름표는 점·다른 이름표와 안 겹치는 자리에만)
+  var obst=[[hq[0],hq[1],12]], boxes=(ring||focus)?[[0,0,W,48]]:[], labels=[];
+  boxes.push([hq[0]-16,hq[1]+10,32,15]);                                          // '본사' 글자 자리
+  if(ring){ var rc2=P(ring.s.co), rr2=ring.km/111*sc; boxes.push([rc2[0]-20,rc2[1]-rr2-18,40,14]); }   // 반경 글자 자리
+  cl.forEach(function(c){ obst.push([c.x,c.y,rad(c)+2]); });
   cl.sort(function(a,b){ return a.items.length-b.items.length; }).forEach(function(c){
     var n=c.items.length, ids=c.items.map(function(s){ return s.id; }).join(',');
     svg+='<g class="hz-dot" data-act="mapdot" data-ids="'+ids+'">';
-    if(n===1){ svg+='<circle cx="'+c.x+'" cy="'+c.y+'" r="7" fill="'+ST_COLOR[stOf(c.items[0].id)]+'" stroke="#fff" stroke-width="2"/>';
-      if(focus) svg+='<text x="'+(c.x+11)+'" y="'+(c.y+4)+'" font-size="12" fill="#555" stroke="#FAFAF7" stroke-width="3" paint-order="stroke">'+esc(c.items[0].name)+'</text>'; }   // 확대했을 땐 이름도
+    if(c.center) svg+='<circle cx="'+c.x+'" cy="'+c.y+'" r="'+(rad(c)-1)+'" fill="#fff" stroke="#1a1a18" stroke-width="2"/>';
+    if(n===1){ svg+='<circle cx="'+c.x+'" cy="'+c.y+'" r="7" fill="'+ST_COLOR[stOf(c.items[0].id)]+'" stroke="#fff" stroke-width="2"/>'; }
     else{
       var r=Math.min(11+n,18), L=2*Math.PI*r, d=0, p=0;
       c.items.forEach(function(s){ var t=stOf(s.id); if(t==='done') d++; else if(t==='plan') p++; });
@@ -244,10 +255,23 @@ function drawMap(list, focus, label, ring){
       svg+='<text x="'+c.x+'" y="'+(c.y+4.5)+'" text-anchor="middle" font-size="13" font-weight="700" fill="#1a1a18">'+n+'</text>';
     }
     svg+='</g>';
+    if(c.center) labels.unshift({ c:c, t:ring.s.name+(n>1?' 외 '+(n-1):''), bold:true });
+    else if(focus&&n===1) labels.push({ c:c, t:c.items[0].name });
   });
-  if(ring){ var cp=P(ring.s.co), ct=stOf(ring.s.id);
-    svg+='<g class="hz-dot" data-act="mapdot" data-ids="'+ring.s.id+'"><circle cx="'+cp[0]+'" cy="'+cp[1]+'" r="13" fill="none" stroke="#1a1a18" stroke-width="2"/><circle cx="'+cp[0]+'" cy="'+cp[1]+'" r="8" fill="'+ST_COLOR[ct]+'" stroke="#fff" stroke-width="2"/>'+
-      '<text x="'+cp[0]+'" y="'+(cp[1]+28)+'" text-anchor="middle" font-size="13" font-weight="700" fill="#1a1a18" stroke="#FAFAF7" stroke-width="4" paint-order="stroke">'+esc(ring.s.name)+'</text></g>'; }
+  function hitsCircle(b,o){ var cx=Math.max(b[0],Math.min(o[0],b[0]+b[2])), cy=Math.max(b[1],Math.min(o[1],b[1]+b[3])); return Math.hypot(cx-o[0],cy-o[1])<o[2]; }
+  function hitsBox(b,o){ return b[0]<o[0]+o[2]&&o[0]<b[0]+b[2]&&b[1]<o[1]+o[3]&&o[1]<b[1]+b[3]; }
+  labels.forEach(function(L){
+    var fs=L.bold?13:12, w=L.t.length*fs*0.92+4, h=fs+4, c=L.c, r=rad(c);
+    var tries=L.bold?[[c.x-w/2,c.y+r+3],[c.x-w/2,c.y-r-3-h],[c.x+r+4,c.y-h/2],[c.x-r-4-w,c.y-h/2]]
+                    :[[c.x+r+3,c.y-h/2],[c.x-r-3-w,c.y-h/2],[c.x-w/2,c.y+r+2],[c.x-w/2,c.y-r-2-h]];
+    for(var i=0;i<tries.length;i++){ var b=[tries[i][0],tries[i][1],w,h];
+      if(b[0]<2||b[1]<2||b[0]+w>W-2||b[1]+h>H-2) continue;
+      if(obst.some(function(o){ return o[0]!==c.x||o[1]!==c.y?hitsCircle(b,o):false; })) continue;
+      if(boxes.some(function(o){ return hitsBox(b,o); })) continue;
+      boxes.push(b);
+      svg+='<text x="'+(b[0]+2)+'" y="'+(b[1]+h-4)+'" font-size="'+fs+'"'+(L.bold?' font-weight="700" fill="#1a1a18"':' fill="#555"')+' stroke="#FAFAF7" stroke-width="3" paint-order="stroke" pointer-events="none">'+esc(L.t)+'</text>';
+      break; }
+  });
   svg+='</svg>';
   var top=ring
     ? '<div class="hz-mapbar"><span>'+esc(label||'')+'</span><span class="hz-seg">'+R_STEPS.map(function(k){ return '<button data-act="rset" data-r="'+k+'"'+(ring.km===k?' class="on"':'')+'>'+k+'km</button>'; }).join('')+'</span><button class="btn sm" data-act="mapall">전체 보기</button></div>'
@@ -479,7 +503,7 @@ var CSS=
   '.hz-chev{color:#aaa;font-size:15px;}'+
   '.hz-rh em{font-style:normal;min-width:34px;text-align:right;font-size:13px;font-weight:700;}.hz-rh em span{color:#999;font-weight:400;}'+
   '.hz-who{font-size:12px;color:#888;white-space:nowrap;}'+
-    '.hz-nmw{display:flex;flex-direction:column;min-width:50px;flex-shrink:0;}.hz-tw{font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;}'+
+  '.hz-nmw{display:flex;flex-direction:column;min-width:50px;flex-shrink:0;}.hz-tw{font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;}'+
   '.hz-mrow{border-top:.5px solid #f0f0ec;padding:8px 0;}.hz-mc{display:grid;grid-template-columns:1fr 170px;gap:8px;align-items:center;font-size:14px;}.hz-mc small{color:#999;font-weight:400;font-size:12px;}.hz-mc.sub{font-size:13px;padding:4px 0 4px 14px;}'+
   '.hz-msel{padding:7px 8px;border:.5px solid #ccc;border-radius:8px;font-size:13px;background:#fff;font-family:inherit;}'+
   '.hz-det summary{font-size:12px;color:#185FA5;cursor:pointer;margin-top:6px;}'+
