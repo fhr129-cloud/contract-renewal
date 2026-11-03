@@ -56,13 +56,13 @@ function cities(){
   var by={}; sites.forEach(function(s){ (by[s.region]=by[s.region]||[]).push(s); });
   var rest=[]; Object.keys(by).forEach(function(k){ if(by[k].length<2||k==='기타 지역'){ rest=rest.concat(by[k]); delete by[k]; } });
   var out=Object.keys(by).map(function(k){ return { name:k, items:by[k] }; }).sort(function(a,b){ return b.items.length-a.items.length||a.name.localeCompare(b.name,'ko'); });
-  if(rest.length) out.push({ name:'그 외 지역', items:rest, rest:true });
+    if(rest.length) out.push({ name:'그 외', items:rest, rest:true });
   return out;
 }
 // 읍·면 단위 구분: 포승읍 / 고덕면 / 동 지역은 '시내' / 주소에서 못 찾으면 '기타'
 function townKey(s){ var t=s.town||''; return /[읍면]$/.test(t)?t:/동$/.test(t)?'시내':'기타'; }
 function townsOf(c){ var m={}; c.items.forEach(function(s){ var k=townKey(s); m[k]=(m[k]||0)+1; }); return Object.keys(m).sort(function(a,b){ return m[b]-m[a]||a.localeCompare(b,'ko'); }).map(function(k){ return { k:k, n:m[k] }; }); }
-function whoFor(city, s){ return (!s||city==='그 외 지역')?(assign[city]||''):(assign[city+'|'+townKey(s)]||assign[city]||''); }
+function whoFor(city, s){ return (!s||city==='그 외')?(assign[city]||''):(assign[city+'|'+townKey(s)]||assign[city]||''); }
 function regions(){
   var out=[];
   cities().forEach(function(c){
