@@ -107,8 +107,8 @@ function checkRef(siteId, round){ return doc(db,'hygChecks', (round||ROUND)+'_'+
 function box(on){ return '<span class="hz-box'+(on?' on':'')+'">'+(on?CK:'')+'</span>'; }
 function itemHtml(s, dist){
   var c=checks[s.id], t=stOf(s.id), r='';
-  if(t==='done') r='<span class="hz-r">'+md(c.doneDate)+' '+esc(short1(c.doneBy))+'</span>';
-  else if(t==='plan') r='<span class="hz-r p">'+md(c.planDate)+' 예정'+(short1(c.planBy)!==short1(myName())?' · '+esc(short1(c.planBy)):'')+'</span>';
+    if(t==='done') r='<span class="hz-r">'+md(c.doneDate)+' '+esc(short1(c.doneBy))+' 완료</span>';
+  else if(t==='plan') r='<span class="hz-r p">'+md(c.planDate)+' '+esc(short1(c.planBy))+' 예정</span>';
   return '<div class="hz-it'+(t==='done'?' dn':'')+'" data-act="site" data-id="'+s.id+'">'+box(t==='done')+'<span class="hz-nm">'+esc(s.name)+'</span>'+(dist!=null?'<span class="hz-km">'+fmtKm(dist)+'</span>':'')+r+'</div>';
 }
 function sortItems(list){
@@ -280,7 +280,7 @@ function drawMap(list, focus, label, ring){
 }
 // 지도 점에 마우스를 올리면 업장 이름·상태 말풍선 (PC)
 function tipLine(s){ var c=checks[s.id], t=stOf(s.id);
-  return '<div class="hz-tl"><i style="background:'+ST_COLOR[t]+'"></i><b>'+esc(s.name)+'</b><span>'+(t==='done'?md(c.doneDate)+' '+esc(short1(c.doneBy)):t==='plan'?md(c.planDate)+' 예정':'안 함')+'</span></div>'; }
+  return '<div class="hz-tl"><i style="background:'+ST_COLOR[t]+'"></i><b>'+esc(s.name)+'</b><span>'+(t==='done'?md(c.doneDate)+' '+esc(short1(c.doneBy))+' 완료':t==='plan'?md(c.planDate)+' '+esc(short1(c.planBy))+' 예정':'안 함')+'</span></div>'; }
 document.addEventListener('mousemove', function(ev){
   var tip=document.getElementById('hz-tip'); if(!tip) return;
   var g=ev.target.closest&&ev.target.closest('#hz-map .hz-dot');
