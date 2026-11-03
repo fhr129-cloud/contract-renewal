@@ -12,7 +12,8 @@ var sites=[];                // [{id,name,region}]
 var staff=[];                // [{n:'이름 직급', p:휴대폰}]
 var checks={};               // siteId → {status:'plan'|'done', planDate, planBy, doneDate, doneBy}
 var assign={};               // 지역 → 담당자 (meta/hygAssign)
-var filt={ region:'', todo:false };   // region: '' 전체 | '@mine' 내 담당 | 지역 이름
+var filt={ region:'', todo:false };
+var opened={};               // 펼친 지역 이름 → true (처음엔 모두 접힘)   // region: '' 전체 | '@mine' 내 담당 | 지역 이름
 var dlg=null;                // {siteId, mode:'done'|'plan', prev}
 var unsubs=[];
 var loginPhone='', isNewUser=false;
@@ -112,7 +113,10 @@ function render(){
     var whoHtml=isAdmin()
       ? '<select class="hz-as'+(who?'':' empty')+'" data-v="assign" data-k="'+esc(g.name)+'"><option value="">담당 선택</option>'+staff.map(function(x){ return '<option value="'+esc(x.n)+'"'+(x.n===who?' selected':'')+'>담당 '+esc(short1(x.n))+'</option>'; }).join('')+(who&&!staff.some(function(x){ return x.n===who; })?'<option selected value="'+esc(who)+'">담당 '+esc(short1(who))+'</option>':'')+'</select>'
       : (who?'<span class="hz-who">담당 '+esc(short1(who))+'</span>':'');
-    h+='<div class="hz-col"><div class="hz-rh"><b>'+esc(g.name)+'</b>'+whoHtml+'<em>'+d+'<span>/'+g.items.length+'</span></em></div><div class="hz-lst">'+list.map(itemHtml).join('')+'</div></div>';
+    var op=!!opened[g.name]||(!!filt.region&&filt.region!=='@mine')||shown.length===1;
+    h+='<div class="hz-col'+(op?' open':'')+'"><div class="hz-rh" data-act="toggle" data-k="'+esc(g.name)+'"><b>'+esc(g.name)+'</b>'+whoHtml+
+      '<span class="hz-mini"><i style="width:'+(100*d/g.items.length)+'%"></i></span><em>'+d+'<span>/'+g.items.length+'</span></em><i class="ti ti-chevron-'+(op?'up':'down')+' hz-chev"></i></div>'+
+      (op?'<div class="hz-lst">'+list.map(itemHtml).join('')+'</div>':'')+'</div>';
   });
   h+='</div></div>';
   app.innerHTML=h;
@@ -197,9 +201,11 @@ async function saveAssign(region, name){
 // ── 이벤트 ──────────────────────────
 document.addEventListener('click', async function(ev){
   if(ev.target.id==='popup'){ closeDlg(); return; }
+  if(ev.target.closest('select')) return;   // 담당 드롭다운 누를 땐 접고 펴지 않음
   var t=ev.target.closest('[data-act]'); if(!t) return;
   var a=t.getAttribute('data-act');
   if(a==='logout'){ if(confirm('로그아웃할까요?')){ await logoutUser(); location.reload(); } }
+  else if(a==='toggle'){ var k=t.getAttribute('data-k'); opened[k]=!opened[k]; render(); }
   else if(a==='site'){ openDlg(t.getAttribute('data-id')); }
   else if(a==='close'){ closeDlg(); }
   else if(a==='mode'){ dlg.mode=t.getAttribute('data-m'); renderDlg(); }
@@ -228,11 +234,14 @@ var CSS=
   '.hz-f{display:flex;gap:12px;align-items:center;margin:12px 0 4px;}'+
   '.hz-sel{flex:1;min-width:0;padding:9px 10px;border:.5px solid #ccc;border-radius:8px;font-size:14px;background:#fff;color:#1a1a18;font-family:inherit;}'+
   '.hz-cb{display:inline-flex;align-items:center;gap:6px;font-size:14px;white-space:nowrap;cursor:pointer;}.hz-cb input{width:20px;height:20px;margin:0;accent-color:#3B6D11;}'+
-  '.hz-rh{display:flex;align-items:center;gap:8px;padding:16px 2px 6px;font-size:13px;}.hz-rh b{font-size:15px;}'+
-  '.hz-rh em{margin-left:auto;font-style:normal;font-size:13px;font-weight:700;}.hz-rh em span{color:#999;font-weight:400;}'+
+  '.hz-col{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;overflow:hidden;margin-top:8px;}.hz-col.open{border-color:#B5D4F4;}'+
+  '.hz-rh{display:flex;align-items:center;gap:8px;padding:13px 14px;font-size:13px;cursor:pointer;}.hz-rh b{font-size:15px;white-space:nowrap;}'+
+  '.hz-mini{flex:1;max-width:90px;height:6px;border-radius:99px;background:#eceae4;overflow:hidden;margin-left:auto;}.hz-mini i{display:block;height:100%;background:#3B6D11;}'+
+  '.hz-chev{color:#aaa;font-size:15px;}'+
+  '.hz-rh em{font-style:normal;min-width:34px;text-align:right;font-size:13px;font-weight:700;}.hz-rh em span{color:#999;font-weight:400;}'+
   '.hz-who{font-size:12px;color:#888;}'+
   '.hz-as{font-size:12px;color:#185FA5;border:.5px solid #B5D4F4;border-radius:6px;padding:3px 4px;background:#F5F9FD;font-family:inherit;max-width:110px;}.hz-as.empty{color:#999;border-color:#ddd;background:#fff;}'+
-  '.hz-lst{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;overflow:hidden;}'+
+  '.hz-lst{border-top:.5px solid #eee;}'+
   '.hz-it{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:.5px solid #f0f0ec;font-size:15px;cursor:pointer;}.hz-it:first-child{border-top:0;}.hz-it:active{background:#f5f5f2;}'+
   '.hz-nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;}.hz-it.dn .hz-nm{color:#999;font-weight:400;}'+
   '.hz-r{font-size:12px;color:#888;white-space:nowrap;}.hz-r.p{color:#185FA5;font-weight:600;}'+
@@ -249,7 +258,7 @@ var CSS=
   '.hz-prev{font-size:12px;color:#888;margin:10px 0 0;text-align:center;}'+
   '.hz-planinfo{display:flex;align-items:center;gap:8px;background:#E6F1FB;color:#0C447C;border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px;}.hz-planinfo span{margin-left:auto;color:#A32D2D;font-size:12px;cursor:pointer;text-decoration:underline;}'+
   '@media(min-width:900px){.hz-top{display:flex;gap:16px;align-items:stretch;max-width:none;}.hz-big{flex:1;}.hz-f{flex-direction:column;align-items:stretch;justify-content:center;margin:0;width:240px;gap:10px;}.hz-f .hz-sel{flex:none;}'+
-  '.hz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:0 14px;align-items:start;}.hz-it{font-size:14px;padding:9px 12px;gap:10px;}}';
+  '.hz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:0 12px;align-items:start;}.hz-it{font-size:14px;padding:9px 12px;gap:10px;}}';
 function ensureCss(){ if(document.getElementById('hz-css')) return; var st=document.createElement('style'); st.id='hz-css'; st.textContent=CSS; document.head.appendChild(st); }
 
 // ── 로그인 (차량 예약과 같은 방식, FS 권한 필요) ──────────────────────────
