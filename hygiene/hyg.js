@@ -160,7 +160,7 @@ function render(){
   }
   if(!sites.length) h+='<div class="empty-state">불러오는 중…</div>';
   else if(!shown.length&&!q) h+='<div class="empty-state">'+(filt.region==='@mine'?'내 담당으로 지정된 지역이 없어요.':'해당하는 지역이 없어요.')+'</div>';
-    h+='<div class="hz-grid">'+nearHtml;
+      h+='<div class="hz-grid">';
   var mapSites=[];
   shown.forEach(function(g){
     var d=g.items.filter(function(s){ return stOf(s.id)==='done'; }).length, who=g.who;
@@ -176,7 +176,7 @@ function render(){
       '<span class="hz-mini"><i style="width:'+(100*d/g.items.length)+'%"></i></span><em>'+d+'<span>/'+g.items.length+'</span></em><i class="ti ti-chevron-'+(op?'up':'down')+' hz-chev"></i></div>'+
       (op?'<div class="hz-lst">'+list.map(function(x){ return itemHtml(x); }).join('')+'</div>':'')+'</div>';
   });
-  h+='</div>';
+    h+=nearHtml+'</div>';
   document.getElementById('hz-list').innerHTML=h;
   var foc=!q&&mapFocus&&shown.filter(function(g){ return g.key===mapFocus; })[0], fItems=null, fLabel='';
   if(foc){ fItems=foc.items; fLabel=foc.city+(foc.split?' ('+foc.towns.join('·')+')':''); }
