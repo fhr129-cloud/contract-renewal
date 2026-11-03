@@ -171,7 +171,7 @@ function render(){
       ? '<select class="hz-as'+(who?'':' empty')+'" data-v="assign" data-k="'+esc(g.key)+'"><option value="">담당 선택</option>'+staff.map(function(x){ return '<option value="'+esc(x.n)+'"'+(x.n===who?' selected':'')+'>담당 '+esc(short1(x.n))+'</option>'; }).join('')+(who&&!staff.some(function(x){ return x.n===who; })?'<option selected value="'+esc(who)+'">담당 '+esc(short1(who))+'</option>':'')+'<option value="__more">읍·면별로 정하기…</option></select>'
       : (who?'<span class="hz-who">담당 '+esc(short1(who))+'</span>':'');
     var op=!!q||!!opened[g.key]||(!!filt.region&&filt.region!=='@mine')||shown.length===1;
-    var sub=g.split?'<small class="hz-tw">'+esc(g.towns.join('·'))+'</small>':'';
+        var sub=g.split?'<small class="hz-tw" title="'+esc(g.towns.join('·'))+'">'+esc(g.towns.join('·'))+'</small>':'';
     h+='<div class="hz-col'+(op?' open':'')+'"><div class="hz-rh" data-act="toggle" data-k="'+esc(g.key)+'"><span class="hz-nmw"><b>'+esc(g.city)+'</b>'+sub+'</span>'+whoHtml+
       '<span class="hz-mini"><i style="width:'+(100*d/g.items.length)+'%"></i></span><em>'+d+'<span>/'+g.items.length+'</span></em><i class="ti ti-chevron-'+(op?'up':'down')+' hz-chev"></i></div>'+
       (op?'<div class="hz-lst">'+list.map(function(x){ return itemHtml(x); }).join('')+'</div>':'')+'</div>';
@@ -503,7 +503,7 @@ var CSS=
   '.hz-chev{color:#aaa;font-size:15px;}'+
   '.hz-rh em{font-style:normal;min-width:34px;text-align:right;font-size:13px;font-weight:700;}.hz-rh em span{color:#999;font-weight:400;}'+
   '.hz-who{font-size:12px;color:#888;white-space:nowrap;}'+
-  '.hz-nmw{display:flex;flex-direction:column;min-width:50px;flex-shrink:0;}.hz-tw{font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;}'+
+    '.hz-nmw{display:flex;flex-direction:column;font-size:15px;flex:0 0 3.6em;width:3.6em;overflow:hidden;}.hz-tw{font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}'+
   '.hz-mrow{border-top:.5px solid #f0f0ec;padding:8px 0;}.hz-mc{display:grid;grid-template-columns:1fr 170px;gap:8px;align-items:center;font-size:14px;}.hz-mc small{color:#999;font-weight:400;font-size:12px;}.hz-mc.sub{font-size:13px;padding:4px 0 4px 14px;}'+
   '.hz-msel{padding:7px 8px;border:.5px solid #ccc;border-radius:8px;font-size:13px;background:#fff;font-family:inherit;}'+
   '.hz-det summary{font-size:12px;color:#185FA5;cursor:pointer;margin-top:6px;}'+
