@@ -38,6 +38,9 @@ function mdw(s){ if(!s) return ''; var d=parseYmd(s); return pad(d.getMonth()+1)
 function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function kmBetween(a,b){ var R=6371,p=Math.PI/180,dLa=(b.lat-a.lat)*p,dLn=(b.lng-a.lng)*p; var h=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(a.lat*p)*Math.cos(b.lat*p)*Math.sin(dLn/2)*Math.sin(dLn/2); return 2*R*Math.asin(Math.sqrt(h)); }
 function fmtKm(d){ return d<1?Math.round(d*1000)+'m':(Math.round(d*10)/10)+'km'; }
+// 검색: 사업장 이름 또는 이번 분기 점검자(완료·예정) 이름
+function matchQ(s,q){ if(norm(s.name).indexOf(q)>=0) return true; var c=checks[s.id]; if(!c) return false;
+  return norm(c.status==='done'?c.doneBy:c.planBy).indexOf(q)>=0; }
 function norm(v){ return String(v||'').replace(/\s+/g,'').toLowerCase(); }
 function short1(n){ return String(n||'').split(' ')[0]; }
 function hasApp(info,a){ return !info||!info.apps||info.apps.indexOf(a)>=0; }
@@ -128,7 +131,7 @@ function render(){
     app.innerHTML='<div class="top-bar"><a class="back-btn" href="../"><i class="ti ti-arrow-left"></i> 홈</a>'+
       '<h2>위생점검</h2><div class="top-actions"><span class="hz-q">'+qLabel(ROUND)+'</span><button class="btn sm" data-act="logout" title="로그아웃"><i class="ti ti-logout"></i></button></div></div>'+
       '<div class="page-body hz">'+
-      '<div class="hz-search"><i class="ti ti-search"></i><input id="hz-q" type="search" placeholder="사업장 이름 검색" autocomplete="off"><span class="hz-qx" data-act="qclear" style="display:none">✕</span></div>'+
+      '<div class="hz-search"><i class="ti ti-search"></i><input id="hz-q" type="search" placeholder="사업장 · 점검자 이름 검색" autocomplete="off"><span class="hz-qx" data-act="qclear" style="display:none">✕</span></div>'+
       '<div class="hz-main"><div id="hz-list"></div>'+
       '<div class="hz-mapcol"><div id="hz-map"></div><div class="hz-maplg"><span><i style="background:#3B6D11"></i>완료</span><span><i style="background:#378ADD"></i>예정</span><span><i style="background:#C8C4BC"></i>안 한 곳</span></div></div></div></div>';
   }
@@ -140,7 +143,7 @@ function render(){
   });
   var tot=sites.length, done=sites.filter(function(s){ return stOf(s.id)==='done'; }).length;
   var q=norm(filt.q), h='', nearHtml='', nearInfo=null;
-  if(q){ shown=all.filter(function(g){ return g.items.some(function(s){ return norm(s.name).indexOf(q)>=0; }); });
+    if(q){ shown=all.filter(function(g){ return g.items.some(function(s){ return matchQ(s,q); }); });
     if(!shown.length&&sites.length) h+='<div class="empty-state">"'+esc(filt.q)+'" 이름의 사업장이 없어요.</div>';
     // 검색한 업장 근처 (반경 km)
     var hits=sites.filter(function(s){ return norm(s.name).indexOf(q)>=0; });
@@ -164,7 +167,7 @@ function render(){
   var mapSites=[];
   shown.forEach(function(g){
     var d=g.items.filter(function(s){ return stOf(s.id)==='done'; }).length, who=g.who;
-    var list=sortItems(g.items.filter(function(s){ return (!filt.todo||stOf(s.id)!=='done')&&(!q||norm(s.name).indexOf(q)>=0); }));
+    var list=sortItems(g.items.filter(function(s){ return (!filt.todo||stOf(s.id)!=='done')&&(!q||matchQ(s,q)); }));
     mapSites=mapSites.concat(list);
     if(filt.todo&&!list.length) return;
     var whoHtml=isAdmin()
