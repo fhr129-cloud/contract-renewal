@@ -12,11 +12,10 @@ var me=null;                 // {phone,name,role,apps}
 var sites=[];                // [{id,name,region,town,lat,lng}]
 var staff=[];                // [{n:'이름 직급', p:휴대폰}]
 var checks={};               // siteId → {status:'plan'|'done', planDate, planBy, doneDate, doneBy}
-var assign={};               // 지역(카드) 이름 → 담당자 (meta/hygAssign.map)
-var split=[];                // 읍·면으로 나눠 보는 시 (meta/hygAssign.split) 예: ['평택시']
+var assign={};               // 담당 (meta/hygAssign.map): '평택시' → 기본 담당, '평택시|고덕면' → 그 읍·면만 다른 담당
 var filt={ region:'', todo:false };   // region: '' 전체 | '@mine' 내 담당 | 지역 이름
 var opened={};               // 펼친 지역 이름 → true (처음엔 모두 접힘)
-var modal=false;             // 관리자 '지역 나누기' 창
+var modal=false;             // 관리자 '담당 정하기' 창
 var dlg=null;                // {siteId, mode:'done'|'plan', prev}
 var unsubs=[];
 var loginPhone='', isNewUser=false;
@@ -47,9 +46,8 @@ function siteById(id){ return sites.filter(function(x){ return x.id===id; })[0];
 var ORD={ done:0, plan:1, none:2 };   // 완료(날짜순) → 예정(날짜순) → 나머지
 var CK='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>';
 
-// 지역: 시·군 단위. 업장 1곳뿐인 시는 '그 외 지역'.
-// 관리자가 '나누기'로 고른 시는 읍·면 카드로 쪼갬: 평택 포승읍 · 평택 청북읍 … / 동은 '평택 시내' / 1곳뿐인 읍·면은 '평택 기타'
-function shortCity(n){ return n.replace(/(특별|광역)?시$|군$/,''); }
+// 지역: 시·군 단위 (업장 1곳뿐인 시는 '그 외 지역').
+// 카드는 '시 + 담당자'로 묶음: 담당이 한 명이면 시 하나 = 카드 하나, 읍·면별로 담당이 갈리면 담당자 수만큼 카드가 나뉨.
 function cities(){
   var by={}; sites.forEach(function(s){ (by[s.region]=by[s.region]||[]).push(s); });
   var rest=[]; Object.keys(by).forEach(function(k){ if(by[k].length<2||k==='기타 지역'){ rest=rest.concat(by[k]); delete by[k]; } });
@@ -57,19 +55,24 @@ function cities(){
   if(rest.length) out.push({ name:'그 외 지역', items:rest, rest:true });
   return out;
 }
+// 읍·면 단위 구분: 포승읍 / 고덕면 / 동 지역은 '시내' / 주소에서 못 찾으면 '기타'
+function townKey(s){ var t=s.town||''; return /[읍면]$/.test(t)?t:/동$/.test(t)?'시내':'기타'; }
+function townsOf(c){ var m={}; c.items.forEach(function(s){ var k=townKey(s); m[k]=(m[k]||0)+1; }); return Object.keys(m).sort(function(a,b){ return m[b]-m[a]||a.localeCompare(b,'ko'); }).map(function(k){ return { k:k, n:m[k] }; }); }
+function whoFor(city, s){ return (!s||city==='그 외 지역')?(assign[city]||''):(assign[city+'|'+townKey(s)]||assign[city]||''); }
 function regions(){
   var out=[];
   cities().forEach(function(c){
-    if(c.rest||split.indexOf(c.name)<0){ out.push(c); return; }
-    var sc=shortCity(c.name), sub={};
-    c.items.forEach(function(s){ var t=s.town||'', k=/[읍면]$/.test(t)?sc+' '+t:/동$/.test(t)?sc+' 시내':sc+' 기타'; (sub[k]=sub[k]||[]).push(s); });
-    Object.keys(sub).forEach(function(k){ if(/[읍면]$/.test(k)&&sub[k].length<2){ (sub[sc+' 기타']=sub[sc+' 기타']||[]).push.apply(sub[sc+' 기타'], sub[k]); delete sub[k]; } });
-    var keys=Object.keys(sub).sort(function(a,b){ var x=/ (시내|기타)$/.test(a), y=/ (시내|기타)$/.test(b); return (x-y)||sub[b].length-sub[a].length||a.localeCompare(b,'ko'); });
-    keys.forEach(function(k){ out.push({ name:k, items:sub[k], city:c.name }); });
+    var by={}, order=[];
+    c.items.forEach(function(s){ var w=whoFor(c.name,s); if(!by[w]){ by[w]=[]; order.push(w); } by[w].push(s); });
+    order.sort(function(a,b){ return by[b].length-by[a].length; });
+    order.forEach(function(w){
+      var tw=[]; by[w].forEach(function(s){ var k=townKey(s); if(tw.indexOf(k)<0) tw.push(k); });
+      out.push({ key:c.name+'#'+w, city:c.name, who:w, items:by[w], towns:tw, split:order.length>1, rest:!!c.rest });
+    });
   });
   return out;
 }
-function regionKey(s){ var rs=regions(); for(var i=0;i<rs.length;i++) if(rs[i].items.indexOf(s)>=0) return rs[i].name; return ''; }
+function regionKey(s){ var rs=regions(); for(var i=0;i<rs.length;i++) if(rs[i].items.indexOf(s)>=0) return rs[i].city; return ''; }
 
 // ── Firestore ──────────────────────────
 function listen(){
@@ -88,7 +91,7 @@ function listen(){
       .map(function(x){ return { n:x.title?x.name+' '+x.title:x.name, p:String(x.phone||'').replace(/[^0-9]/g,'') }; });
     render();
   }, function(e){ console.warn('staff', e.code); }));
-  unsubs.push(onSnapshot(doc(db,'meta','hygAssign'), function(snap){ var x=snap.exists()?snap.data():{}; assign=x.map||{}; split=x.split||[]; render(); }, function(e){ console.warn('assign', e.code); }));
+  unsubs.push(onSnapshot(doc(db,'meta','hygAssign'), function(snap){ var x=snap.exists()?snap.data():{}; assign=x.map||{}; render(); }, function(e){ console.warn('assign', e.code); }));
   unsubs.push(onSnapshot(query(collection(db,'hygChecks'), where('round','==',ROUND)), function(snap){
     checks={}; snap.docs.forEach(function(d){ var x=d.data(); checks[x.siteId]=x; }); render();
   }, function(e){ console.error(e); toast('점검 기록을 불러오지 못했어요 ('+(e.code||'')+')'); }));
@@ -122,41 +125,42 @@ function render(){
       '<div class="page-body hz"><div id="hz-head"></div><div class="hz-main"><div id="hz-list"></div>'+
       '<div class="hz-mapcol"><div id="hz-map"></div><div class="hz-maplg"><span><i style="background:#3B6D11"></i>완료</span><span><i style="background:#378ADD"></i>예정</span><span><i style="background:#C8C4BC"></i>안 한 곳</span></div></div></div></div>';
   }
-  var all=regions(), mine=short1(myName());
+  var all=regions(), mine=short1(myName()), cs=cities();
   var shown=all.filter(function(g){
     if(!filt.region) return true;
-    if(filt.region==='@mine') return short1(assign[g.name])===mine;
-    return g.name===filt.region;
+    if(filt.region==='@mine') return !!g.who&&short1(g.who)===mine;
+    return g.city===filt.region;
   });
   var tot=sites.length, done=sites.filter(function(s){ return stOf(s.id)==='done'; }).length;
   document.getElementById('hz-head').innerHTML='<div class="hz-top"><div class="hz-big"><div class="hz-t">이번 분기 점검</div><div class="hz-n">'+done+'<small> / '+tot+'곳 끝</small></div>'+
     '<div class="hz-bar"><i style="width:'+(tot?100*done/tot:0)+'%"></i></div><div class="hz-left">남은 곳 <b>'+(tot-done)+'</b></div></div>'+
     '<div class="hz-f"><select data-v="region" class="hz-sel"><option value="">전체 지역</option><option value="@mine"'+(filt.region==='@mine'?' selected':'')+'>내 담당 지역</option>'+
-      all.map(function(g){ return '<option value="'+esc(g.name)+'"'+(filt.region===g.name?' selected':'')+'>'+esc(g.name)+' ('+g.items.length+')</option>'; }).join('')+'</select>'+
+      cs.map(function(g){ return '<option value="'+esc(g.name)+'"'+(filt.region===g.name?' selected':'')+'>'+esc(g.name)+' ('+g.items.length+')</option>'; }).join('')+'</select>'+
     '<div class="hz-f2"><label class="hz-cb"><input type="checkbox" data-v="todo"'+(filt.todo?' checked':'')+'><span>안 한 곳만</span></label>'+
-    (isAdmin()?'<span class="hz-adm" data-act="msplit">지역 나누기</span>':'')+'</div></div></div>';
+    (isAdmin()?'<span class="hz-adm" data-act="massign">담당 정하기</span>':'')+'</div></div></div>';
   var h='';
   if(!sites.length) h+='<div class="empty-state">불러오는 중…</div>';
   else if(!shown.length) h+='<div class="empty-state">'+(filt.region==='@mine'?'내 담당으로 지정된 지역이 없어요.':'해당하는 지역이 없어요.')+'</div>';
   h+='<div class="hz-grid">';
   var mapSites=[];
   shown.forEach(function(g){
-    var d=g.items.filter(function(s){ return stOf(s.id)==='done'; }).length, who=assign[g.name]||'';
+    var d=g.items.filter(function(s){ return stOf(s.id)==='done'; }).length, who=g.who;
     var list=sortItems(g.items.filter(function(s){ return !filt.todo||stOf(s.id)!=='done'; }));
     mapSites=mapSites.concat(list);
     if(filt.todo&&!list.length) return;
     var whoHtml=isAdmin()
-      ? '<select class="hz-as'+(who?'':' empty')+'" data-v="assign" data-k="'+esc(g.name)+'"><option value="">담당 선택</option>'+staff.map(function(x){ return '<option value="'+esc(x.n)+'"'+(x.n===who?' selected':'')+'>담당 '+esc(short1(x.n))+'</option>'; }).join('')+(who&&!staff.some(function(x){ return x.n===who; })?'<option selected value="'+esc(who)+'">담당 '+esc(short1(who))+'</option>':'')+'</select>'
+      ? '<select class="hz-as'+(who?'':' empty')+'" data-v="assign" data-k="'+esc(g.key)+'"><option value="">담당 선택</option>'+staff.map(function(x){ return '<option value="'+esc(x.n)+'"'+(x.n===who?' selected':'')+'>담당 '+esc(short1(x.n))+'</option>'; }).join('')+(who&&!staff.some(function(x){ return x.n===who; })?'<option selected value="'+esc(who)+'">담당 '+esc(short1(who))+'</option>':'')+'</select>'
       : (who?'<span class="hz-who">담당 '+esc(short1(who))+'</span>':'');
-    var op=!!opened[g.name]||(!!filt.region&&filt.region!=='@mine')||shown.length===1;
-    h+='<div class="hz-col'+(op?' open':'')+'"><div class="hz-rh" data-act="toggle" data-k="'+esc(g.name)+'"><b>'+esc(g.name)+'</b>'+whoHtml+
+    var op=!!opened[g.key]||(!!filt.region&&filt.region!=='@mine')||shown.length===1;
+    var sub=g.split?'<small class="hz-tw">'+esc(g.towns.join('·'))+'</small>':'';
+    h+='<div class="hz-col'+(op?' open':'')+'"><div class="hz-rh" data-act="toggle" data-k="'+esc(g.key)+'"><span class="hz-nmw"><b>'+esc(g.city)+'</b>'+sub+'</span>'+whoHtml+
       '<span class="hz-mini"><i style="width:'+(100*d/g.items.length)+'%"></i></span><em>'+d+'<span>/'+g.items.length+'</span></em><i class="ti ti-chevron-'+(op?'up':'down')+' hz-chev"></i></div>'+
       (op?'<div class="hz-lst">'+list.map(itemHtml).join('')+'</div>':'')+'</div>';
   });
   h+='</div>';
   document.getElementById('hz-list').innerHTML=h;
-  var foc=mapFocus&&shown.filter(function(g){ return g.name===mapFocus; })[0];
-  renderDlg(); renderModal(); drawMap(mapSites, filt.region+'|'+filt.todo+'|'+(foc?foc.name:''), foc?foc.items:null);
+  var foc=mapFocus&&shown.filter(function(g){ return g.key===mapFocus; })[0];
+  renderDlg(); renderModal(); drawMap(mapSites, filt.region+'|'+filt.todo+'|'+(foc?foc.key:''), foc?foc.items:null);
 }
 
 // ── 지도 (PC 화면에서만) ──────────────────────────
@@ -193,21 +197,48 @@ function drawMap(list, key, focus){
 var rsT=null;
 window.addEventListener('resize', function(){ clearTimeout(rsT); rsT=setTimeout(function(){ if(map) map.invalidateSize(); if(lastMap) drawMap(lastMap.list, lastMap.key, lastMap.focus); },200); });
 
-// ── 관리자: 읍·면으로 나눌 시 고르기 ──────────────────────────
+// ── 관리자: 담당 정하기 (시마다 기본 담당 + 필요한 읍·면만 다르게) ──────────────────────────
+function staffOpts(cur, firstLabel){
+  var o='<option value="">'+firstLabel+'</option>'+staff.map(function(x){ return '<option value="'+esc(x.n)+'"'+(x.n===cur?' selected':'')+'>'+esc(x.n)+'</option>'; }).join('');
+  if(cur&&!staff.some(function(x){ return x.n===cur; })) o+='<option selected value="'+esc(cur)+'">'+esc(cur)+'</option>';
+  return o;
+}
 function renderModal(){
   var el=document.getElementById('form');
   if(!modal){ el.className='sup-modal'; el.innerHTML=''; return; }
-  var cs=cities().filter(function(c){ return !c.rest; });
+  var cs=cities();
   el.className='sup-modal open';
-  el.innerHTML='<div class="sup-modal-inner" style="height:auto;max-height:92vh;max-width:420px"><div class="sup-modal-header"><h3>지역 나누기</h3><button class="btn sm" data-act="mclose"><i class="ti ti-x"></i></button></div>'+
-    '<div class="sup-modal-body"><div class="hint l" style="margin-bottom:12px">체크한 시는 읍·면별 카드로 나뉘어요 (동 지역은 "시내", 업장 1곳뿐인 읍·면은 "기타"로 묶임). 나눈 뒤 카드마다 담당을 다시 골라주세요.</div>'+
-    cs.map(function(c){ return '<label class="hz-cb" style="display:flex;padding:9px 2px;border-top:.5px solid #f0f0ec"><input type="checkbox" class="m-split" value="'+esc(c.name)+'"'+(split.indexOf(c.name)>=0?' checked':'')+'><span style="flex:1">'+esc(c.name)+'</span><small style="color:#999">'+c.items.length+'곳</small></label>'; }).join('')+
+  el.innerHTML='<div class="sup-modal-inner" style="height:auto;max-height:92vh;max-width:460px"><div class="sup-modal-header"><h3>담당 정하기</h3><button class="btn sm" data-act="mclose"><i class="ti ti-x"></i></button></div>'+
+    '<div class="sup-modal-body"><div class="hint l" style="margin-bottom:10px">시마다 담당을 고르세요. 일부 읍·면만 다른 사람이 맡으면 "읍·면별로 다르게"를 펼쳐 그 곳만 바꾸면 돼요. 담당이 같은 곳은 붙어 있든 떨어져 있든 한 카드로 묶여요.</div>'+
+    cs.map(function(c){
+      var tws=c.rest?[]:townsOf(c), base=assign[c.name]||'';
+      var hasOv=tws.some(function(t){ return assign[c.name+'|'+t.k]; });
+      return '<div class="hz-mrow"><div class="hz-mc"><span><b>'+esc(c.name)+'</b> <small>'+c.items.length+'곳</small></span><select class="m-as hz-msel" data-k="'+esc(c.name)+'">'+staffOpts(base,'— 미지정 —')+'</select></div>'+
+        (tws.length>1?'<details class="hz-det"'+(hasOv?' open':'')+'><summary>읍·면별로 다르게</summary>'+tws.map(function(t){ var cur=assign[c.name+'|'+t.k]||'';
+          return '<div class="hz-mc sub"><span>'+esc(t.k)+' <small>'+t.n+'곳</small></span><select class="m-as hz-msel" data-k="'+esc(c.name+'|'+t.k)+'">'+staffOpts(cur,'시 담당과 같음')+'</select></div>'; }).join('')+'</details>':'')+'</div>';
+    }).join('')+
     '</div><div class="sup-modal-footer"><button class="btn" data-act="mclose">취소</button><button class="btn primary" data-act="msave">저장</button></div></div>';
 }
-async function saveSplit(){
-  var v=[].slice.call(document.querySelectorAll('.m-split:checked')).map(function(e){ return e.value; });
-  try{ await setDoc(doc(db,'meta','hygAssign'), { map:assign, split:v, updatedAt:serverTimestamp(), by:me.phone }); toast('지역 나누기를 저장했어요.'); modal=false; renderModal(); }
-  catch(e){ console.error(e); toast(e.code==='permission-denied'?'관리자만 바꿀 수 있어요.':'저장하지 못했어요.'); }
+function cleanMap(map){   // 시 담당과 같은 읍·면 지정은 지움
+  Object.keys(map).forEach(function(k){ var p=k.split('|'); if(!map[k]||(p.length===2&&map[k]===map[p[0]])) delete map[k]; });
+  return map;
+}
+async function writeAssign(map, msg){
+  try{ await setDoc(doc(db,'meta','hygAssign'), { map:cleanMap(map), updatedAt:serverTimestamp(), by:me.phone }); toast(msg); return true; }
+  catch(e){ console.error(e); toast(e.code==='permission-denied'?'관리자만 바꿀 수 있어요.':'저장하지 못했어요.'); render(); return false; }
+}
+async function saveModal(){
+  var map={}; [].slice.call(document.querySelectorAll('.m-as')).forEach(function(e){ if(e.value) map[e.getAttribute('data-k')]=e.value; });
+  if(await writeAssign(map,'담당을 저장했어요.')){ modal=false; renderModal(); }
+}
+// 카드 머리의 담당 드롭다운: 시 전체가 한 카드면 시 담당을, 나뉜 카드면 그 카드의 읍·면들만 바꿈
+async function saveCardAssign(key, name){
+  var g=regions().filter(function(x){ return x.key===key; })[0]; if(!g) return;
+  var map=Object.assign({}, assign);
+  if(!g.split||g.rest){ map[g.city]=name; Object.keys(map).forEach(function(k){ if(k.indexOf(g.city+'|')===0) delete map[k]; }); }
+  else g.towns.forEach(function(t){ map[g.city+'|'+t]=name; });
+  if(!name&&(!g.split||g.rest)) delete map[g.city];
+  await writeAssign(map, g.city+(g.split?' ('+g.towns.join('·')+')':'')+' 담당: '+(name?short1(name):'없음'));
 }
 
 // ── 업장 창 ──────────────────────────
@@ -226,8 +257,9 @@ function renderDlg(){
   var c=checks[s.id], t=stOf(s.id), today=ymd(new Date()), me_=myName();
   var h='<div class="cal-popup-inner hz-dlg"><h3>'+esc(s.name)+'</h3>';
   if(t==='done'){
-    h+='<div class="hz-q2">이미 점검한 곳이에요</div><div class="hz-ok"><b>'+mdw(c.doneDate)+' · '+esc(c.doneBy)+'</b> 완료</div>'+prevLine()+
-      '<button class="hz-bo" data-act="undone">잘못 눌렀어요 (완료 취소)</button>';
+    var canUndo=isAdmin()||c.updatedBy===me.phone;
+    h+='<div class="hz-q2">이미 점검한 곳이에요</div><div class="hz-ok"><b>'+mdw(c.doneDate)+' · '+esc(c.doneBy)+'</b> 완료</div>'+
+      (canUndo?'<button class="hz-bo" data-act="undone">잘못 눌렀어요 (완료 취소)</button>':'<div class="hz-prev" style="margin:0 0 4px">완료 취소는 체크한 사람이나 관리자만 할 수 있어요.</div>')+prevLine();
   } else {
     // 날짜·점검자 한 번 고르고 → [점검 예정] 또는 [점검 완료]
     h+='<div class="hz-q2">'+(t==='plan'?'날짜를 바꿔 다시 예정하거나 완료하세요':'날짜를 고르고 예정 또는 완료')+'</div>'+
@@ -275,16 +307,11 @@ async function undo(what){
 }
 function openDlg(id){ dlg={ siteId:id, mode:'done' }; try{ history.pushState({ hz:1 },''); }catch(e){} renderDlg(); loadPrev(id); }
 function closeDlg(){ if(!dlg) return; dlg=null; renderDlg(); try{ if(history.state&&history.state.hz) history.back(); }catch(e){} }
-async function saveAssign(region, name){
-  var map=Object.assign({}, assign); if(name) map[region]=name; else delete map[region];
-  try{ await setDoc(doc(db,'meta','hygAssign'), { map:map, split:split, updatedAt:serverTimestamp(), by:me.phone }); toast(region+' 담당: '+(name?short1(name):'없음')); }
-  catch(e){ console.error(e); toast(e.code==='permission-denied'?'관리자만 바꿀 수 있어요.':'저장하지 못했어요.'); render(); }
-}
 
 // ── 이벤트 ──────────────────────────
 document.addEventListener('click', async function(ev){
   if(ev.target.id==='popup'){ closeDlg(); return; }
-  if(ev.target.closest('select')||ev.target.closest('label')) return;   // 담당 드롭다운 누를 땐 접고 펴지 않음
+  if(ev.target.closest('select')||ev.target.closest('label')||ev.target.closest('summary')) return;   // 담당 드롭다운 누를 땐 접고 펴지 않음
   var t=ev.target.closest('[data-act]'); if(!t) return;
   var a=t.getAttribute('data-act');
   if(a==='logout'){ if(confirm('로그아웃할까요?')){ await logoutUser(); location.reload(); } }
@@ -296,15 +323,15 @@ document.addEventListener('click', async function(ev){
   else if(a==='plan'){ doPlan(); }
   else if(a==='unplan'){ undo('plan'); }
   else if(a==='undone'){ undo('done'); }
-  else if(a==='msplit'){ modal=true; renderModal(); }
+  else if(a==='massign'){ modal=true; renderModal(); }
   else if(a==='mclose'){ modal=false; renderModal(); }
-  else if(a==='msave'){ saveSplit(); }
+  else if(a==='msave'){ saveModal(); }
 });
 document.addEventListener('change', function(ev){
   var v=ev.target.getAttribute&&ev.target.getAttribute('data-v'); if(!v) return;
   if(v==='region'){ filt.region=ev.target.value; render(); }
   else if(v==='todo'){ filt.todo=ev.target.checked; render(); }
-  else if(v==='assign'){ saveAssign(ev.target.getAttribute('data-k'), ev.target.value); }
+  else if(v==='assign'){ saveCardAssign(ev.target.getAttribute('data-k'), ev.target.value); }
 });
 window.addEventListener('popstate', function(){ if(dlg){ dlg=null; renderDlg(); } });
 // 자정 넘어 앱을 켜둔 채 분기가 바뀌면 새로고침
@@ -327,7 +354,11 @@ var CSS=
   '.hz-mini{flex:1;max-width:90px;height:6px;border-radius:99px;background:#eceae4;overflow:hidden;margin-left:auto;}.hz-mini i{display:block;height:100%;background:#3B6D11;}'+
   '.hz-chev{color:#aaa;font-size:15px;}'+
   '.hz-rh em{font-style:normal;min-width:34px;text-align:right;font-size:13px;font-weight:700;}.hz-rh em span{color:#999;font-weight:400;}'+
-  '.hz-who{font-size:12px;color:#888;}'+
+  '.hz-who{font-size:12px;color:#888;white-space:nowrap;}'+
+  '.hz-nmw{display:flex;flex-direction:column;min-width:0;}.hz-tw{font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;}'+
+  '.hz-mrow{border-top:.5px solid #f0f0ec;padding:8px 0;}.hz-mc{display:grid;grid-template-columns:1fr 170px;gap:8px;align-items:center;font-size:14px;}.hz-mc small{color:#999;font-weight:400;font-size:12px;}.hz-mc.sub{font-size:13px;padding:4px 0 4px 14px;}'+
+  '.hz-msel{padding:7px 8px;border:.5px solid #ccc;border-radius:8px;font-size:13px;background:#fff;font-family:inherit;}'+
+  '.hz-det summary{font-size:12px;color:#185FA5;cursor:pointer;margin-top:6px;}'+
   '.hz-as{font-size:12px;color:#185FA5;border:.5px solid #B5D4F4;border-radius:6px;padding:3px 4px;background:#F5F9FD;font-family:inherit;max-width:110px;}.hz-as.empty{color:#999;border-color:#ddd;background:#fff;}'+
   '.hz-lst{border-top:.5px solid #eee;}'+
   '.hz-it{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:.5px solid #f0f0ec;font-size:15px;cursor:pointer;}.hz-it:first-child{border-top:0;}.hz-it:active{background:#f5f5f2;}'+
