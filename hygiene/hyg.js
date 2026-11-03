@@ -125,7 +125,7 @@ function render(){
   ensureCss();
   if(!document.getElementById('hz-list')){
     app.innerHTML='<div class="top-bar"><a class="back-btn" href="../"><i class="ti ti-arrow-left"></i> 홈</a>'+
-      '<h2>위생점검 <span id="hz-cnt" class="hz-cnt"></span></h2><div class="top-actions"><span class="hz-q">'+qLabel(ROUND)+'</span><button class="btn sm" data-act="logout" title="로그아웃"><i class="ti ti-logout"></i></button></div></div>'+
+      '<h2>위생점검</h2><div class="top-actions"><span class="hz-q">'+qLabel(ROUND)+'</span><button class="btn sm" data-act="logout" title="로그아웃"><i class="ti ti-logout"></i></button></div></div>'+
       '<div class="page-body hz">'+
       '<div class="hz-search"><i class="ti ti-search"></i><input id="hz-q" type="search" placeholder="사업장 이름 검색" autocomplete="off"><span class="hz-qx" data-act="qclear" style="display:none">✕</span></div>'+
       '<div class="hz-main"><div id="hz-list"></div>'+
@@ -138,7 +138,6 @@ function render(){
     return g.city===filt.region;
   });
   var tot=sites.length, done=sites.filter(function(s){ return stOf(s.id)==='done'; }).length;
-  document.getElementById('hz-cnt').innerHTML=sites.length?'<b>'+done+'</b> / '+tot:'';
   var q=norm(filt.q), h='', nearInfo=null;
   if(q){ shown=all.filter(function(g){ return g.items.some(function(s){ return norm(s.name).indexOf(q)>=0; }); });
     if(!shown.length&&sites.length) h+='<div class="empty-state">"'+esc(filt.q)+'" 이름의 사업장이 없어요.</div>';
