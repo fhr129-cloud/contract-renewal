@@ -139,7 +139,7 @@ function render(){
     return g.city===filt.region;
   });
   var tot=sites.length, done=sites.filter(function(s){ return stOf(s.id)==='done'; }).length;
-  var q=norm(filt.q), h='', nearInfo=null;
+  var q=norm(filt.q), h='', nearHtml='', nearInfo=null;
   if(q){ shown=all.filter(function(g){ return g.items.some(function(s){ return norm(s.name).indexOf(q)>=0; }); });
     if(!shown.length&&sites.length) h+='<div class="empty-state">"'+esc(filt.q)+'" 이름의 사업장이 없어요.</div>';
     // 검색한 업장 근처 (반경 km)
@@ -149,7 +149,7 @@ function render(){
       var nl=ctr.co?sites.filter(function(s){ return s!==ctr&&s.co; }).map(function(s){ return { s:s, d:kmBetween(ctr.co,s.co) }; })
         .filter(function(x){ return x.d<=near.r; }).sort(function(a,b){ return a.d-b.d; }):[];
       nearInfo={ ctr:ctr, list:nl };
-      h+='<div class="hz-near"><div class="hz-near-h"><i class="ti ti-map-pin"></i>'+
+            nearHtml='<div class="hz-near"><div class="hz-near-h"><i class="ti ti-map-pin"></i>'+
         (hits.length>1?'<select data-v="ncenter" class="hz-nsel">'+hits.map(function(s){ return '<option value="'+s.id+'"'+(s===ctr?' selected':'')+'>'+esc(s.name)+'</option>'; }).join('')+'</select>':'<b>'+esc(ctr.name)+'</b>')+
         '<span>근처 <b class="hz-rkm">'+fmtKm(near.r)+'</b> 안</span>'+
         '<em>'+nl.length+'곳</em></div>'+
@@ -160,7 +160,7 @@ function render(){
   }
   if(!sites.length) h+='<div class="empty-state">불러오는 중…</div>';
   else if(!shown.length&&!q) h+='<div class="empty-state">'+(filt.region==='@mine'?'내 담당으로 지정된 지역이 없어요.':'해당하는 지역이 없어요.')+'</div>';
-  h+='<div class="hz-grid">';
+    h+='<div class="hz-grid">'+nearHtml;
   var mapSites=[];
   shown.forEach(function(g){
     var d=g.items.filter(function(s){ return stOf(s.id)==='done'; }).length, who=g.who;
@@ -527,7 +527,7 @@ var CSS=
   '.hz-planinfo{display:flex;align-items:center;gap:8px;background:#E6F1FB;color:#0C447C;border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px;}.hz-planinfo span{margin-left:auto;color:#A32D2D;font-size:12px;cursor:pointer;text-decoration:underline;}'+
   '@media(min-width:900px){'+
   '.hz-main{display:grid;grid-template-columns:minmax(0,1fr) 44%;gap:16px;align-items:start;}.hz-mapcol{order:0;display:block;position:sticky;top:12px;margin-top:8px;}#hz-map{height:calc(100vh - 140px);min-height:420px;}'+
-  '.hz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0 12px;align-items:start;}.hz-it{font-size:14px;padding:9px 12px;gap:10px;}}';
+  '.hz-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;align-items:start;}.hz-it{font-size:14px;padding:9px 12px;gap:10px;}}';
 function ensureCss(){ if(document.getElementById('hz-css')) return; var st=document.createElement('style'); st.id='hz-css'; st.textContent=CSS; document.head.appendChild(st); }
 
 // ── 로그인 (차량 예약과 같은 방식, FS 권한 필요) ──────────────────────────
