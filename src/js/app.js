@@ -1,11 +1,11 @@
-import { listenContracts, listenHistory, listenSupports, addContract, updateContract, deleteContract, addHistory, addSupport, updateSupport, updateSupportBizName, deleteSupport,  saveHistoryRecords, updateHistoryName, checkAllowedUser, loginUser, registerUser, watchAuth, logoutUser, fetchAllForBackup, listenStaff, syncSiteNames } from './db.js';
+import { listenContracts, listenHistory, listenSupports, addContract, updateContract, deleteContract, addHistory, addSupport, updateSupport, updateSupportBizName, deleteSupport,  saveHistoryRecords, updateHistoryName, checkAllowedUser, loginUser, registerUser, watchAuth, logoutUser, fetchAllForBackup, listenStaff, syncSiteNames, db } from './db.js';
 import { calcStatus, STATUS_META, fmtDate, toInputDate, dDiff, dDayLabel, priceLabel } from './utils.js';
 import { COORDS } from './coords.js';
 import { STAFF_MAP, STAFF_ORDER, DEFAULT_STAFF, applyStaff, teamLead, getStaffColor, getStaffBorderColor, getStaffBg } from './staff.js';
 import { initAdmin } from './admin.js';
 import { initDashboard } from './dashboard.js';
 import { renderRegionTab, destroyRegionMap } from './region.js';
-
+import { collection, query, where, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 var contracts = [];
 var historyData = [];
 var supports = [];
@@ -805,7 +805,7 @@ async function init() {
   });
 
   listenContracts(function(data){
-    contracts=data;
+    contracts=data; paintHygCount();
     if(window.syncDashData) window.syncDashData(contracts,historyData,supports);
     ssOptions=data.slice().sort(function(a,b){ return a.name.localeCompare(b.name,'ko'); });
     // 관리자가 접속해 있으면 사업장 이름을 차량 예약 앱 행선지 목록으로 복사
@@ -957,7 +957,9 @@ watchAuth(function(user){
       window.currentUserRole=(info&&info.role)||'staff';
       window.currentUserName=(info&&info.name)||'';
       window.currentUserApps=info.apps||null;
-            if(!hasAppAccess(info,'car')){ var hl=document.querySelector('.home-link'); if(hl) hl.style.display='none'; }
+                  if(!hasAppAccess(info,'car')){ var hl=document.querySelector('.home-link'); if(hl) hl.style.display='none'; }
+      if(!(hasAppAccess(info,'hyg')||info.role==='admin')){ var hh=document.querySelector('a.home-link[href="./hygiene/"]'); if(hh) hh.style.display='none'; }
+      else startHygCount();
       if(!(hasAppAccess(info,'hyg')||info.role==='admin')){ var hh=document.querySelector('a.home-link[href="./hygiene/"]'); if(hh) hh.style.display='none'; }
       if(!_appStarted){ _appStarted=true; init(); }
       var el=document.getElementById('home-welcome');
@@ -972,6 +974,23 @@ watchAuth(function(user){
 });
 // apps 필드가 없으면(기존 직원) 모든 앱 허용
 function hasAppAccess(info,app){ return !info||!info.apps||info.apps.indexOf(app)>=0; }
+// 홈 화면 위생점검 버튼에 이번 분기 진행 (완료 / 전체)
+var hygDone={}, hygUnsub=null;
+function hygRound(){ var d=new Date(); return d.getFullYear()+'Q'+(Math.floor(d.getMonth()/3)+1); }
+function paintHygCount(){
+  var el=document.getElementById('hl-hyg-cnt'); if(!el||!hygUnsub) return;
+  var act=contracts.filter(function(c){ return c.name&&!c.terminated; });
+  if(!act.length){ el.innerHTML=''; return; }
+  var n=act.filter(function(c){ return hygDone[c.id]; }).length;
+  el.innerHTML='<b>'+n+'</b> / '+act.length;
+}
+function startHygCount(){
+  if(hygUnsub) return;
+  hygUnsub=onSnapshot(query(collection(db,'hygChecks'), where('round','==',hygRound())), function(snap){
+    hygDone={}; snap.docs.forEach(function(d){ var x=d.data(); if(x.status==='done') hygDone[x.siteId]=true; });
+    paintHygCount();
+  }, function(e){ console.warn('위생점검 집계', e.code); });
+}
 function escHtml(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function showNoFsAccess(info){
   var splash=document.getElementById('splash-screen'); if(splash) splash.remove();
