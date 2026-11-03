@@ -957,7 +957,8 @@ watchAuth(function(user){
       window.currentUserRole=(info&&info.role)||'staff';
       window.currentUserName=(info&&info.name)||'';
       window.currentUserApps=info.apps||null;
-      if(!hasAppAccess(info,'car')){ var hl=document.querySelector('.home-link'); if(hl) hl.style.display='none'; }
+            if(!hasAppAccess(info,'car')){ var hl=document.querySelector('.home-link'); if(hl) hl.style.display='none'; }
+      if(!(hasAppAccess(info,'hyg')||info.role==='admin')){ var hh=document.querySelector('a.home-link[href="./hygiene/"]'); if(hh) hh.style.display='none'; }
       if(!_appStarted){ _appStarted=true; init(); }
       var el=document.getElementById('home-welcome');
       if(el&&info&&info.name) el.innerHTML='<span style="font-weight:600;color:#185FA5;">'+escHtml(info.name)+'</span>님, 반갑습니다 👋';
