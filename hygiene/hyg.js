@@ -100,7 +100,7 @@ function box(on){ return '<span class="hz-box'+(on?' on':'')+'">'+(on?CK:'')+'</
 function itemHtml(s){
   var c=checks[s.id], t=stOf(s.id), r='';
   if(t==='done') r='<span class="hz-r">'+md(c.doneDate)+' '+esc(short1(c.doneBy))+'</span>';
-  else if(t==='plan') r='<span class="hz-r p">'+md(c.planDate)+' 갈 예정'+(short1(c.planBy)!==short1(myName())?' · '+esc(short1(c.planBy)):'')+'</span>';
+  else if(t==='plan') r='<span class="hz-r p">'+md(c.planDate)+' 예정'+(short1(c.planBy)!==short1(myName())?' · '+esc(short1(c.planBy)):'')+'</span>';
   return '<div class="hz-it'+(t==='done'?' dn':'')+'" data-act="site" data-id="'+s.id+'">'+box(t==='done')+'<span class="hz-nm">'+esc(s.name)+'</span>'+r+'</div>';
 }
 function sortItems(list){
@@ -228,19 +228,13 @@ function renderDlg(){
   if(t==='done'){
     h+='<div class="hz-q2">이미 점검한 곳이에요</div><div class="hz-ok"><b>'+mdw(c.doneDate)+' · '+esc(c.doneBy)+'</b> 완료</div>'+prevLine()+
       '<button class="hz-bo" data-act="undone">잘못 눌렀어요 (완료 취소)</button>';
-  } else if(dlg.mode==='plan'){
-    h+='<div class="hz-q2">언제 갈 예정인가요?</div>'+
-      '<label class="hz-l">갈 날짜</label><input type="date" id="h-pdate" class="hz-fld" min="'+today+'" value="'+(t==='plan'?c.planDate:'')+'">'+
-      '<label class="hz-l">점검자</label>'+staffSelect('h-pby', t==='plan'?c.planBy:me_)+
-      '<button class="hz-bp" data-act="plan">갈 날짜 적기</button>'+
-      '<div class="hz-lk" data-act="mode" data-m="done">← 점검 끝났어요</div>';
   } else {
-    h+='<div class="hz-q2">점검 끝났나요?</div>'+
-      (t==='plan'?'<div class="hz-planinfo">'+mdw(c.planDate)+' 갈 예정 · '+esc(short1(c.planBy))+'<span data-act="unplan">예정 지우기</span></div>':'')+
-      '<label class="hz-l">점검일</label><input type="date" id="h-ddate" class="hz-fld" max="'+today+'" value="'+today+'">'+
-      '<label class="hz-l">점검자</label>'+staffSelect('h-dby', me_)+
-      '<button class="hz-bg" data-act="done">점검 완료</button>'+prevLine()+
-      '<div class="hz-lk" data-act="mode" data-m="plan">'+(t==='plan'?'갈 날짜 바꾸기':'아직 안 갔어요 — 갈 날짜만 적어두기')+'</div>';
+    // 날짜·점검자 한 번 고르고 → [점검 예정] 또는 [점검 완료]
+    h+='<div class="hz-q2">'+(t==='plan'?'날짜를 바꿔 다시 예정하거나 완료하세요':'날짜를 고르고 예정 또는 완료')+'</div>'+
+      (t==='plan'?'<div class="hz-planinfo">'+mdw(c.planDate)+' 예정 · '+esc(short1(c.planBy))+'<span data-act="unplan">예정 지우기</span></div>':'')+
+      '<label class="hz-l">날짜</label><input type="date" id="h-date" class="hz-fld" value="'+(t==='plan'&&c.planDate<=today?c.planDate:today)+'">'+
+      '<label class="hz-l">점검자</label>'+staffSelect('h-by', t==='plan'?c.planBy:me_)+
+      '<div class="hz-btns"><button class="hz-bp" data-act="plan">점검 예정</button><button class="hz-bg" data-act="done">점검 완료</button></div>'+prevLine();
   }
   h+='<div class="hz-close" data-act="close">닫기</div></div>';
   el.className='cal-popup open'; el.innerHTML=h;
@@ -256,24 +250,26 @@ function base(s){ return { round:ROUND, siteId:s.id, siteName:s.name, region:reg
 function errMsg(e){ console.error(e); toast(e.code==='permission-denied'?'저장 권한이 없어요.':'저장하지 못했어요. 다시 해주세요.'); }
 async function doDone(){
   var s=siteById(dlg.siteId); if(!s) return;
-  var d=document.getElementById('h-ddate').value, by=document.getElementById('h-dby').value;
-  if(!d){ toast('점검일을 골라주세요.'); return; }
+  var d=document.getElementById('h-date').value, by=document.getElementById('h-by').value;
+  if(!d){ toast('날짜를 골라주세요.'); return; }
+  if(d>ymd(new Date())){ toast('완료는 오늘이나 지난 날짜만 돼요. 앞으로 갈 날이면 [점검 예정]을 눌러주세요.'); return; }
   var c=checks[s.id]||{};
   try{ await setDoc(checkRef(s.id), Object.assign(base(s), { status:'done', doneDate:d, doneBy:by, planDate:c.planDate||'', planBy:c.planBy||'' })); toast(s.name+' 점검 완료!'); closeDlg(); }
   catch(e){ errMsg(e); }
 }
 async function doPlan(){
   var s=siteById(dlg.siteId); if(!s) return;
-  var d=document.getElementById('h-pdate').value, by=document.getElementById('h-pby').value;
-  if(!d){ toast('갈 날짜를 골라주세요.'); return; }
+  var d=document.getElementById('h-date').value, by=document.getElementById('h-by').value;
+  if(!d){ toast('날짜를 골라주세요.'); return; }
+  if(d<ymd(new Date())){ toast('예정은 오늘이나 앞으로의 날짜만 돼요. 이미 다녀왔으면 [점검 완료]를 눌러주세요.'); return; }
   var c=checks[s.id];
-  if(c&&c.status==='plan'&&c.planBy!==by&&!confirm(short1(c.planBy)+'님이 '+md(c.planDate)+'에 가기로 적어뒀어요. 바꿀까요?')) return;
-  try{ await setDoc(checkRef(s.id), Object.assign(base(s), { status:'plan', planDate:d, planBy:by })); toast(s.name+' '+md(d)+' 갈 예정으로 적었어요.'); closeDlg(); }
+  if(c&&c.status==='plan'&&c.planBy!==by&&!confirm(short1(c.planBy)+'님이 '+md(c.planDate)+' 점검 예정으로 적어뒀어요. 바꿀까요?')) return;
+  try{ await setDoc(checkRef(s.id), Object.assign(base(s), { status:'plan', planDate:d, planBy:by })); toast(s.name+' '+md(d)+' 점검 예정으로 적었어요.'); closeDlg(); }
   catch(e){ errMsg(e); }
 }
 async function undo(what){
   var s=siteById(dlg.siteId), c=s&&checks[s.id]; if(!c) return;
-  if(!confirm(what==='plan'?'갈 예정을 지울까요?':'완료를 취소할까요?')) return;
+  if(!confirm(what==='plan'?'예정을 지울까요?':'완료를 취소할까요?')) return;
   try{ await deleteDoc(checkRef(s.id)); toast('취소했어요.'); dlg.mode='done'; renderDlg(); }
   catch(e){ errMsg(e); }
 }
@@ -343,6 +339,7 @@ var CSS=
   '.hz-l{display:block;font-size:12px;color:#888;margin:0 0 4px;}'+
   '.hz-fld{width:100%;padding:11px 12px;border:.5px solid #ccc;border-radius:10px;font-size:15px;margin-bottom:10px;background:#fff;color:#1a1a18;font-family:inherit;box-sizing:border-box;}'+
   '.hz-bg,.hz-bp,.hz-bo{display:flex;width:100%;align-items:center;justify-content:center;padding:14px;border-radius:12px;font-size:16px;font-weight:700;border:0;font-family:inherit;cursor:pointer;margin-top:4px;}'+
+  '.hz-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;}.hz-btns button{margin-top:0;}'+
   '.hz-bg{background:#3B6D11;color:#fff;}.hz-bp{background:#185FA5;color:#fff;}.hz-bo{background:#fff;border:.5px solid #ccc;color:#444;font-size:14px;font-weight:500;}'+
   '.hz-lk{text-align:center;font-size:13px;color:#185FA5;margin-top:14px;cursor:pointer;}'+
   '.hz-close{text-align:center;font-size:13px;color:#999;margin-top:12px;cursor:pointer;padding:4px;}'+
