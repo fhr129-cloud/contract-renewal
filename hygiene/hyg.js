@@ -479,7 +479,7 @@ var CSS=
   '.hz-chev{color:#aaa;font-size:15px;}'+
   '.hz-rh em{font-style:normal;min-width:34px;text-align:right;font-size:13px;font-weight:700;}.hz-rh em span{color:#999;font-weight:400;}'+
   '.hz-who{font-size:12px;color:#888;white-space:nowrap;}'+
-  '.hz-nmw{display:flex;flex-direction:column;min-width:0;}.hz-tw{font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;}'+
+    '.hz-nmw{display:flex;flex-direction:column;min-width:50px;flex-shrink:0;}.hz-tw{font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;}'+
   '.hz-mrow{border-top:.5px solid #f0f0ec;padding:8px 0;}.hz-mc{display:grid;grid-template-columns:1fr 170px;gap:8px;align-items:center;font-size:14px;}.hz-mc small{color:#999;font-weight:400;font-size:12px;}.hz-mc.sub{font-size:13px;padding:4px 0 4px 14px;}'+
   '.hz-msel{padding:7px 8px;border:.5px solid #ccc;border-radius:8px;font-size:13px;background:#fff;font-family:inherit;}'+
   '.hz-det summary{font-size:12px;color:#185FA5;cursor:pointer;margin-top:6px;}'+
