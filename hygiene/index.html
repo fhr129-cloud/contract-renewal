@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>위생점검</title>
+<link rel="icon" href="../icon.svg">
+<meta name="theme-color" content="#185FA5">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="위생점검">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+/* ── FS 사업장 관리 앱과 같은 기본 모양 ── */
+html{overflow-y:scroll;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans KR',sans-serif;background:#f0f0ee;color:#1a1a18;min-height:100vh;font-size:14px;}
+a{color:inherit;text-decoration:none;}
+input,textarea,button{font-family:inherit;}
+#app{max-width:1280px;margin:0 auto;min-height:100vh;}
+
+.top-bar{height:52px;background:#fff;border-bottom:.5px solid #e8e8e4;display:flex;align-items:center;padding:0 18px;gap:10px;position:sticky;top:0;z-index:200;}
+.back-btn{display:flex;align-items:center;gap:5px;font-size:13px;color:#185FA5;white-space:nowrap;}
+.top-bar h2{font-size:15px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.top-actions{display:flex;gap:7px;flex-shrink:0;}
+.page-body{padding:20px 24px 60px;}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:7px 13px;border-radius:8px;border:.5px solid #ccc;background:#fff;font-size:13px;cursor:pointer;white-space:nowrap;color:#1a1a18;}
+.btn:hover{background:#f5f5f3;}
+.btn.primary{background:#185FA5;color:#fff;border-color:#185FA5;}
+.btn.primary:hover{background:#0C447C;}
+.btn.primary:disabled{background:#B5C9DD;border-color:#B5C9DD;cursor:default;}
+.btn.danger{background:#FCEBEB;color:#A32D2D;border-color:#F7C1C1;}
+.btn.sm{padding:4px 9px;font-size:12px;}
+.btn.full{width:100%;margin-top:12px;padding:10px;}
+.badge-cat{font-size:11px;font-weight:500;padding:2px 8px;border-radius:99px;background:#f0f0ec;color:#555;white-space:nowrap;flex-shrink:0;}
+.card-title{font-size:13px;font-weight:600;margin:18px 0 8px;}
+.empty-state{text-align:center;padding:28px;color:#aaa;font-size:13px;}
+.hint{font-size:11px;color:#999;margin-top:8px;text-align:center;}
+.hint.l{text-align:left;margin-top:0;}
+.notice{font-size:12px;color:#555;background:#fff;border:.5px solid #e8e8e4;border-radius:10px;padding:8px 12px;margin-bottom:12px;}
+
+/* 차량 상태 */
+.car-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.car-stat{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;padding:11px 13px;cursor:pointer;transition:box-shadow .1s;}
+.car-stat:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.cs-name{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cs-name small{font-weight:400;color:#999;}
+.cs-dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.cs-state{font-size:16px;font-weight:700;margin-top:4px;}
+.car-stat.free .cs-state{color:#3B6D11;}
+.car-stat.busy .cs-state{color:#A32D2D;}
+.cs-sub{font-size:11px;color:#888;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* 월간 달력 (운영지원과 동일) */
+.cal-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.cal-toolbar-title{font-size:15px;font-weight:600;white-space:nowrap;}
+.cal-legend{margin-left:auto;display:flex;gap:10px;font-size:11px;color:#666;}
+.cal-legend span{display:flex;align-items:center;gap:4px;}
+.cal-legend i{display:inline-block;width:12px;height:10px;border-radius:3px;border:1px solid;}
+.cal-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:#e8e8e4;border-radius:10px;overflow:hidden;min-width:900px;}
+.cal-header{background:#f5f5f3;text-align:center;font-size:12px;font-weight:500;color:#888;padding:8px 0;}
+.cal-day{background:#fff;min-height:96px;padding:4px 3px;cursor:pointer;}
+.cal-day:hover{background:#fafaf8;}
+.cal-day.empty{background:#fafaf8;cursor:default;}
+.cal-day.holiday{background:#FDF2F2;}
+.cal-day.sat{background:#F2F7FD;}
+.cal-day.today{background:#F0F7FE;box-shadow:inset 0 0 0 2px #185FA5;border-radius:4px;}
+.cal-day.today .cal-num{background:#185FA5;color:#fff !important;border-radius:50%;width:22px;height:22px;font-weight:700;box-shadow:0 0 0 3px rgba(24,95,165,.18);}
+.cal-num{font-size:11px;font-weight:500;margin-bottom:2px;width:20px;height:20px;display:flex;align-items:center;justify-content:center;}
+.cal-hol{font-size:8px;color:#E24B4A;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 2px;margin:-2px 0 1px;}
+.cal-event{display:flex;align-items:center;justify-content:space-between;gap:2px;font-size:9px;padding:1px 4px;border-radius:3px;margin-bottom:1px;line-height:1.5;font-weight:500;cursor:pointer;}
+.cal-event:hover{filter:brightness(.96);}
+.ev-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
+.ev-c{font-size:8px;opacity:.65;flex-shrink:0;white-space:nowrap;}
+.cal-more{font-size:9px;color:#aaa;padding:1px 3px;}
+.cal-more:hover{color:#185FA5;}
+/* 휴대폰 달력: 칸 안에 차 3대 막대 + 아래에 고른 날 목록 */
+.cal-grid.m{min-width:0;}
+.cal-grid.m .cal-header{padding:6px 0;font-size:11px;}
+.cal-grid.m .cal-day{min-height:58px;padding:3px 3px 4px;display:flex;flex-direction:column;align-items:center;}
+.cal-grid.m .cal-day.past{opacity:.5;}
+.cal-grid.m .cal-day.sel{background:#E6F1FB !important;box-shadow:inset 0 0 0 2px #185FA5;border-radius:4px;}
+.mbars{display:flex;flex-direction:column;gap:2px;width:100%;padding:0 2px;margin-top:3px;}
+.mbars i{display:block;height:4px;border-radius:2px;}
+.mcnt{font-size:9px;color:#888;margin-top:2px;}
+.mday{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;padding:12px 14px;margin-top:12px;}
+.mday-h{font-size:14px;font-weight:600;margin-bottom:4px;}
+.mday-h span{font-size:11px;color:#E24B4A;font-weight:500;}
+/* 내 예약 */
+.dash-list-wrap{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;overflow:hidden;}
+.sup-row{display:flex;flex-direction:column;gap:2px;padding:11px 16px;border-bottom:.5px solid #f0f0ec;cursor:pointer;}
+.sup-row:last-child{border-bottom:none;}
+.sup-row:hover{background:#fafaf8;}
+.sup-row-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.sup-biz{font-weight:600;color:#185FA5;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sup-row-sub{font-size:12px;color:#888;}
+
+/* 팝업 (달력 팝업과 동일) */
+.cal-popup{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:400;align-items:center;justify-content:center;}
+.cal-popup.open{display:flex;}
+.cal-popup-inner{background:#fff;border-radius:14px;width:420px;max-width:95vw;max-height:80vh;overflow-y:auto;animation:pop .2s cubic-bezier(.22,1,.36,1);}
+@keyframes pop{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.cal-popup-header{padding:14px 18px;border-bottom:.5px solid #e8e8e4;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.cal-popup-header h4{font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;}
+.cal-popup-body{padding:14px 18px;}
+.cal-sup-item{padding:10px 0;border-bottom:.5px solid #f0f0ec;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;}
+.cal-sup-item:last-of-type{border-bottom:none;}
+.dl{display:flex;flex-direction:column;gap:9px;font-size:13px;margin-bottom:14px;}
+.dl>div{display:grid;grid-template-columns:70px 1fr;gap:8px;}
+.dl span{color:#888;font-size:12px;}
+.warn{font-size:12px;color:#854F0B;background:#FAEEDA;border-radius:8px;padding:7px 10px;margin-bottom:10px;}
+.pbtns{display:flex;gap:8px;}
+.pbtns .btn{flex:1;padding:9px;}
+
+/* 예약 등록 모달 (운영지원 등록과 동일) */
+.sup-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:300;align-items:center;justify-content:center;}
+.sup-modal.open{display:flex;}
+.sup-modal-inner{background:#fff;border-radius:14px;width:560px;max-width:95vw;height:min(700px,92vh);display:flex;flex-direction:column;}
+.sup-modal-header{padding:14px 18px;border-bottom:.5px solid #e8e8e4;display:flex;align-items:center;justify-content:space-between;}
+.sup-modal-header h3{font-size:15px;font-weight:600;}
+.sup-modal-body{padding:18px;flex:1;overflow-y:auto;}
+.sup-modal-footer{padding:12px 18px;border-top:.5px solid #e8e8e4;display:flex;align-items:center;justify-content:flex-end;gap:8px;}
+.foot-hint{flex:1;font-size:12px;color:#888;min-width:0;line-height:1.4;}
+.sup-form-group{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;}
+.sup-form-group label{font-size:12px;color:#666;font-weight:500;}
+.sup-form-group label .opt{font-size:10px;color:#aaa;font-weight:400;}
+.sup-form-group input,.sup-form-group textarea{padding:8px 10px;border:.5px solid #ccc;border-radius:8px;font-size:13px;width:100%;background:#fff;color:#1a1a18;}
+.sup-form-group textarea{min-height:72px;resize:vertical;}
+.sup-form-group input:disabled{background:#f5f5f3;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;}
+.chip-grp{font-size:11px;color:#888;margin:4px 0 2px;}
+.staff-chip{padding:5px 12px;border:.5px solid #ddd;border-radius:99px;font-size:12px;cursor:pointer;background:#fff;user-select:none;white-space:nowrap;transition:all .1s;}
+.staff-chip small{font-size:10px;opacity:.7;margin-left:2px;}
+.staff-chip:hover{border-color:#185FA5;color:#185FA5;}
+.staff-chip.selected{background:#185FA5;color:#fff;border-color:#185FA5;}
+.staff-chip.selected:hover{color:#fff;}
+.err{font-size:12px;color:#A32D2D;margin:-6px 0 10px;}
+.dayb{font-size:11px;color:#185FA5;margin:-6px 0 12px;padding:7px 10px;background:#E6F1FB;border-radius:6px;display:flex;flex-direction:column;gap:3px;}
+.dayb-row{color:#555;}
+.dayb-row i{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:5px;}
+.dayb-row.free{color:#3B6D11;}
+.carpicks{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.carpick{border:.5px solid #ccc;border-radius:8px;padding:8px 10px;cursor:pointer;background:#fff;}
+.carpick:hover{border-color:#185FA5;}
+.carpick.on{box-shadow:0 0 0 1px currentColor inset;}
+.carpick.no{background:#f5f5f3;cursor:not-allowed;color:#aaa;}
+.carpick.no:hover{border-color:#ccc;}
+.cp-n{display:flex;align-items:center;gap:5px;font-size:13px;font-weight:600;}
+.cp-s{font-size:10px;color:#3B6D11;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cp-s.bad{color:#A32D2D;}
+.searchable-select{position:relative;}
+.ss-dropdown{display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:.5px solid #ccc;border-radius:8px;max-height:320px;overflow-y:auto;z-index:100;box-shadow:0 4px 16px rgba(0,0,0,.1);}
+.ss-dropdown.open{display:block;}
+.ss-option{display:flex;justify-content:space-between;gap:8px;padding:8px 12px;font-size:13px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ss-option:hover{background:#f0f0ee;}
+.ss-option small{font-size:10px;color:#aaa;}
+.ss-option.direct{color:#185FA5;font-weight:500;}
+@keyframes stepFadeIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+.sup-step-anim{animation:stepFadeIn .35s cubic-bezier(.16,1,.3,1) forwards;}
+
+/* 토스트 */
+#toast{position:fixed;bottom:24px;right:24px;background:#1a1a18;color:#fff;padding:11px 16px;border-radius:8px;font-size:13px;z-index:999;max-width:calc(100% - 32px);line-height:1.45;opacity:0;pointer-events:none;transform:translateY(8px);transition:all .2s;}
+#toast.on{opacity:1;transform:none;}
+
+@media(max-width:600px){
+  .page-body{padding:14px 16px 40px;}
+  .top-bar{padding:0 14px;}
+  .car-stats{gap:6px;}
+  .car-stat{padding:9px 10px;}
+  .cs-state{font-size:14px;}
+  .cal-day{min-height:76px;padding:2px;}
+  .carpicks{grid-template-columns:1fr;}
+  .sup-modal-inner{height:92vh;}
+  #toast{left:16px;right:16px;bottom:16px;}
+}
+
+/* 로그인 */
+#login{display:none;position:fixed;inset:0;z-index:9000;background:#f0f0ee;align-items:center;justify-content:center;padding:20px;}
+.lg-box{width:100%;max-width:340px;background:#fff;border-radius:14px;padding:28px 22px;border:.5px solid #e8e8e4;}
+.lg-logo{font-size:20px;font-weight:700;color:#185FA5;}
+.lg-sub{font-size:12px;color:#999;margin:2px 0 20px;}
+.lg-box label{display:block;font-size:12px;color:#666;font-weight:500;margin-bottom:4px;}
+.lg-box input{width:100%;padding:11px 12px;border:.5px solid #ccc;border-radius:8px;font-size:14px;margin-bottom:12px;}
+.lg-btn{display:block;width:100%;padding:11px;border-radius:8px;border:none;background:#185FA5;color:#fff;font-weight:500;font-size:14px;cursor:pointer;}
+.lg-btn.ghost{background:#fff;border:.5px solid #ccc;color:#1a1a18;margin-top:8px;font-size:13px;padding:9px;}
+#lg-hello{font-size:13px;color:#185FA5;margin-bottom:12px;line-height:1.5;}
+#lg-err{display:none;font-size:12px;color:#A32D2D;background:#FCEBEB;padding:8px 12px;border-radius:8px;margin-top:12px;line-height:1.5;}
+
+#splash{position:fixed;inset:0;z-index:9999;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;}
+#splash b{font-size:20px;color:#185FA5;}
+#splash span{font-size:12px;color:#aaa;}
+</style>
+</head>
+<body>
+
+<div id="splash"><b>위생점검</b><span>불러오는 중…</span></div>
+
+<div id="login">
+  <div class="lg-box">
+    <div class="lg-logo">위생점검</div>
+    <div class="lg-sub">온정F&amp;B · FS 앱과 같은 번호·비밀번호로 로그인</div>
+    <div id="lg-phone-step">
+      <label for="lg-phone">휴대폰 번호</label>
+      <input type="tel" id="lg-phone" placeholder="01012345678" maxlength="13" inputmode="numeric" onkeydown="if(event.key==='Enter')lgPhone()">
+      <button class="lg-btn" onclick="lgPhone()">다음</button>
+    </div>
+    <div id="lg-pw-step" style="display:none">
+      <div id="lg-hello"></div>
+      <label for="lg-pw">비밀번호</label>
+      <input type="password" id="lg-pw" placeholder="6자 이상" onkeydown="if(event.key==='Enter')lgSubmit()">
+      <div id="lg-pw2-wrap" style="display:none">
+        <label for="lg-pw2">비밀번호 확인</label>
+        <input type="password" id="lg-pw2" placeholder="한 번 더 입력" onkeydown="if(event.key==='Enter')lgSubmit()">
+      </div>
+      <button class="lg-btn" id="lg-submit" onclick="lgSubmit()">로그인</button>
+      <button class="lg-btn ghost" onclick="lgBack()">번호 다시 입력</button>
+    </div>
+    <div id="lg-err"></div>
+  </div>
+</div>
+
+<div id="app"></div>
+<div id="popup" class="cal-popup"></div>
+<div id="form" class="sup-modal"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('../sw.js').catch(function(e){ console.warn('sw',e); }); }
+</script>
+<script type="module" src="./hyg.js"></script>
+</body>
+</html>
