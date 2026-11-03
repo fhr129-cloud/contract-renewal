@@ -33,8 +33,8 @@ function pad(n){ return String(n).padStart(2,'0'); }
 function ymd(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
 function parseYmd(s){ var p=String(s).split('-'); return new Date(+p[0],+p[1]-1,+p[2]); }
 var DOW=['일','월','화','수','목','금','토'];
-function md(s){ if(!s) return ''; var d=parseYmd(s); return (d.getMonth()+1)+'/'+d.getDate(); }
-function mdw(s){ if(!s) return ''; var d=parseYmd(s); return (d.getMonth()+1)+'/'+d.getDate()+' ('+DOW[d.getDay()]+')'; }
+function md(s){ if(!s) return ''; var d=parseYmd(s); return pad(d.getMonth()+1)+'/'+pad(d.getDate()); }
+function mdw(s){ if(!s) return ''; var d=parseYmd(s); return pad(d.getMonth()+1)+'/'+pad(d.getDate())+' ('+DOW[d.getDay()]+')'; }
 function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function kmBetween(a,b){ var R=6371,p=Math.PI/180,dLa=(b.lat-a.lat)*p,dLn=(b.lng-a.lng)*p; var h=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(a.lat*p)*Math.cos(b.lat*p)*Math.sin(dLn/2)*Math.sin(dLn/2); return 2*R*Math.asin(Math.sqrt(h)); }
 function fmtKm(d){ return d<1?Math.round(d*1000)+'m':(Math.round(d*10)/10)+'km'; }
