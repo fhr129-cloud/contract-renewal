@@ -235,8 +235,8 @@ function drawMap(list, focus, label, ring){
       '<text x="'+rc[0]+'" y="'+(rc[1]-rr-6)+'" text-anchor="middle" font-size="11" fill="#378ADD">'+ring.km+'km</text>'; }
   var hq=P(HQ); svg+='<g><circle cx="'+hq[0]+'" cy="'+hq[1]+'" r="9" fill="#A32D2D"/><text x="'+hq[0]+'" y="'+(hq[1]+4)+'" text-anchor="middle" font-size="11" fill="#fff">★</text><text x="'+hq[0]+'" y="'+(hq[1]+22)+'" text-anchor="middle" font-size="11" fill="#A32D2D" font-weight="600">본사</text></g>';
   cl.sort(function(a,b){ return a.items.length-b.items.length; }).forEach(function(c){
-    var n=c.items.length, ids=c.items.map(function(s){ return s.id; }).join(','), tip=c.items.map(function(s){ return s.name; }).join(', ');
-    svg+='<g class="hz-dot" data-act="mapdot" data-ids="'+ids+'"><title>'+esc(tip)+'</title>';
+    var n=c.items.length, ids=c.items.map(function(s){ return s.id; }).join(',');
+    svg+='<g class="hz-dot" data-act="mapdot" data-ids="'+ids+'">';
     if(n===1){ svg+='<circle cx="'+c.x+'" cy="'+c.y+'" r="7" fill="'+ST_COLOR[stOf(c.items[0].id)]+'" stroke="#fff" stroke-width="2"/>';
       if(focus) svg+='<text x="'+(c.x+11)+'" y="'+(c.y+4)+'" font-size="12" fill="#555" stroke="#FAFAF7" stroke-width="3" paint-order="stroke">'+esc(c.items[0].name)+'</text>'; }   // 확대했을 땐 이름도
     else{
@@ -254,8 +254,24 @@ function drawMap(list, focus, label, ring){
       '<text x="'+cp[0]+'" y="'+(cp[1]+28)+'" text-anchor="middle" font-size="13" font-weight="700" fill="#1a1a18" stroke="#FAFAF7" stroke-width="4" paint-order="stroke">'+esc(ring.s.name)+'</text></g>'; }
   svg+='</svg>';
   var top=focus?'<div class="hz-mapbar"><span>'+esc(label||'')+' 확대</span><button class="btn sm" data-act="mapall">전체 보기</button></div>':'<div class="hz-mapbar hint2">숫자 동그라미를 누르면 확대돼요</div>';
-  el.innerHTML=svg+top;
+  el.innerHTML=svg+top+'<div class="hz-tip" id="hz-tip"></div>';
 }
+// 지도 점에 마우스를 올리면 업장 이름·상태 말풍선 (PC)
+function tipLine(s){ var c=checks[s.id], t=stOf(s.id);
+  return '<div class="hz-tl"><i style="background:'+ST_COLOR[t]+'"></i><b>'+esc(s.name)+'</b><span>'+(t==='done'?md(c.doneDate)+' '+esc(short1(c.doneBy)):t==='plan'?md(c.planDate)+' 예정':'안 함')+'</span></div>'; }
+document.addEventListener('mousemove', function(ev){
+  var tip=document.getElementById('hz-tip'); if(!tip) return;
+  var g=ev.target.closest&&ev.target.closest('#hz-map .hz-dot');
+  if(!g){ tip.style.display='none'; return; }
+  var ids=g.getAttribute('data-ids').split(','), list=sortItems(ids.map(siteById).filter(Boolean));
+  var more=list.length>10?'<div class="hz-tl" style="color:#999">외 '+(list.length-10)+'곳 · 누르면 확대</div>':'';
+  tip.innerHTML=list.slice(0,10).map(tipLine).join('')+more;
+  var box=document.getElementById('hz-map').getBoundingClientRect(), x=ev.clientX-box.left+14, y=ev.clientY-box.top+14;
+  tip.style.display='block';
+  if(x+tip.offsetWidth>box.width-6) x=ev.clientX-box.left-tip.offsetWidth-14;
+  if(y+tip.offsetHeight>box.height-6) y=ev.clientY-box.top-tip.offsetHeight-14;
+  tip.style.left=Math.max(4,x)+'px'; tip.style.top=Math.max(4,y)+'px';
+});
 var rsT=null;
 window.addEventListener('resize', function(){ clearTimeout(rsT); rsT=setTimeout(function(){ if(lastMap) drawMap(lastMap.list, lastMap.focus, lastMap.label, lastMap.ring); },200); });
 
@@ -434,7 +450,7 @@ var CSS=
   '.hz-near{background:#fff;border:1px solid #B5D4F4;border-radius:12px;overflow:hidden;margin-top:8px;}.hz-near-h{display:flex;align-items:center;gap:6px;padding:10px 12px;font-size:13px;background:#F5F9FD;flex-wrap:wrap;}.hz-near-h .ti{color:#185FA5;font-size:16px;}.hz-near-h em{margin-left:auto;font-style:normal;font-weight:700;color:#185FA5;}'+
   '.hz-nsel{padding:5px 6px;border:.5px solid #B5D4F4;border-radius:6px;font-size:13px;background:#fff;font-family:inherit;max-width:170px;}.hz-near .hz-lst{border-top:.5px solid #e3eef9;}.hz-near-e{padding:14px;font-size:13px;color:#888;}'+
   '.hz-km{font-size:12px;color:#185FA5;font-weight:600;white-space:nowrap;}'+
-  '.hz-mapcol-x{display:none;}.hz-maplg{display:flex;gap:12px;font-size:11px;color:#666;margin-top:6px;}.hz-maplg i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;}.hz-dot{cursor:pointer;}.hz-dot:hover circle{filter:brightness(1.1);}.hz-mapbar{position:absolute;left:10px;top:10px;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.92);border-radius:8px;padding:4px 4px 4px 10px;font-size:12px;color:#555;}.hz-mapbar.hint2{top:auto;bottom:8px;color:#999;padding:5px 10px;background:rgba(255,255,255,.8);}.hz-mapempty{padding:40px;text-align:center;color:#aaa;font-size:13px;}.hz-glst{border:.5px solid #eee;border-radius:10px;max-height:50vh;overflow:auto;}.hz-search{position:relative;margin:10px 0 2px;}.hz-search .ti-search{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#999;font-size:16px;}.hz-search input{width:100%;box-sizing:border-box;padding:11px 36px 11px 36px;border:.5px solid #ccc;border-radius:10px;font-size:15px;background:#fff;font-family:inherit;color:#1a1a18;-webkit-appearance:none;}.hz-search input::-webkit-search-cancel-button{display:none;}.hz-qx{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#999;cursor:pointer;padding:4px 6px;font-size:14px;}'+
+  '.hz-mapcol-x{display:none;}.hz-maplg{display:flex;gap:12px;font-size:11px;color:#666;margin-top:6px;}.hz-maplg i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;}.hz-dot{cursor:pointer;}.hz-dot:hover circle{filter:brightness(1.1);}.hz-mapbar{position:absolute;left:10px;top:10px;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.92);border-radius:8px;padding:4px 4px 4px 10px;font-size:12px;color:#555;}.hz-mapbar.hint2{top:auto;bottom:8px;color:#999;padding:5px 10px;background:rgba(255,255,255,.8);}.hz-tip{position:absolute;display:none;pointer-events:none;background:#fff;border:.5px solid #ddd;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.12);padding:6px 10px;font-size:12px;z-index:5;max-width:260px;}.hz-tl{display:flex;align-items:center;gap:6px;padding:2px 0;white-space:nowrap;}.hz-tl i{width:8px;height:8px;border-radius:50%;flex-shrink:0;}.hz-tl b{font-weight:600;overflow:hidden;text-overflow:ellipsis;}.hz-tl span{margin-left:auto;padding-left:10px;color:#888;}.hz-mapempty{padding:40px;text-align:center;color:#aaa;font-size:13px;}.hz-glst{border:.5px solid #eee;border-radius:10px;max-height:50vh;overflow:auto;}.hz-search{position:relative;margin:10px 0 2px;}.hz-search .ti-search{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#999;font-size:16px;}.hz-search input{width:100%;box-sizing:border-box;padding:11px 36px 11px 36px;border:.5px solid #ccc;border-radius:10px;font-size:15px;background:#fff;font-family:inherit;color:#1a1a18;-webkit-appearance:none;}.hz-search input::-webkit-search-cancel-button{display:none;}.hz-qx{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#999;cursor:pointer;padding:4px 6px;font-size:14px;}'+
   '.hz-cb{display:inline-flex;align-items:center;gap:6px;font-size:14px;white-space:nowrap;cursor:pointer;}.hz-cb input{width:20px;height:20px;margin:0;accent-color:#3B6D11;}'+
   '.hz-col{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;overflow:hidden;margin-top:8px;}.hz-col.open{border-color:#B5D4F4;}'+
   '.hz-rh{display:flex;align-items:center;gap:8px;padding:13px 14px;font-size:13px;cursor:pointer;}.hz-rh b{font-size:15px;white-space:nowrap;}'+
