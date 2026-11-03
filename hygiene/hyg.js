@@ -13,7 +13,8 @@ var sites=[];                // [{id,name,region,town,lat,lng}]
 var staff=[];                // [{n:'이름 직급', p:휴대폰}]
 var checks={};               // siteId → {status:'plan'|'done', planDate, planBy, doneDate, doneBy}
 var assign={};               // 담당 (meta/hygAssign.map): '평택시' → 기본 담당, '평택시|고덕면' → 그 읍·면만 다른 담당
-var filt={ region:'', todo:false, q:'' };   // q: 사업장 이름 검색어   // region: '' 전체 | '@mine' 내 담당 | 지역 이름
+var filt={ region:'', todo:false, q:'' };
+var near={ center:'', r:5 };   // 검색한 업장 근처: 기준 업장 id, 반경 km   // q: 사업장 이름 검색어   // region: '' 전체 | '@mine' 내 담당 | 지역 이름
 var opened={};               // 펼친 지역 이름 → true (처음엔 모두 접힘)
 var modal=false;             // 관리자 '담당 정하기' 창
 var dlg=null;                // {siteId, mode:'done'|'plan', prev}
@@ -34,6 +35,8 @@ var DOW=['일','월','화','수','목','금','토'];
 function md(s){ if(!s) return ''; var d=parseYmd(s); return (d.getMonth()+1)+'/'+d.getDate(); }
 function mdw(s){ if(!s) return ''; var d=parseYmd(s); return (d.getMonth()+1)+'/'+d.getDate()+' ('+DOW[d.getDay()]+')'; }
 function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function kmBetween(a,b){ var R=6371,p=Math.PI/180,dLa=(b.lat-a.lat)*p,dLn=(b.lng-a.lng)*p; var h=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(a.lat*p)*Math.cos(b.lat*p)*Math.sin(dLn/2)*Math.sin(dLn/2); return 2*R*Math.asin(Math.sqrt(h)); }
+function fmtKm(d){ return d<1?Math.round(d*1000)+'m':(Math.round(d*10)/10)+'km'; }
 function norm(v){ return String(v||'').replace(/\s+/g,'').toLowerCase(); }
 function short1(n){ return String(n||'').split(' ')[0]; }
 function hasApp(info,a){ return !info||!info.apps||info.apps.indexOf(a)>=0; }
@@ -101,11 +104,11 @@ function checkRef(siteId, round){ return doc(db,'hygChecks', (round||ROUND)+'_'+
 
 // ── 화면 ──────────────────────────
 function box(on){ return '<span class="hz-box'+(on?' on':'')+'">'+(on?CK:'')+'</span>'; }
-function itemHtml(s){
+function itemHtml(s, dist){
   var c=checks[s.id], t=stOf(s.id), r='';
   if(t==='done') r='<span class="hz-r">'+md(c.doneDate)+' '+esc(short1(c.doneBy))+'</span>';
   else if(t==='plan') r='<span class="hz-r p">'+md(c.planDate)+' 예정'+(short1(c.planBy)!==short1(myName())?' · '+esc(short1(c.planBy)):'')+'</span>';
-  return '<div class="hz-it'+(t==='done'?' dn':'')+'" data-act="site" data-id="'+s.id+'">'+box(t==='done')+'<span class="hz-nm">'+esc(s.name)+'</span>'+r+'</div>';
+  return '<div class="hz-it'+(t==='done'?' dn':'')+'" data-act="site" data-id="'+s.id+'">'+box(t==='done')+'<span class="hz-nm">'+esc(s.name)+'</span>'+(dist!=null?'<span class="hz-km">'+fmtKm(dist)+'</span>':'')+r+'</div>';
 }
 function sortItems(list){
   return list.slice().sort(function(a,b){
@@ -141,9 +144,25 @@ function render(){
       cs.map(function(g){ return '<option value="'+esc(g.name)+'"'+(filt.region===g.name?' selected':'')+'>'+esc(g.name)+' ('+g.items.length+')</option>'; }).join('')+'</select>'+
     '<div class="hz-f2"><label class="hz-cb"><input type="checkbox" data-v="todo"'+(filt.todo?' checked':'')+'><span>안 한 곳만</span></label>'+
     (isAdmin()?'<span class="hz-adm" data-act="massign">담당 정하기</span>':'')+'</div></div></div>';
-  var q=norm(filt.q), h='';
-  if(q){ shown=shown.filter(function(g){ return g.items.some(function(s){ return norm(s.name).indexOf(q)>=0; }); });
-    if(!shown.length&&sites.length) h+='<div class="empty-state">"'+esc(filt.q)+'" 이름의 사업장이 없어요.</div>'; }
+  var q=norm(filt.q), h='', nearInfo=null;
+  if(q){ shown=all.filter(function(g){ return g.items.some(function(s){ return norm(s.name).indexOf(q)>=0; }); });
+    if(!shown.length&&sites.length) h+='<div class="empty-state">"'+esc(filt.q)+'" 이름의 사업장이 없어요.</div>';
+    // 검색한 업장 근처 (반경 km)
+    var hits=sites.filter(function(s){ return norm(s.name).indexOf(q)>=0; });
+    if(hits.length){
+      var ctr=hits.filter(function(s){ return s.id===near.center; })[0]||hits[0];
+      var nl=ctr.co?sites.filter(function(s){ return s!==ctr&&s.co; }).map(function(s){ return { s:s, d:kmBetween(ctr.co,s.co) }; })
+        .filter(function(x){ return x.d<=near.r; }).sort(function(a,b){ return a.d-b.d; }):[];
+      nearInfo={ ctr:ctr, list:nl };
+      h+='<div class="hz-near"><div class="hz-near-h"><i class="ti ti-map-pin"></i>'+
+        (hits.length>1?'<select data-v="ncenter" class="hz-nsel">'+hits.map(function(s){ return '<option value="'+s.id+'"'+(s===ctr?' selected':'')+'>'+esc(s.name)+'</option>'; }).join('')+'</select>':'<b>'+esc(ctr.name)+'</b>')+
+        '<span>근처</span><select data-v="nr" class="hz-nsel">'+[1,3,5,10,20].map(function(k){ return '<option value="'+k+'"'+(near.r===k?' selected':'')+'>'+k+'km 안</option>'; }).join('')+'</select>'+
+        '<em>'+nl.length+'곳</em></div>'+
+        (!ctr.co?'<div class="hz-near-e">이 업장은 위치 정보가 없어 근처를 찾을 수 없어요.</div>'
+          :nl.length?'<div class="hz-lst">'+nl.map(function(x){ return itemHtml(x.s, x.d); }).join('')+'</div>'
+          :'<div class="hz-near-e">'+near.r+'km 안에 다른 업장이 없어요. 반경을 넓혀보세요.</div>')+'</div>';
+    }
+  }
   if(!sites.length) h+='<div class="empty-state">불러오는 중…</div>';
   else if(!shown.length&&!q) h+='<div class="empty-state">'+(filt.region==='@mine'?'내 담당으로 지정된 지역이 없어요.':'해당하는 지역이 없어요.')+'</div>';
   h+='<div class="hz-grid">';
@@ -160,28 +179,32 @@ function render(){
     var sub=g.split?'<small class="hz-tw">'+esc(g.towns.join('·'))+'</small>':'';
     h+='<div class="hz-col'+(op?' open':'')+'"><div class="hz-rh" data-act="toggle" data-k="'+esc(g.key)+'"><span class="hz-nmw"><b>'+esc(g.city)+'</b>'+sub+'</span>'+whoHtml+
       '<span class="hz-mini"><i style="width:'+(100*d/g.items.length)+'%"></i></span><em>'+d+'<span>/'+g.items.length+'</span></em><i class="ti ti-chevron-'+(op?'up':'down')+' hz-chev"></i></div>'+
-      (op?'<div class="hz-lst">'+list.map(itemHtml).join('')+'</div>':'')+'</div>';
+      (op?'<div class="hz-lst">'+list.map(function(x){ return itemHtml(x); }).join('')+'</div>':'')+'</div>';
   });
   h+='</div>';
   document.getElementById('hz-list').innerHTML=h;
   var foc=!q&&mapFocus&&shown.filter(function(g){ return g.key===mapFocus; })[0], fItems=null, fLabel='';
   if(foc){ fItems=foc.items; fLabel=foc.city+(foc.split?' ('+foc.towns.join('·')+')':''); }
   if(!q&&mapZoom){ fItems=mapZoom.map(siteById).filter(Boolean); fLabel='가까운 '+fItems.length+'곳'; }
-  renderDlg(); renderModal(); drawMap(mapSites, fItems, fLabel);
+  var ring=null;
+  if(nearInfo&&nearInfo.ctr.co){ mapSites=[nearInfo.ctr].concat(nearInfo.list.map(function(x){ return x.s; })); fItems=mapSites; fLabel=nearInfo.ctr.name+' 근처 '+near.r+'km'; ring={ s:nearInfo.ctr, km:near.r }; }
+  renderDlg(); renderModal(); drawMap(mapSites, fItems, fLabel, ring);
 }
 
 // ── 지도 (PC 화면에서만) — 실제 지도 대신 단순한 점 지도. 가까운 업장끼리는 숫자 동그라미로 묶임 ──────────────────────────
 var mapFocus=null, mapZoom=null, lastMap=null;   // mapZoom: 지도에서 큰 동그라미를 눌러 확대한 업장들   // mapFocus: 방금 펼친 카드 → 그 지역으로 확대
 var HQ={ lat:37.017, lng:126.930 };   // 본사 (청북읍)
 var ST_COLOR={ done:'#3B6D11', plan:'#378ADD', none:'#C8C4BC' };
-function drawMap(list, focus, label){
-  lastMap={ list:list, focus:focus, label:label };
-  var el=document.getElementById('hz-map'); if(!el||el.offsetParent===null) return;   // 휴대폰 화면에선 숨김
+function drawMap(list, focus, label, ring){
+  lastMap={ list:list, focus:focus, label:label, ring:ring };
+  var el=document.getElementById('hz-map'); if(!el||el.offsetParent===null) return;
   var W=el.clientWidth, H=el.clientHeight; if(!W||!H) return;
   var pts=list.filter(function(s){ return s.co; });
   if(!pts.length){ el.innerHTML='<div class="hz-mapempty">지도에 표시할 업장이 없어요</div>'; return; }
   var fit=focus?focus.filter(function(s){ return s.co; }):pts; if(!fit.length) fit=pts;
-  var la=fit.map(function(s){ return s.co.lat; }).sort(), ln=fit.map(function(s){ return s.co.lng; }).sort();
+  var la=fit.map(function(s){ return s.co.lat; }), ln=fit.map(function(s){ return s.co.lng; });
+  if(ring){ var dla=ring.km/111, dln=ring.km/(111*Math.cos(ring.s.co.lat*Math.PI/180)); la.push(ring.s.co.lat-dla, ring.s.co.lat+dla); ln.push(ring.s.co.lng-dln, ring.s.co.lng+dln); }
+  la.sort(function(a,b){ return a-b; }); ln.sort(function(a,b){ return a-b; });
   // 전체 보기에선 멀리 떨어진 몇 곳 때문에 나머지가 뭉치지 않게 양끝 5%는 범위에서 빼고, 그 점들은 가장자리에 붙여 그림
   var cut=(!focus&&fit.length>=12)?Math.floor(fit.length*0.05):0;
   var minLa=la[cut], maxLa=la[la.length-1-cut], minLn=ln[cut], maxLn=ln[ln.length-1-cut];
@@ -192,7 +215,7 @@ function drawMap(list, focus, label){
   function PC(co){ var p=P(co); return [Math.max(14,Math.min(W-14,p[0])), Math.max(14,Math.min(H-14,p[1]))]; }
   // 화면에서 22px 안에 있는 업장끼리 묶기
   var cl=[];
-  pts.forEach(function(s){ var p=focus?P(s.co):PC(s.co), hit=null;
+  pts.forEach(function(s){ if(ring&&s===ring.s) return; var p=focus?P(s.co):PC(s.co), hit=null;
     for(var i=0;i<cl.length;i++){ var c=cl[i]; if(Math.hypot(c.x-p[0],c.y-p[1])<22){ hit=c; break; } }
     if(hit){ hit.items.push(s); hit.sx+=p[0]; hit.sy+=p[1]; hit.x=hit.sx/hit.items.length; hit.y=hit.sy/hit.items.length; }
     else cl.push({ items:[s], sx:p[0], sy:p[1], x:p[0], y:p[1] });
@@ -208,6 +231,9 @@ function drawMap(list, focus, label){
     var a=0,b=0; cs.forEach(function(s){ a+=s.co.lat; b+=s.co.lng; }); var p=P({ lat:a/cs.length, lng:b/cs.length });
     if(p[0]<-40||p[0]>W+40||p[1]<-20||p[1]>H+20) return;
     svg+='<text x="'+p[0]+'" y="'+(p[1]+4)+'" text-anchor="middle" font-size="'+(focus?22:16)+'" font-weight="700" fill="#E4E1D8">'+esc(c.name.replace(/(특별|광역)?시$|군$/,''))+'</text>'; });
+  if(ring){ var rc=P(ring.s.co), rr=ring.km/111*sc;
+    svg+='<circle cx="'+rc[0]+'" cy="'+rc[1]+'" r="'+rr+'" fill="rgba(55,138,221,.06)" stroke="#378ADD" stroke-width="1.2" stroke-dasharray="5 4"/>'+
+      '<text x="'+rc[0]+'" y="'+(rc[1]-rr-6)+'" text-anchor="middle" font-size="11" fill="#378ADD">'+ring.km+'km</text>'; }
   var hq=P(HQ); svg+='<g><circle cx="'+hq[0]+'" cy="'+hq[1]+'" r="9" fill="#A32D2D"/><text x="'+hq[0]+'" y="'+(hq[1]+4)+'" text-anchor="middle" font-size="11" fill="#fff">★</text><text x="'+hq[0]+'" y="'+(hq[1]+22)+'" text-anchor="middle" font-size="11" fill="#A32D2D" font-weight="600">본사</text></g>';
   cl.sort(function(a,b){ return a.items.length-b.items.length; }).forEach(function(c){
     var n=c.items.length, ids=c.items.map(function(s){ return s.id; }).join(','), tip=c.items.map(function(s){ return s.name; }).join(', ');
@@ -224,12 +250,15 @@ function drawMap(list, focus, label){
     }
     svg+='</g>';
   });
+  if(ring){ var cp=P(ring.s.co), ct=stOf(ring.s.id);
+    svg+='<g class="hz-dot" data-act="mapdot" data-ids="'+ring.s.id+'"><circle cx="'+cp[0]+'" cy="'+cp[1]+'" r="13" fill="none" stroke="#1a1a18" stroke-width="2"/><circle cx="'+cp[0]+'" cy="'+cp[1]+'" r="8" fill="'+ST_COLOR[ct]+'" stroke="#fff" stroke-width="2"/>'+
+      '<text x="'+cp[0]+'" y="'+(cp[1]+28)+'" text-anchor="middle" font-size="13" font-weight="700" fill="#1a1a18" stroke="#FAFAF7" stroke-width="4" paint-order="stroke">'+esc(ring.s.name)+'</text></g>'; }
   svg+='</svg>';
   var top=focus?'<div class="hz-mapbar"><span>'+esc(label||'')+' 확대</span><button class="btn sm" data-act="mapall">전체 보기</button></div>':'<div class="hz-mapbar hint2">숫자 동그라미를 누르면 확대돼요</div>';
   el.innerHTML=svg+top;
 }
 var rsT=null;
-window.addEventListener('resize', function(){ clearTimeout(rsT); rsT=setTimeout(function(){ if(lastMap) drawMap(lastMap.list, lastMap.focus, lastMap.label); },200); });
+window.addEventListener('resize', function(){ clearTimeout(rsT); rsT=setTimeout(function(){ if(lastMap) drawMap(lastMap.list, lastMap.focus, lastMap.label, lastMap.ring); },200); });
 
 // ── 관리자: 담당 정하기 (시마다 기본 담당 + 필요한 읍·면만 다르게) ──────────────────────────
 function staffOpts(cur, firstLabel){
@@ -290,7 +319,7 @@ function renderDlg(){
   if(dlg.group){   // 지도에서 묶음 동그라미를 누름 → 그 안의 업장 목록
     var gs=sortItems(dlg.group.map(siteById).filter(Boolean));
     el.className='cal-popup open';
-    el.innerHTML='<div class="cal-popup-inner hz-dlg"><h3>가까운 업장 '+gs.length+'곳</h3><div class="hz-q2">누르면 예정·완료를 적을 수 있어요</div><div class="hz-lst hz-glst">'+gs.map(itemHtml).join('')+'</div><div class="hz-close" data-act="close">닫기</div></div>';
+    el.innerHTML='<div class="cal-popup-inner hz-dlg"><h3>가까운 업장 '+gs.length+'곳</h3><div class="hz-q2">누르면 예정·완료를 적을 수 있어요</div><div class="hz-lst hz-glst">'+gs.map(function(x){ return itemHtml(x); }).join('')+'</div><div class="hz-close" data-act="close">닫기</div></div>';
     return;
   }
   var s=siteById(dlg.siteId); if(!s){ dlg=null; el.className='cal-popup'; el.innerHTML=''; return; }
@@ -308,6 +337,7 @@ function renderDlg(){
       '<label class="hz-l">점검자</label>'+staffSelect('h-by', t==='plan'?c.planBy:me_)+
       '<div class="hz-btns"><button class="hz-bp" data-act="plan">점검 예정</button><button class="hz-bg" data-act="done">점검 완료</button></div>'+prevLine();
   }
+  if(s.co) h+='<div class="hz-lk" data-act="nearof" data-id="'+s.id+'">이 업장 근처 보기</div>';
   h+='<div class="hz-close" data-act="close">닫기</div></div>';
   el.className='cal-popup open'; el.innerHTML=h;
 }
@@ -361,7 +391,8 @@ document.addEventListener('click', async function(ev){
     if(ids.length===1) openDlg(ids[0]);
     else if(ids.length>=5&&(!mapZoom||ids.length<mapZoom.length)){ mapZoom=ids; render(); }   // 큰 묶음 → 그쪽으로 확대
     else openGroup(ids); }                                                                     // 작은 묶음 → 목록 창
-  else if(a==='mapall'){ mapFocus=null; mapZoom=null; render(); }
+  else if(a==='mapall'){ mapFocus=null; mapZoom=null; if(filt.q){ filt.q=''; var qi=document.getElementById('hz-q'); if(qi) qi.value=''; var qx=document.querySelector('.hz-qx'); if(qx) qx.style.display='none'; } render(); }
+  else if(a==='nearof'){ var ns=siteById(t.getAttribute('data-id')); closeDlg(); if(ns){ near.center=ns.id; filt.q=ns.name; var qi2=document.getElementById('hz-q'); if(qi2) qi2.value=ns.name; var qx2=document.querySelector('.hz-qx'); if(qx2) qx2.style.display=''; render(); window.scrollTo({ top:0, behavior:'smooth' }); } }
   else if(a==='qclear'){ var qi=document.getElementById('hz-q'); qi.value=''; filt.q=''; t.style.display='none'; render(); qi.focus(); }
   else if(a==='site'){ openDlg(t.getAttribute('data-id')); }
   else if(a==='close'){ closeDlg(); }
@@ -377,6 +408,8 @@ document.addEventListener('click', async function(ev){
 document.addEventListener('change', function(ev){
   var v=ev.target.getAttribute&&ev.target.getAttribute('data-v'); if(!v) return;
   if(v==='region'){ filt.region=ev.target.value; render(); }
+  else if(v==='ncenter'){ near.center=ev.target.value; render(); }
+  else if(v==='nr'){ near.r=+ev.target.value; render(); }
   else if(v==='todo'){ filt.todo=ev.target.checked; render(); }
   else if(v==='assign'){ saveCardAssign(ev.target.getAttribute('data-k'), ev.target.value); }
 });
@@ -398,7 +431,11 @@ var CSS=
   '.hz-f{display:flex;gap:12px;align-items:center;margin:12px 0 4px;}'+
   '.hz-sel{flex:1;min-width:0;padding:9px 10px;border:.5px solid #ccc;border-radius:8px;font-size:14px;background:#fff;color:#1a1a18;font-family:inherit;}'+
   '.hz-f2{display:flex;align-items:center;gap:12px;}.hz-adm{font-size:12px;color:#185FA5;cursor:pointer;white-space:nowrap;text-decoration:underline;}'+
-  '.hz-mapcol{display:none;}.hz-maplg{display:flex;gap:12px;font-size:11px;color:#666;margin-top:6px;}.hz-maplg i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;}.hz-dot{cursor:pointer;}.hz-dot:hover circle{filter:brightness(1.1);}.hz-mapbar{position:absolute;left:10px;top:10px;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.92);border-radius:8px;padding:4px 4px 4px 10px;font-size:12px;color:#555;}.hz-mapbar.hint2{color:#999;padding:5px 10px;background:rgba(255,255,255,.8);}.hz-mapempty{padding:40px;text-align:center;color:#aaa;font-size:13px;}.hz-glst{border:.5px solid #eee;border-radius:10px;max-height:50vh;overflow:auto;}.hz-search{position:relative;margin:10px 0 2px;}.hz-search .ti-search{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#999;font-size:16px;}.hz-search input{width:100%;box-sizing:border-box;padding:11px 36px 11px 36px;border:.5px solid #ccc;border-radius:10px;font-size:15px;background:#fff;font-family:inherit;color:#1a1a18;-webkit-appearance:none;}.hz-search input::-webkit-search-cancel-button{display:none;}.hz-qx{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#999;cursor:pointer;padding:4px 6px;font-size:14px;}'+
+  '.hz-main{display:flex;flex-direction:column;}.hz-mapcol{order:-1;margin-top:10px;}#hz-map{position:relative;height:300px;border-radius:12px;border:.5px solid #e8e8e4;background:#FAFAF7;overflow:hidden;}'+
+  '.hz-near{background:#fff;border:1px solid #B5D4F4;border-radius:12px;overflow:hidden;margin-top:8px;}.hz-near-h{display:flex;align-items:center;gap:6px;padding:10px 12px;font-size:13px;background:#F5F9FD;flex-wrap:wrap;}.hz-near-h .ti{color:#185FA5;font-size:16px;}.hz-near-h em{margin-left:auto;font-style:normal;font-weight:700;color:#185FA5;}'+
+  '.hz-nsel{padding:5px 6px;border:.5px solid #B5D4F4;border-radius:6px;font-size:13px;background:#fff;font-family:inherit;max-width:170px;}.hz-near .hz-lst{border-top:.5px solid #e3eef9;}.hz-near-e{padding:14px;font-size:13px;color:#888;}'+
+  '.hz-km{font-size:12px;color:#185FA5;font-weight:600;white-space:nowrap;}'+
+  '.hz-mapcol-x{display:none;}.hz-maplg{display:flex;gap:12px;font-size:11px;color:#666;margin-top:6px;}.hz-maplg i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;}.hz-dot{cursor:pointer;}.hz-dot:hover circle{filter:brightness(1.1);}.hz-mapbar{position:absolute;left:10px;top:10px;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.92);border-radius:8px;padding:4px 4px 4px 10px;font-size:12px;color:#555;}.hz-mapbar.hint2{top:auto;bottom:8px;color:#999;padding:5px 10px;background:rgba(255,255,255,.8);}.hz-mapempty{padding:40px;text-align:center;color:#aaa;font-size:13px;}.hz-glst{border:.5px solid #eee;border-radius:10px;max-height:50vh;overflow:auto;}.hz-search{position:relative;margin:10px 0 2px;}.hz-search .ti-search{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#999;font-size:16px;}.hz-search input{width:100%;box-sizing:border-box;padding:11px 36px 11px 36px;border:.5px solid #ccc;border-radius:10px;font-size:15px;background:#fff;font-family:inherit;color:#1a1a18;-webkit-appearance:none;}.hz-search input::-webkit-search-cancel-button{display:none;}.hz-qx{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#999;cursor:pointer;padding:4px 6px;font-size:14px;}'+
   '.hz-cb{display:inline-flex;align-items:center;gap:6px;font-size:14px;white-space:nowrap;cursor:pointer;}.hz-cb input{width:20px;height:20px;margin:0;accent-color:#3B6D11;}'+
   '.hz-col{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;overflow:hidden;margin-top:8px;}.hz-col.open{border-color:#B5D4F4;}'+
   '.hz-rh{display:flex;align-items:center;gap:8px;padding:13px 14px;font-size:13px;cursor:pointer;}.hz-rh b{font-size:15px;white-space:nowrap;}'+
@@ -429,7 +466,7 @@ var CSS=
   '.hz-prev{font-size:12px;color:#888;margin:10px 0 0;text-align:center;}'+
   '.hz-planinfo{display:flex;align-items:center;gap:8px;background:#E6F1FB;color:#0C447C;border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px;}.hz-planinfo span{margin-left:auto;color:#A32D2D;font-size:12px;cursor:pointer;text-decoration:underline;}'+
   '@media(min-width:900px){.hz-top{display:flex;gap:16px;align-items:stretch;max-width:none;}.hz-big{flex:1;}.hz-f{flex-direction:column;align-items:stretch;justify-content:center;margin:0;width:240px;gap:10px;}.hz-f .hz-sel{flex:none;}'+
-  '.hz-main{display:grid;grid-template-columns:minmax(0,1fr) 44%;gap:16px;align-items:start;}.hz-mapcol{display:block;position:sticky;top:12px;margin-top:8px;}#hz-map{position:relative;height:calc(100vh - 140px);min-height:420px;border-radius:12px;border:.5px solid #e8e8e4;background:#FAFAF7;overflow:hidden;}'+
+  '.hz-main{display:grid;grid-template-columns:minmax(0,1fr) 44%;gap:16px;align-items:start;}.hz-mapcol{order:0;display:block;position:sticky;top:12px;margin-top:8px;}#hz-map{height:calc(100vh - 140px);min-height:420px;}'+
   '.hz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0 12px;align-items:start;}.hz-it{font-size:14px;padding:9px 12px;gap:10px;}}';
 function ensureCss(){ if(document.getElementById('hz-css')) return; var st=document.createElement('style'); st.id='hz-css'; st.textContent=CSS; document.head.appendChild(st); }
 
