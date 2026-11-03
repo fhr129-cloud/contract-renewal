@@ -321,8 +321,8 @@ function staffSelect(id, val){
   return '<select id="'+id+'" class="hz-fld">'+opts.map(function(x){ return '<option value="'+esc(x.n)+'"'+(x.n===val?' selected':'')+'>'+esc(x.n)+(x.n===myName()?' (나)':'')+'</option>'; }).join('')+'</select>';
 }
 function prevLine(){
-  var p=dlg.prev; if(p===undefined) return '';
-  return '<div class="hz-prev">지난 분기: '+(p?mdw(p.doneDate)+' · '+esc(short1(p.doneBy)):'기록 없음')+'</div>';
+  var p=dlg.prev; if(!p) return '';   // 지난 분기 기록이 있을 때만 한 줄
+  return '<div class="hz-prev">지난 분기 '+mdw(p.doneDate)+' · '+esc(short1(p.doneBy))+'</div>';
 }
 function renderDlg(){
   var el=document.getElementById('popup');
@@ -330,7 +330,7 @@ function renderDlg(){
   if(dlg.group){   // 지도에서 묶음 동그라미를 누름 → 그 안의 업장 목록
     var gs=sortItems(dlg.group.map(siteById).filter(Boolean));
     el.className='cal-popup open';
-    el.innerHTML='<div class="cal-popup-inner hz-dlg"><h3>가까운 업장 '+gs.length+'곳</h3><div class="hz-q2">누르면 예정·완료를 적을 수 있어요</div><div class="hz-lst hz-glst">'+gs.map(function(x){ return itemHtml(x); }).join('')+'</div><div class="hz-close" data-act="close">닫기</div></div>';
+    el.innerHTML='<div class="cal-popup-inner hz-dlg"><h3>가까운 업장 '+gs.length+'곳</h3><div class="hz-lst hz-glst">'+gs.map(function(x){ return itemHtml(x); }).join('')+'</div><div class="hz-close" data-act="close">닫기</div></div>';
     return;
   }
   var s=siteById(dlg.siteId); if(!s){ dlg=null; el.className='cal-popup'; el.innerHTML=''; return; }
@@ -338,11 +338,11 @@ function renderDlg(){
   var h='<div class="cal-popup-inner hz-dlg"><h3>'+esc(s.name)+'</h3>';
   if(t==='done'){
     var canUndo=isAdmin()||c.updatedBy===me.phone;
-    h+='<div class="hz-q2">이미 점검한 곳이에요</div><div class="hz-ok"><b>'+mdw(c.doneDate)+' · '+esc(c.doneBy)+'</b> 완료</div>'+
-      (canUndo?'<button class="hz-bo" data-act="undone">잘못 눌렀어요 (완료 취소)</button>':'<div class="hz-prev" style="margin:0 0 4px">완료 취소는 체크한 사람이나 관리자만 할 수 있어요.</div>')+prevLine();
+    h+='<div class="hz-ok"><b>'+mdw(c.doneDate)+' · '+esc(c.doneBy)+'</b> 완료</div>'+
+      (canUndo?'<button class="hz-bo" data-act="undone">완료 취소</button>':'')+prevLine();
   } else {
     // 날짜·점검자 한 번 고르고 → [점검 예정] 또는 [점검 완료]
-    h+='<div class="hz-q2">'+(t==='plan'?'날짜를 바꿔 다시 예정하거나 완료하세요':'날짜를 고르고 예정 또는 완료')+'</div>'+
+    h+=
       (t==='plan'?'<div class="hz-planinfo">'+mdw(c.planDate)+' 예정 · '+esc(short1(c.planBy))+'<span data-act="unplan">예정 지우기</span></div>':'')+
       '<label class="hz-l">날짜</label><input type="date" id="h-date" class="hz-fld" value="'+(t==='plan'&&c.planDate<=today?c.planDate:today)+'">'+
       '<label class="hz-l">점검자</label>'+staffSelect('h-by', t==='plan'?c.planBy:me_)+
@@ -467,7 +467,7 @@ var CSS=
   '.hz-r{font-size:12px;color:#888;white-space:nowrap;}.hz-r.p{color:#185FA5;font-weight:600;}'+
   '.hz-box{width:20px;height:20px;border:1.5px solid #bbb;border-radius:4px;background:#fff;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-sizing:border-box;}.hz-box.on{background:#3B6D11;border-color:#3B6D11;}'+
   '.hz-dlg{width:340px;max-width:calc(100% - 32px);padding:22px 20px 16px;border-radius:16px;box-sizing:border-box;}'+
-  '.hz-dlg h3{margin:0;font-size:19px;}.hz-q2{font-size:14px;color:#555;margin:4px 0 14px;}'+
+  '.hz-dlg h3{margin:0 0 14px;font-size:19px;}.hz-q2{font-size:14px;color:#555;margin:4px 0 14px;}'+
   '.hz-l{display:block;font-size:12px;color:#888;margin:0 0 4px;}'+
   '.hz-fld{width:100%;padding:11px 12px;border:.5px solid #ccc;border-radius:10px;font-size:15px;margin-bottom:10px;background:#fff;color:#1a1a18;font-family:inherit;box-sizing:border-box;}'+
   '.hz-bg,.hz-bp,.hz-bo{display:flex;width:100%;align-items:center;justify-content:center;padding:14px;border-radius:12px;font-size:16px;font-weight:700;border:0;font-family:inherit;cursor:pointer;margin-top:4px;}'+
