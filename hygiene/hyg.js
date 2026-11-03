@@ -253,7 +253,7 @@ function drawMap(list, focus, label, ring){
     svg+='<g class="hz-dot" data-act="mapdot" data-ids="'+ring.s.id+'"><circle cx="'+cp[0]+'" cy="'+cp[1]+'" r="13" fill="none" stroke="#1a1a18" stroke-width="2"/><circle cx="'+cp[0]+'" cy="'+cp[1]+'" r="8" fill="'+ST_COLOR[ct]+'" stroke="#fff" stroke-width="2"/>'+
       '<text x="'+cp[0]+'" y="'+(cp[1]+28)+'" text-anchor="middle" font-size="13" font-weight="700" fill="#1a1a18" stroke="#FAFAF7" stroke-width="4" paint-order="stroke">'+esc(ring.s.name)+'</text></g>'; }
   svg+='</svg>';
-  var top=focus?'<div class="hz-mapbar"><span>'+esc(label||'')+' 확대</span><button class="btn sm" data-act="mapall">전체 보기</button></div>':'<div class="hz-mapbar hint2">숫자 동그라미를 누르면 확대돼요</div>';
+  var top=focus?'<div class="hz-mapbar"><span>'+esc(label||'')+' 확대</span><button class="btn sm" data-act="mapall">전체 보기</button></div>':'';
   el.innerHTML=svg+top+'<div class="hz-tip" id="hz-tip"></div>';
 }
 // 지도 점에 마우스를 올리면 업장 이름·상태 말풍선 (PC)
