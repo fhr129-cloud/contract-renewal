@@ -37,6 +37,8 @@ function mdw(s){ if(!s) return ''; var d=parseYmd(s); return (d.getMonth()+1)+'/
 function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function short1(n){ return String(n||'').split(' ')[0]; }
 function hasApp(info,a){ return !info||!info.apps||info.apps.indexOf(a)>=0; }
+// 위생점검 권한: FS + 위생점검 체크된 직원, 또는 관리자
+function canHyg(info){ return !!info&&hasApp(info,'fs')&&(hasApp(info,'hyg')||info.role==='admin'); }
 function isAdmin(){ return !!(me&&me.role==='admin'); }
 function myName(){ var x=staff.filter(function(s){ return s.p&&s.p===me.phone; })[0]; return x?x.n:(me.name||''); }
 function toast(msg){ var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toast._t); toast._t=setTimeout(function(){ t.classList.remove('on'); },2600); }
@@ -81,7 +83,7 @@ function listen(){
     render();
   }, function(e){ console.error(e); toast('사업장을 불러오지 못했어요 ('+(e.code||'')+')'); }));
   unsubs.push(onSnapshot(collection(db,'staff'), function(snap){
-    staff=snap.docs.map(function(d){ return d.data(); }).filter(function(x){ return x.active!==false&&x.name&&hasApp(x,'fs'); })
+    staff=snap.docs.map(function(d){ return d.data(); }).filter(function(x){ return x.active!==false&&x.name&&hasApp(x,'fs')&&hasApp(x,'hyg'); })
       .sort(function(a,b){ return (a.order||99)-(b.order||99); })
       .map(function(x){ return { n:x.title?x.name+' '+x.title:x.name, p:String(x.phone||'').replace(/[^0-9]/g,'') }; });
     render();
@@ -365,7 +367,7 @@ window.lgPhone=async function(){
   try{
     var info=await checkAllowedUser(p);
     if(!info){ showLogin('phone','등록되지 않은 번호예요. 관리자에게 문의하세요.'); return; }
-    if(!hasApp(info,'fs')){ showLogin('phone','위생점검은 FS 권한이 있는 직원만 쓸 수 있어요.'); return; }
+    if(!canHyg(info)){ showLogin('phone','위생점검 권한이 없어요. 관리자에게 문의하세요.'); return; }
     loginPhone=p; isNewUser=!info.registered;
     document.getElementById('lg-hello').textContent=(info.name||'')+(isNewUser?'님, 처음 오셨네요! 사용할 비밀번호를 만들어주세요.':'님, 안녕하세요!');
     document.getElementById('lg-pw2-wrap').style.display=isNewUser?'block':'none';
@@ -394,8 +396,8 @@ watchAuth(async function(user){
   var phone=(user.email||'').split('@')[0], info=null;
   try{ info=await checkAllowedUser(phone); }catch(e){ console.error(e); }
   if(splash) splash.remove();
-  if(!info||!hasApp(info,'fs')){
-    showLogin('phone','이 계정은 위생점검 권한(FS)이 없어요.<br><button class="lg-btn ghost" onclick="lgLogout()">다른 번호로 로그인</button>');
+  if(!canHyg(info)){
+    showLogin('phone','이 계정은 위생점검 권한이 없어요.<br><button class="lg-btn ghost" onclick="lgLogout()">다른 번호로 로그인</button>');
     return;
   }
   document.getElementById('login').style.display='none';
