@@ -14,6 +14,7 @@ var staff=[];                // [{n:'이름 직급', p:휴대폰}]
 var checks={};               // siteId → {status:'plan'|'done', planDate, planBy, doneDate, doneBy}
 var assign={};               // 담당 (meta/hygAssign.map): '평택시' → 기본 담당, '평택시|고덕면' → 그 읍·면만 다른 담당
 var filt={ region:'', todo:false, q:'' };
+var R_STEPS=[3,5,10];   // 근처 반경 단계 (km)
 var near={ center:'', r:3 };   // 검색한 업장 근처: 기준 업장 id, 반경 km   // q: 사업장 이름 검색어   // region: '' 전체 | '@mine' 내 담당 | 지역 이름
 var opened={};               // 펼친 지역 이름 → true (처음엔 모두 접힘)
 var modal=false;             // 관리자 '담당 정하기' 창
@@ -50,13 +51,13 @@ function siteById(id){ return sites.filter(function(x){ return x.id===id; })[0];
 var ORD={ done:0, plan:1, none:2 };   // 완료(날짜순) → 예정(날짜순) → 나머지
 var CK='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>';
 
-// 지역: 시·군 단위 (업장 1곳뿐인 시는 '그 외 지역').
+// 지역: 시·군 단위 (업장 1곳뿐인 시는 '그 외').
 // 카드는 '시 + 담당자'로 묶음: 담당이 한 명이면 시 하나 = 카드 하나, 읍·면별로 담당이 갈리면 담당자 수만큼 카드가 나뉨.
 function cities(){
   var by={}; sites.forEach(function(s){ (by[s.region]=by[s.region]||[]).push(s); });
   var rest=[]; Object.keys(by).forEach(function(k){ if(by[k].length<2||k==='기타 지역'){ rest=rest.concat(by[k]); delete by[k]; } });
   var out=Object.keys(by).map(function(k){ return { name:k, items:by[k] }; }).sort(function(a,b){ return b.items.length-a.items.length||a.name.localeCompare(b.name,'ko'); });
-    if(rest.length) out.push({ name:'그 외', items:rest, rest:true });
+  if(rest.length) out.push({ name:'그 외', items:rest, rest:true });
   return out;
 }
 // 읍·면 단위 구분: 포승읍 / 고덕면 / 동 지역은 '시내' / 주소에서 못 찾으면 '기타'
@@ -249,7 +250,7 @@ function drawMap(list, focus, label, ring){
       '<text x="'+cp[0]+'" y="'+(cp[1]+28)+'" text-anchor="middle" font-size="13" font-weight="700" fill="#1a1a18" stroke="#FAFAF7" stroke-width="4" paint-order="stroke">'+esc(ring.s.name)+'</text></g>'; }
   svg+='</svg>';
   var top=ring
-    ? '<div class="hz-mapbar"><span>'+esc(label||'')+' <b>'+fmtKm(ring.km)+'</b></span><button class="hz-zb" data-act="rminus" title="좁게">−</button><button class="hz-zb" data-act="rplus" title="넓게">+</button><button class="btn sm" data-act="mapall">전체 보기</button></div>'
+    ? '<div class="hz-mapbar"><span>'+esc(label||'')+'</span><span class="hz-seg">'+R_STEPS.map(function(k){ return '<button data-act="rset" data-r="'+k+'"'+(ring.km===k?' class="on"':'')+'>'+k+'km</button>'; }).join('')+'</span><button class="btn sm" data-act="mapall">전체 보기</button></div>'
     : focus?'<div class="hz-mapbar"><span>'+esc(label||'')+' 확대</span><button class="btn sm" data-act="mapall">전체 보기</button></div>':'';
   el.innerHTML=svg+top+'<div class="hz-tip" id="hz-tip"></div>';
 }
@@ -270,24 +271,24 @@ document.addEventListener('mousemove', function(ev){
   tip.style.left=Math.max(4,x)+'px'; tip.style.top=Math.max(4,y)+'px';
 });
 // 근처 반경: 지도 위에서 마우스 휠(PC) · 두 손가락 벌리기/오므리기(휴대폰) · [−][+] 버튼
-function niceKm(r){ r=Math.max(0.3,Math.min(30,r)); return r<1?Math.round(r*10)/10:r<10?Math.round(r*2)/2:Math.round(r); }
-var rRaf=null;
-function setRadius(r){ var v=niceKm(r); if(v===near.r) return; near.r=v; if(rRaf) return; rRaf=requestAnimationFrame(function(){ rRaf=null; render(); }); }
-var wheelAcc=1;
+function setRadius(r){ if(r===near.r) return; near.r=r; render(); }
+function stepRadius(dir){ var i=R_STEPS.indexOf(near.r); if(i<0) i=0; i=Math.max(0,Math.min(R_STEPS.length-1,i+dir)); setRadius(R_STEPS[i]); }
+// 지도 위 마우스 휠 / 두 손가락으로도 한 단계씩 (3 → 5 → 10km)
+var wheelAt=0;
 document.addEventListener('wheel', function(ev){
   if(!(lastMap&&lastMap.ring)||!ev.target.closest||!ev.target.closest('#hz-map')) return;
-  ev.preventDefault(); wheelAcc*=Math.pow(1.0015, ev.deltaY);       // 아래로 굴리면 넓게, 위로 굴리면 좁게
-  if(wheelAcc>1.12||wheelAcc<0.89){ var raw=near.r*wheelAcc; wheelAcc=1; setRadius(raw); }
+  ev.preventDefault(); var now=Date.now(); if(now-wheelAt<350) return; wheelAt=now;
+  stepRadius(ev.deltaY>0?1:-1);
 }, { passive:false });
 var pinch=null;
 document.addEventListener('touchstart', function(ev){
   if(ev.touches.length===2&&lastMap&&lastMap.ring&&ev.target.closest&&ev.target.closest('#hz-map')){
-    pinch={ d:Math.hypot(ev.touches[0].clientX-ev.touches[1].clientX, ev.touches[0].clientY-ev.touches[1].clientY), r:near.r }; }
+    pinch={ d:Math.hypot(ev.touches[0].clientX-ev.touches[1].clientX, ev.touches[0].clientY-ev.touches[1].clientY), done:false }; }
 }, { passive:true });
 document.addEventListener('touchmove', function(ev){
-  if(!pinch||ev.touches.length!==2) return; ev.preventDefault();
+  if(!pinch||ev.touches.length!==2) return; ev.preventDefault(); if(pinch.done) return;
   var d=Math.hypot(ev.touches[0].clientX-ev.touches[1].clientX, ev.touches[0].clientY-ev.touches[1].clientY);
-  setRadius(pinch.r*pinch.d/Math.max(d,1));                            // 벌리면 좁게(확대), 오므리면 넓게(축소)
+  if(d>pinch.d*1.3){ pinch.done=true; stepRadius(-1); } else if(d<pinch.d/1.3){ pinch.done=true; stepRadius(1); }
 }, { passive:false });
 document.addEventListener('touchend', function(ev){ if(ev.touches.length<2) pinch=null; });
 var rsT=null;
@@ -426,8 +427,7 @@ document.addEventListener('click', async function(ev){
     else openGroup(ids); }                                                                     // 작은 묶음 → 목록 창
   else if(a==='mapall'){ mapFocus=null; mapZoom=null; if(filt.q){ filt.q=''; var qi=document.getElementById('hz-q'); if(qi) qi.value=''; var qx=document.querySelector('.hz-qx'); if(qx) qx.style.display='none'; } render(); }
   else if(a==='nearof'){ var ns=siteById(t.getAttribute('data-id')); closeDlg(); if(ns){ near.center=ns.id; filt.q=ns.name; var qi2=document.getElementById('hz-q'); if(qi2) qi2.value=ns.name; var qx2=document.querySelector('.hz-qx'); if(qx2) qx2.style.display=''; render(); window.scrollTo({ top:0, behavior:'smooth' }); } }
-  else if(a==='rplus'){ setRadius(near.r*1.5); }
-  else if(a==='rminus'){ setRadius(near.r/1.5); }
+  else if(a==='rset'){ setRadius(+t.getAttribute('data-r')); }
   else if(a==='qclear'){ var qi=document.getElementById('hz-q'); qi.value=''; filt.q=''; t.style.display='none'; render(); qi.focus(); }
   else if(a==='site'){ openDlg(t.getAttribute('data-id')); }
   else if(a==='close'){ closeDlg(); }
@@ -471,7 +471,7 @@ var CSS=
   '.hz-near{background:#fff;border:1px solid #B5D4F4;border-radius:12px;overflow:hidden;margin-top:8px;}.hz-near-h{display:flex;align-items:center;gap:6px;padding:10px 12px;font-size:13px;background:#F5F9FD;flex-wrap:wrap;}.hz-near-h .ti{color:#185FA5;font-size:16px;}.hz-near-h em{margin-left:auto;font-style:normal;font-weight:700;color:#185FA5;}'+
   '.hz-nsel{padding:5px 6px;border:.5px solid #B5D4F4;border-radius:6px;font-size:13px;background:#fff;font-family:inherit;max-width:170px;}.hz-near .hz-lst{border-top:.5px solid #e3eef9;}.hz-near-e{padding:14px;font-size:13px;color:#888;}'+
   '.hz-km{font-size:12px;color:#185FA5;font-weight:600;white-space:nowrap;}'+
-  '.hz-mapcol-x{display:none;}.hz-maplg{display:flex;gap:12px;font-size:11px;color:#666;margin-top:6px;}.hz-maplg i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;}.hz-dot{cursor:pointer;}.hz-dot:hover circle{filter:brightness(1.1);}.hz-mapbar{position:absolute;left:10px;top:10px;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.92);border-radius:8px;padding:4px 4px 4px 10px;font-size:12px;color:#555;}.hz-zb{width:28px;height:28px;border:.5px solid #ccc;border-radius:6px;background:#fff;font-size:17px;line-height:1;cursor:pointer;color:#333;padding:0;font-family:inherit;}.hz-mapbar b{color:#185FA5;}.hz-rkm{color:#185FA5;}.hz-mapbar.hint2{top:auto;bottom:8px;color:#999;padding:5px 10px;background:rgba(255,255,255,.8);}.hz-tip{position:absolute;display:none;pointer-events:none;background:#fff;border:.5px solid #ddd;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.12);padding:6px 10px;font-size:12px;z-index:5;max-width:260px;}.hz-tl{display:flex;align-items:center;gap:6px;padding:2px 0;white-space:nowrap;}.hz-tl i{width:8px;height:8px;border-radius:50%;flex-shrink:0;}.hz-tl b{font-weight:600;overflow:hidden;text-overflow:ellipsis;}.hz-tl span{margin-left:auto;padding-left:10px;color:#888;}.hz-mapempty{padding:40px;text-align:center;color:#aaa;font-size:13px;}.hz-glst{border:.5px solid #eee;border-radius:10px;max-height:50vh;overflow:auto;}.hz-search{position:relative;margin:2px 0 6px;}.hz-search .ti-search{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#999;font-size:16px;}.hz-search input{width:100%;box-sizing:border-box;padding:11px 36px 11px 36px;border:.5px solid #ccc;border-radius:10px;font-size:15px;background:#fff;font-family:inherit;color:#1a1a18;-webkit-appearance:none;}.hz-search input::-webkit-search-cancel-button{display:none;}.hz-qx{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#999;cursor:pointer;padding:4px 6px;font-size:14px;}'+
+  '.hz-mapcol-x{display:none;}.hz-maplg{display:flex;gap:12px;font-size:11px;color:#666;margin-top:6px;}.hz-maplg i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;}.hz-dot{cursor:pointer;}.hz-dot:hover circle{filter:brightness(1.1);}.hz-mapbar{position:absolute;left:10px;top:10px;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.92);border-radius:8px;padding:4px 4px 4px 10px;font-size:12px;color:#555;}.hz-seg{display:inline-flex;border:.5px solid #ccc;border-radius:6px;overflow:hidden;}.hz-seg button{border:0;border-left:.5px solid #ccc;background:#fff;padding:5px 10px;font-size:12px;font-family:inherit;color:#555;cursor:pointer;}.hz-seg button:first-child{border-left:0;}.hz-seg button.on{background:#185FA5;color:#fff;font-weight:600;}.hz-mapbar b{color:#185FA5;}.hz-rkm{color:#185FA5;}.hz-mapbar.hint2{top:auto;bottom:8px;color:#999;padding:5px 10px;background:rgba(255,255,255,.8);}.hz-tip{position:absolute;display:none;pointer-events:none;background:#fff;border:.5px solid #ddd;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.12);padding:6px 10px;font-size:12px;z-index:5;max-width:260px;}.hz-tl{display:flex;align-items:center;gap:6px;padding:2px 0;white-space:nowrap;}.hz-tl i{width:8px;height:8px;border-radius:50%;flex-shrink:0;}.hz-tl b{font-weight:600;overflow:hidden;text-overflow:ellipsis;}.hz-tl span{margin-left:auto;padding-left:10px;color:#888;}.hz-mapempty{padding:40px;text-align:center;color:#aaa;font-size:13px;}.hz-glst{border:.5px solid #eee;border-radius:10px;max-height:50vh;overflow:auto;}.hz-search{position:relative;margin:2px 0 6px;}.hz-search .ti-search{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#999;font-size:16px;}.hz-search input{width:100%;box-sizing:border-box;padding:11px 36px 11px 36px;border:.5px solid #ccc;border-radius:10px;font-size:15px;background:#fff;font-family:inherit;color:#1a1a18;-webkit-appearance:none;}.hz-search input::-webkit-search-cancel-button{display:none;}.hz-qx{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#999;cursor:pointer;padding:4px 6px;font-size:14px;}'+
   '.hz-cb{display:inline-flex;align-items:center;gap:6px;font-size:14px;white-space:nowrap;cursor:pointer;}.hz-cb input{width:20px;height:20px;margin:0;accent-color:#3B6D11;}'+
   '.hz-col{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;overflow:hidden;margin-top:8px;}.hz-col.open{border-color:#B5D4F4;}'+
   '.hz-rh{display:flex;align-items:center;gap:8px;padding:13px 14px;font-size:13px;cursor:pointer;}.hz-rh b{font-size:15px;white-space:nowrap;}'+
