@@ -125,8 +125,8 @@ function render(){
   ensureCss();
   if(!document.getElementById('hz-list')){
     app.innerHTML='<div class="top-bar"><a class="back-btn" href="../"><i class="ti ti-arrow-left"></i> 홈</a>'+
-      '<h2>위생점검</h2><div class="top-actions"><span class="hz-q">'+qLabel(ROUND)+'</span><button class="btn sm" data-act="logout" title="로그아웃"><i class="ti ti-logout"></i></button></div></div>'+
-      '<div class="page-body hz"><div id="hz-head"></div>'+
+      '<h2>위생점검 <span id="hz-cnt" class="hz-cnt"></span></h2><div class="top-actions"><span class="hz-q">'+qLabel(ROUND)+'</span><button class="btn sm" data-act="logout" title="로그아웃"><i class="ti ti-logout"></i></button></div></div>'+
+      '<div class="page-body hz">'+
       '<div class="hz-search"><i class="ti ti-search"></i><input id="hz-q" type="search" placeholder="사업장 이름 검색" autocomplete="off"><span class="hz-qx" data-act="qclear" style="display:none">✕</span></div>'+
       '<div class="hz-main"><div id="hz-list"></div>'+
       '<div class="hz-mapcol"><div id="hz-map"></div><div class="hz-maplg"><span><i style="background:#3B6D11"></i>완료</span><span><i style="background:#378ADD"></i>예정</span><span><i style="background:#C8C4BC"></i>안 한 곳</span></div></div></div></div>';
@@ -138,11 +138,7 @@ function render(){
     return g.city===filt.region;
   });
   var tot=sites.length, done=sites.filter(function(s){ return stOf(s.id)==='done'; }).length;
-  document.getElementById('hz-head').innerHTML='<div class="hz-top"><div class="hz-big"><div class="hz-t">이번 분기 점검</div><div class="hz-n">'+done+'<small> / '+tot+'곳 끝</small></div>'+
-    '<div class="hz-bar"><i style="width:'+(tot?100*done/tot:0)+'%"></i></div><div class="hz-left">남은 곳 <b>'+(tot-done)+'</b></div></div>'+
-    '<div class="hz-f"><div class="hz-f2"><label class="hz-cb"><input type="checkbox" data-v="mine"'+(filt.region==='@mine'?' checked':'')+'><span>내 담당만</span></label>'+
-    '<label class="hz-cb"><input type="checkbox" data-v="todo"'+(filt.todo?' checked':'')+'><span>안 한 곳만</span></label>'+
-    (isAdmin()?'<span class="hz-adm" data-act="massign">담당 정하기</span>':'')+'</div></div></div>';
+  document.getElementById('hz-cnt').innerHTML=sites.length?'<b>'+done+'</b> / '+tot:'';
   var q=norm(filt.q), h='', nearInfo=null;
   if(q){ shown=all.filter(function(g){ return g.items.some(function(s){ return norm(s.name).indexOf(q)>=0; }); });
     if(!shown.length&&sites.length) h+='<div class="empty-state">"'+esc(filt.q)+'" 이름의 사업장이 없어요.</div>';
@@ -172,7 +168,7 @@ function render(){
     mapSites=mapSites.concat(list);
     if(filt.todo&&!list.length) return;
     var whoHtml=isAdmin()
-      ? '<select class="hz-as'+(who?'':' empty')+'" data-v="assign" data-k="'+esc(g.key)+'"><option value="">담당 선택</option>'+staff.map(function(x){ return '<option value="'+esc(x.n)+'"'+(x.n===who?' selected':'')+'>담당 '+esc(short1(x.n))+'</option>'; }).join('')+(who&&!staff.some(function(x){ return x.n===who; })?'<option selected value="'+esc(who)+'">담당 '+esc(short1(who))+'</option>':'')+'</select>'
+      ? '<select class="hz-as'+(who?'':' empty')+'" data-v="assign" data-k="'+esc(g.key)+'"><option value="">담당 선택</option>'+staff.map(function(x){ return '<option value="'+esc(x.n)+'"'+(x.n===who?' selected':'')+'>담당 '+esc(short1(x.n))+'</option>'; }).join('')+(who&&!staff.some(function(x){ return x.n===who; })?'<option selected value="'+esc(who)+'">담당 '+esc(short1(who))+'</option>':'')+'<option value="__more">읍·면별로 정하기…</option></select>'
       : (who?'<span class="hz-who">담당 '+esc(short1(who))+'</span>':'');
     var op=!!q||!!opened[g.key]||(!!filt.region&&filt.region!=='@mine')||shown.length===1;
     var sub=g.split?'<small class="hz-tw">'+esc(g.towns.join('·'))+'</small>':'';
@@ -426,6 +422,7 @@ document.addEventListener('change', function(ev){
   else if(v==='ncenter'){ near.center=ev.target.value; render(); }
   else if(v==='nr'){ near.r=+ev.target.value; render(); }
   else if(v==='todo'){ filt.todo=ev.target.checked; render(); }
+  else if(v==='assign'&&ev.target.value==='__more'){ modal=true; render(); }   // 드롭다운 맨 아래 → 담당 정하기 창
   else if(v==='assign'){ saveCardAssign(ev.target.getAttribute('data-k'), ev.target.value); }
 });
 document.addEventListener('input', function(ev){
@@ -437,20 +434,21 @@ window.addEventListener('popstate', function(){ if(dlg){ dlg=null; renderDlg(); 
 setInterval(function(){ if(qOf(new Date())!==ROUND) location.reload(); }, 60000);
 
 var CSS=
+  '.hz-cnt{font-size:15px;font-weight:500;color:#888;margin-left:6px;}.hz-cnt b{color:#3B6D11;font-weight:800;font-size:17px;}'+
   '.hz-q{font-size:13px;color:#666;margin-right:6px;white-space:nowrap;}'+
   '.hz-top{max-width:640px;}'+
   '.hz-big{background:#fff;border:.5px solid #e8e8e4;border-radius:14px;padding:16px;}'+
   '.hz-t{font-size:13px;color:#666;}.hz-n{font-size:34px;font-weight:800;letter-spacing:-1px;line-height:1.2;}.hz-n small{font-size:15px;color:#999;font-weight:500;letter-spacing:0;}'+
   '.hz-bar{height:10px;border-radius:99px;background:#eceae4;overflow:hidden;margin-top:10px;}.hz-bar i{display:block;height:100%;background:#3B6D11;border-radius:99px;transition:width .3s;}'+
   '.hz-left{font-size:12px;color:#888;margin-top:6px;}.hz-left b{color:#1a1a18;}'+
-  '.hz-f{display:flex;gap:12px;align-items:center;margin:12px 0 4px;}'+
+  '.hz-f{display:flex;gap:12px;align-items:center;margin:10px 2px 0;}'+
   '.hz-sel{flex:1;min-width:0;padding:9px 10px;border:.5px solid #ccc;border-radius:8px;font-size:14px;background:#fff;color:#1a1a18;font-family:inherit;}'+
   '.hz-f2{flex:1;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}.hz-f2 .hz-adm{margin-left:auto;}.hz-adm{font-size:12px;color:#185FA5;cursor:pointer;white-space:nowrap;text-decoration:underline;}'+
   '.hz-main{display:flex;flex-direction:column;}.hz-mapcol{order:-1;margin-top:10px;}#hz-map{position:relative;height:300px;border-radius:12px;border:.5px solid #e8e8e4;background:#FAFAF7;overflow:hidden;}'+
   '.hz-near{background:#fff;border:1px solid #B5D4F4;border-radius:12px;overflow:hidden;margin-top:8px;}.hz-near-h{display:flex;align-items:center;gap:6px;padding:10px 12px;font-size:13px;background:#F5F9FD;flex-wrap:wrap;}.hz-near-h .ti{color:#185FA5;font-size:16px;}.hz-near-h em{margin-left:auto;font-style:normal;font-weight:700;color:#185FA5;}'+
   '.hz-nsel{padding:5px 6px;border:.5px solid #B5D4F4;border-radius:6px;font-size:13px;background:#fff;font-family:inherit;max-width:170px;}.hz-near .hz-lst{border-top:.5px solid #e3eef9;}.hz-near-e{padding:14px;font-size:13px;color:#888;}'+
   '.hz-km{font-size:12px;color:#185FA5;font-weight:600;white-space:nowrap;}'+
-  '.hz-mapcol-x{display:none;}.hz-maplg{display:flex;gap:12px;font-size:11px;color:#666;margin-top:6px;}.hz-maplg i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;}.hz-dot{cursor:pointer;}.hz-dot:hover circle{filter:brightness(1.1);}.hz-mapbar{position:absolute;left:10px;top:10px;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.92);border-radius:8px;padding:4px 4px 4px 10px;font-size:12px;color:#555;}.hz-mapbar.hint2{top:auto;bottom:8px;color:#999;padding:5px 10px;background:rgba(255,255,255,.8);}.hz-tip{position:absolute;display:none;pointer-events:none;background:#fff;border:.5px solid #ddd;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.12);padding:6px 10px;font-size:12px;z-index:5;max-width:260px;}.hz-tl{display:flex;align-items:center;gap:6px;padding:2px 0;white-space:nowrap;}.hz-tl i{width:8px;height:8px;border-radius:50%;flex-shrink:0;}.hz-tl b{font-weight:600;overflow:hidden;text-overflow:ellipsis;}.hz-tl span{margin-left:auto;padding-left:10px;color:#888;}.hz-mapempty{padding:40px;text-align:center;color:#aaa;font-size:13px;}.hz-glst{border:.5px solid #eee;border-radius:10px;max-height:50vh;overflow:auto;}.hz-search{position:relative;margin:10px 0 2px;}.hz-search .ti-search{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#999;font-size:16px;}.hz-search input{width:100%;box-sizing:border-box;padding:11px 36px 11px 36px;border:.5px solid #ccc;border-radius:10px;font-size:15px;background:#fff;font-family:inherit;color:#1a1a18;-webkit-appearance:none;}.hz-search input::-webkit-search-cancel-button{display:none;}.hz-qx{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#999;cursor:pointer;padding:4px 6px;font-size:14px;}'+
+  '.hz-mapcol-x{display:none;}.hz-maplg{display:flex;gap:12px;font-size:11px;color:#666;margin-top:6px;}.hz-maplg i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;}.hz-dot{cursor:pointer;}.hz-dot:hover circle{filter:brightness(1.1);}.hz-mapbar{position:absolute;left:10px;top:10px;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.92);border-radius:8px;padding:4px 4px 4px 10px;font-size:12px;color:#555;}.hz-mapbar.hint2{top:auto;bottom:8px;color:#999;padding:5px 10px;background:rgba(255,255,255,.8);}.hz-tip{position:absolute;display:none;pointer-events:none;background:#fff;border:.5px solid #ddd;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.12);padding:6px 10px;font-size:12px;z-index:5;max-width:260px;}.hz-tl{display:flex;align-items:center;gap:6px;padding:2px 0;white-space:nowrap;}.hz-tl i{width:8px;height:8px;border-radius:50%;flex-shrink:0;}.hz-tl b{font-weight:600;overflow:hidden;text-overflow:ellipsis;}.hz-tl span{margin-left:auto;padding-left:10px;color:#888;}.hz-mapempty{padding:40px;text-align:center;color:#aaa;font-size:13px;}.hz-glst{border:.5px solid #eee;border-radius:10px;max-height:50vh;overflow:auto;}.hz-search{position:relative;margin:2px 0 6px;}.hz-search .ti-search{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#999;font-size:16px;}.hz-search input{width:100%;box-sizing:border-box;padding:11px 36px 11px 36px;border:.5px solid #ccc;border-radius:10px;font-size:15px;background:#fff;font-family:inherit;color:#1a1a18;-webkit-appearance:none;}.hz-search input::-webkit-search-cancel-button{display:none;}.hz-qx{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#999;cursor:pointer;padding:4px 6px;font-size:14px;}'+
   '.hz-cb{display:inline-flex;align-items:center;gap:6px;font-size:14px;white-space:nowrap;cursor:pointer;}.hz-cb input{width:20px;height:20px;margin:0;accent-color:#3B6D11;}'+
   '.hz-col{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;overflow:hidden;margin-top:8px;}.hz-col.open{border-color:#B5D4F4;}'+
   '.hz-rh{display:flex;align-items:center;gap:8px;padding:13px 14px;font-size:13px;cursor:pointer;}.hz-rh b{font-size:15px;white-space:nowrap;}'+
@@ -480,7 +478,7 @@ var CSS=
   '.hz-ok{background:#EAF3DE;color:#27500A;border-radius:12px;padding:14px;font-size:14px;margin-bottom:10px;}'+
   '.hz-prev{font-size:12px;color:#888;margin:10px 0 0;text-align:center;}'+
   '.hz-planinfo{display:flex;align-items:center;gap:8px;background:#E6F1FB;color:#0C447C;border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px;}.hz-planinfo span{margin-left:auto;color:#A32D2D;font-size:12px;cursor:pointer;text-decoration:underline;}'+
-  '@media(min-width:900px){.hz-top{display:flex;gap:16px;align-items:stretch;max-width:none;}.hz-big{flex:1;}.hz-f{flex-direction:column;align-items:stretch;justify-content:center;margin:0;width:240px;gap:10px;}.hz-f2{flex-direction:column;align-items:flex-start;gap:12px;}.hz-f2 .hz-adm{margin-left:0;}'+
+  '@media(min-width:900px){'+
   '.hz-main{display:grid;grid-template-columns:minmax(0,1fr) 44%;gap:16px;align-items:start;}.hz-mapcol{order:0;display:block;position:sticky;top:12px;margin-top:8px;}#hz-map{height:calc(100vh - 140px);min-height:420px;}'+
   '.hz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0 12px;align-items:start;}.hz-it{font-size:14px;padding:9px 12px;gap:10px;}}';
 function ensureCss(){ if(document.getElementById('hz-css')) return; var st=document.createElement('style'); st.id='hz-css'; st.textContent=CSS; document.head.appendChild(st); }
