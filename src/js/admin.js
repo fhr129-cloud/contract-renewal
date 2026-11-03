@@ -167,7 +167,8 @@ export function initAdmin(ctx){
   function permBadges(s){
     var p=digits(s.phone), b='';
     if(hasApp(s,'fs')) b+='<span class="staff-pb" style="background:#E6F1FB;color:#185FA5">FS</span>';
-    if(hasApp(s,'car')) b+='<span class="staff-pb" style="background:#EAF3DE;color:#3B6D11">차량</span>';
+        if(hasApp(s,'car')) b+='<span class="staff-pb" style="background:#EAF3DE;color:#3B6D11">차량</span>';
+    if(hasApp(s,'hyg')) b+='<span class="staff-pb" style="background:#FAEEDA;color:#854F0B">위생</span>';
     if(p&&roles[p]==='admin') b+='<span class="staff-pb" style="background:#FCEBEB;color:#A32D2D">관리자</span>';
     return b;
   }
@@ -237,7 +238,7 @@ export function initAdmin(ctx){
     editingStaffId=s?s.id:null;
     var ov=document.getElementById('staff-modal'); if(!ov) return;
     var p=s?digits(s.phone):'';
-    form={ group:s?deptOf(s):'운영', fs:s?hasApp(s,'fs'):true, car:s?hasApp(s,'car'):true, admin:!!(p&&roles[p]==='admin'),
+    form={ group:s?deptOf(s):'운영', fs:s?hasApp(s,'fs'):true, car:s?hasApp(s,'car'):true, hyg:s?hasApp(s,'hyg'):false, admin:!!(p&&roles[p]==='admin'),
            color:s&&s.color?{color:s.color,bg:s.bg,border:s.border}:pickColor(null) };
     document.getElementById('sf-title').textContent=s?'직원 수정':'직원 추가';
     document.getElementById('sf-name').value=s?s.name:'';
@@ -252,12 +253,13 @@ export function initAdmin(ctx){
     if(window.pushModalState) window.pushModalState();
   };
   window.pickStaffGroup=function(v){ form.group=v; syncStaffAppUI(); };
-    window.toggleStaffPerm=function(k){ var b=document.getElementById(k==='admin'?'sf-admin':'sf-app-'+k); form[k]=b?b.checked:!form[k]; syncStaffAppUI(); };
+        window.toggleStaffPerm=function(k){ var b=document.getElementById(k==='admin'?'sf-admin':'sf-app-'+k); form[k]=b?b.checked:!form[k];
+      if(k==='hyg'&&form.hyg) form.fs=true; if(k==='fs'&&!form.fs) form.hyg=false; syncStaffAppUI(); };
   window.nextStaffColor=function(){ form.color=pickColor(editingStaffId, form.color); syncStaffAppUI(); };
   window.syncStaffAppUI=function(){
         var sel=document.getElementById('sf-group');
     if(sel){ if(!sel.options.length) sel.innerHTML=DEPTS.map(function(d){ return '<option value="'+d.v+'">'+d.label+'</option>'; }).join(''); sel.value=form.group; }
-    ['fs','car','admin'].forEach(function(k){ var b=document.getElementById(k==='admin'?'sf-admin':'sf-app-'+k); if(b) b.checked=!!form[k]; });
+    ['fs','car','hyg','admin'].forEach(function(k){ var b=document.getElementById(k==='admin'?'sf-admin':'sf-app-'+k); if(b) b.checked=!!form[k]; });
     var hint=document.getElementById('sf-perm-hint');
     if(hint) hint.textContent=form.admin?'관리자: 계약 수정·직원 관리·모든 일정과 차량 예약을 고칠 수 있어요.'
       :(!form.fs&&!form.car?'하나 이상 골라주세요.':!form.fs?'FS 사업장·일정 데이터는 볼 수 없어요.':'');
@@ -266,14 +268,14 @@ export function initAdmin(ctx){
     var pv=document.getElementById('sf-color-preview');
     if(pv&&form.color){ pv.style.background=form.color.bg; pv.style.borderColor=form.color.color; }
     var sum=document.getElementById('sf-sum');
-    if(sum) sum.textContent=deptLabel(form.group)+' · '+[form.fs?'FS':'',form.car?'차량':'',form.admin?'관리자':''].filter(Boolean).join(' + ');
+    if(sum) sum.textContent=deptLabel(form.group)+' · '+[form.fs?'FS':'',form.car?'차량':'',form.hyg?'위생점검':'',form.admin?'관리자':''].filter(Boolean).join(' + ');
   };
   window.closeStaffModal=function(){ var ov=document.getElementById('staff-modal'); if(ov) ov.classList.remove('open'); };
   window.saveStaffForm=async function(){
     var name=document.getElementById('sf-name').value.trim();
     if(!name){ showToast('이름을 입력해주세요.'); return; }
     var phone=digits(document.getElementById('sf-phone').value);
-    var apps=[]; if(form.fs) apps.push('fs'); if(form.car) apps.push('car');
+    var apps=[]; if(form.fs) apps.push('fs'); if(form.car) apps.push('car'); if(form.hyg) apps.push('hyg');
     var wantAdmin=!!form.admin, active=document.getElementById('sf-active').checked;
     if(!apps.length){ showToast('권한을 하나 이상 골라주세요. (FS 사업장 관리 또는 차량 예약)'); return; }
     if(phone.length<10){ showToast('휴대폰 번호를 넣어주세요. 로그인 아이디로 쓰여요.'); return; }
