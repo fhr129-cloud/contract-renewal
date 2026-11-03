@@ -5,15 +5,18 @@ import {
   collection, doc, query, where, onSnapshot, getDoc, setDoc, deleteDoc, serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { regionOf } from '../src/js/region.js';
+import { COORDS } from '../src/js/coords.js';
 
 // ── 상태 ──────────────────────────
 var me=null;                 // {phone,name,role,apps}
-var sites=[];                // [{id,name,region}]
+var sites=[];                // [{id,name,region,town,lat,lng}]
 var staff=[];                // [{n:'이름 직급', p:휴대폰}]
 var checks={};               // siteId → {status:'plan'|'done', planDate, planBy, doneDate, doneBy}
-var assign={};               // 지역 → 담당자 (meta/hygAssign)
-var filt={ region:'', todo:false };
-var opened={};               // 펼친 지역 이름 → true (처음엔 모두 접힘)   // region: '' 전체 | '@mine' 내 담당 | 지역 이름
+var assign={};               // 지역(카드) 이름 → 담당자 (meta/hygAssign.map)
+var split=[];                // 읍·면으로 나눠 보는 시 (meta/hygAssign.split) 예: ['평택시']
+var filt={ region:'', todo:false };   // region: '' 전체 | '@mine' 내 담당 | 지역 이름
+var opened={};               // 펼친 지역 이름 → true (처음엔 모두 접힘)
+var modal=false;             // 관리자 '지역 나누기' 창
 var dlg=null;                // {siteId, mode:'done'|'plan', prev}
 var unsubs=[];
 var loginPhone='', isNewUser=false;
@@ -39,15 +42,29 @@ function myName(){ var x=staff.filter(function(s){ return s.p&&s.p===me.phone; }
 function toast(msg){ var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toast._t); toast._t=setTimeout(function(){ t.classList.remove('on'); },2600); }
 function stOf(id){ var c=checks[id]; return c?c.status:'none'; }
 function siteById(id){ return sites.filter(function(x){ return x.id===id; })[0]; }
-var ORD={ none:0, plan:1, done:2 };
+var ORD={ done:0, plan:1, none:2 };   // 완료(날짜순) → 예정(날짜순) → 나머지
 var CK='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>';
 
-// 지역: 시·군 단위, 1곳뿐인 지역은 '그 외 지역'
-function regions(){
+// 지역: 시·군 단위. 업장 1곳뿐인 시는 '그 외 지역'.
+// 관리자가 '나누기'로 고른 시는 읍·면 카드로 쪼갬: 평택 포승읍 · 평택 청북읍 … / 동은 '평택 시내' / 1곳뿐인 읍·면은 '평택 기타'
+function shortCity(n){ return n.replace(/(특별|광역)?시$|군$/,''); }
+function cities(){
   var by={}; sites.forEach(function(s){ (by[s.region]=by[s.region]||[]).push(s); });
   var rest=[]; Object.keys(by).forEach(function(k){ if(by[k].length<2||k==='기타 지역'){ rest=rest.concat(by[k]); delete by[k]; } });
   var out=Object.keys(by).map(function(k){ return { name:k, items:by[k] }; }).sort(function(a,b){ return b.items.length-a.items.length||a.name.localeCompare(b.name,'ko'); });
-  if(rest.length) out.push({ name:'그 외 지역', items:rest });
+  if(rest.length) out.push({ name:'그 외 지역', items:rest, rest:true });
+  return out;
+}
+function regions(){
+  var out=[];
+  cities().forEach(function(c){
+    if(c.rest||split.indexOf(c.name)<0){ out.push(c); return; }
+    var sc=shortCity(c.name), sub={};
+    c.items.forEach(function(s){ var t=s.town||'', k=/[읍면]$/.test(t)?sc+' '+t:/동$/.test(t)?sc+' 시내':sc+' 기타'; (sub[k]=sub[k]||[]).push(s); });
+    Object.keys(sub).forEach(function(k){ if(/[읍면]$/.test(k)&&sub[k].length<2){ (sub[sc+' 기타']=sub[sc+' 기타']||[]).push.apply(sub[sc+' 기타'], sub[k]); delete sub[k]; } });
+    var keys=Object.keys(sub).sort(function(a,b){ var x=/ (시내|기타)$/.test(a), y=/ (시내|기타)$/.test(b); return (x-y)||sub[b].length-sub[a].length||a.localeCompare(b,'ko'); });
+    keys.forEach(function(k){ out.push({ name:k, items:sub[k], city:c.name }); });
+  });
   return out;
 }
 function regionKey(s){ var rs=regions(); for(var i=0;i<rs.length;i++) if(rs[i].items.indexOf(s)>=0) return rs[i].name; return ''; }
@@ -58,7 +75,8 @@ function listen(){
   unsubs.push(onSnapshot(collection(db,'contracts'), function(snap){
     sites=snap.docs.map(function(d){ return Object.assign({ id:d.id }, d.data()); })
       .filter(function(x){ return x.name&&!x.terminated; })
-      .map(function(x){ return { id:x.id, name:x.name, region:regionOf(x).city }; })
+      .map(function(x){ var rg=regionOf(x), co=(x.lat&&x.lng)?{ lat:x.lat, lng:x.lng }:(COORDS[x.name]||null);
+        return { id:x.id, name:x.name, region:rg.city, town:rg.town, co:co }; })
       .sort(function(a,b){ return a.name.localeCompare(b.name,'ko'); });
     render();
   }, function(e){ console.error(e); toast('사업장을 불러오지 못했어요 ('+(e.code||'')+')'); }));
@@ -68,7 +86,7 @@ function listen(){
       .map(function(x){ return { n:x.title?x.name+' '+x.title:x.name, p:String(x.phone||'').replace(/[^0-9]/g,'') }; });
     render();
   }, function(e){ console.warn('staff', e.code); }));
-  unsubs.push(onSnapshot(doc(db,'meta','hygAssign'), function(snap){ assign=snap.exists()?(snap.data().map||{}):{}; render(); }, function(e){ console.warn('assign', e.code); }));
+  unsubs.push(onSnapshot(doc(db,'meta','hygAssign'), function(snap){ var x=snap.exists()?snap.data():{}; assign=x.map||{}; split=x.split||[]; render(); }, function(e){ console.warn('assign', e.code); }));
   unsubs.push(onSnapshot(query(collection(db,'hygChecks'), where('round','==',ROUND)), function(snap){
     checks={}; snap.docs.forEach(function(d){ var x=d.data(); checks[x.siteId]=x; }); render();
   }, function(e){ console.error(e); toast('점검 기록을 불러오지 못했어요 ('+(e.code||'')+')'); }));
@@ -83,10 +101,25 @@ function itemHtml(s){
   else if(t==='plan') r='<span class="hz-r p">'+md(c.planDate)+' 갈 예정'+(short1(c.planBy)!==short1(myName())?' · '+esc(short1(c.planBy)):'')+'</span>';
   return '<div class="hz-it'+(t==='done'?' dn':'')+'" data-act="site" data-id="'+s.id+'">'+box(t==='done')+'<span class="hz-nm">'+esc(s.name)+'</span>'+r+'</div>';
 }
+function sortItems(list){
+  return list.slice().sort(function(a,b){
+    var ta=stOf(a.id), tb=stOf(b.id); if(ta!==tb) return ORD[ta]-ORD[tb];
+    var ca=checks[a.id]||{}, cb=checks[b.id]||{};
+    if(ta==='done') return String(ca.doneDate).localeCompare(String(cb.doneDate))||a.name.localeCompare(b.name,'ko');
+    if(ta==='plan') return String(ca.planDate).localeCompare(String(cb.planDate))||a.name.localeCompare(b.name,'ko');
+    return a.name.localeCompare(b.name,'ko');
+  });
+}
 function render(){
   var app=document.getElementById('app');
   if(!me){ app.innerHTML=''; return; }
   ensureCss();
+  if(!document.getElementById('hz-list')){
+    app.innerHTML='<div class="top-bar"><a class="back-btn" href="../"><i class="ti ti-arrow-left"></i> 홈</a>'+
+      '<h2>위생점검</h2><div class="top-actions"><span class="hz-q">'+qLabel(ROUND)+'</span><button class="btn sm" data-act="logout" title="로그아웃"><i class="ti ti-logout"></i></button></div></div>'+
+      '<div class="page-body hz"><div id="hz-head"></div><div class="hz-main"><div id="hz-list"></div>'+
+      '<div class="hz-mapcol"><div id="hz-map"></div><div class="hz-maplg"><span><i style="background:#3B6D11"></i>완료</span><span><i style="background:#378ADD"></i>예정</span><span><i style="background:#C8C4BC"></i>안 한 곳</span></div></div></div></div>';
+  }
   var all=regions(), mine=short1(myName());
   var shown=all.filter(function(g){
     if(!filt.region) return true;
@@ -94,21 +127,21 @@ function render(){
     return g.name===filt.region;
   });
   var tot=sites.length, done=sites.filter(function(s){ return stOf(s.id)==='done'; }).length;
-  var h='<div class="top-bar">'+'<a class="back-btn" href="../"><i class="ti ti-arrow-left"></i> 홈</a>'+
-    '<h2>위생점검</h2><div class="top-actions"><span class="hz-q">'+qLabel(ROUND)+'</span><button class="btn sm" data-act="logout" title="로그아웃"><i class="ti ti-logout"></i></button></div></div>';
-  h+='<div class="page-body hz">';
-  h+='<div class="hz-top"><div class="hz-big"><div class="hz-t">이번 분기 점검</div><div class="hz-n">'+done+'<small> / '+tot+'곳 끝</small></div>'+
+  document.getElementById('hz-head').innerHTML='<div class="hz-top"><div class="hz-big"><div class="hz-t">이번 분기 점검</div><div class="hz-n">'+done+'<small> / '+tot+'곳 끝</small></div>'+
     '<div class="hz-bar"><i style="width:'+(tot?100*done/tot:0)+'%"></i></div><div class="hz-left">남은 곳 <b>'+(tot-done)+'</b></div></div>'+
     '<div class="hz-f"><select data-v="region" class="hz-sel"><option value="">전체 지역</option><option value="@mine"'+(filt.region==='@mine'?' selected':'')+'>내 담당 지역</option>'+
       all.map(function(g){ return '<option value="'+esc(g.name)+'"'+(filt.region===g.name?' selected':'')+'>'+esc(g.name)+' ('+g.items.length+')</option>'; }).join('')+'</select>'+
-    '<label class="hz-cb"><input type="checkbox" data-v="todo"'+(filt.todo?' checked':'')+'><span>안 한 곳만</span></label></div></div>';
+    '<div class="hz-f2"><label class="hz-cb"><input type="checkbox" data-v="todo"'+(filt.todo?' checked':'')+'><span>안 한 곳만</span></label>'+
+    (isAdmin()?'<span class="hz-adm" data-act="msplit">지역 나누기</span>':'')+'</div></div></div>';
+  var h='';
   if(!sites.length) h+='<div class="empty-state">불러오는 중…</div>';
   else if(!shown.length) h+='<div class="empty-state">'+(filt.region==='@mine'?'내 담당으로 지정된 지역이 없어요.':'해당하는 지역이 없어요.')+'</div>';
   h+='<div class="hz-grid">';
+  var mapSites=[];
   shown.forEach(function(g){
     var d=g.items.filter(function(s){ return stOf(s.id)==='done'; }).length, who=assign[g.name]||'';
-    var list=g.items.filter(function(s){ return !filt.todo||stOf(s.id)!=='done'; })
-      .sort(function(a,b){ return (ORD[stOf(a.id)]-ORD[stOf(b.id)])||a.name.localeCompare(b.name,'ko'); });
+    var list=sortItems(g.items.filter(function(s){ return !filt.todo||stOf(s.id)!=='done'; }));
+    mapSites=mapSites.concat(list);
     if(filt.todo&&!list.length) return;
     var whoHtml=isAdmin()
       ? '<select class="hz-as'+(who?'':' empty')+'" data-v="assign" data-k="'+esc(g.name)+'"><option value="">담당 선택</option>'+staff.map(function(x){ return '<option value="'+esc(x.n)+'"'+(x.n===who?' selected':'')+'>담당 '+esc(short1(x.n))+'</option>'; }).join('')+(who&&!staff.some(function(x){ return x.n===who; })?'<option selected value="'+esc(who)+'">담당 '+esc(short1(who))+'</option>':'')+'</select>'
@@ -118,9 +151,61 @@ function render(){
       '<span class="hz-mini"><i style="width:'+(100*d/g.items.length)+'%"></i></span><em>'+d+'<span>/'+g.items.length+'</span></em><i class="ti ti-chevron-'+(op?'up':'down')+' hz-chev"></i></div>'+
       (op?'<div class="hz-lst">'+list.map(itemHtml).join('')+'</div>':'')+'</div>';
   });
-  h+='</div></div>';
-  app.innerHTML=h;
-  renderDlg();
+  h+='</div>';
+  document.getElementById('hz-list').innerHTML=h;
+  var foc=mapFocus&&shown.filter(function(g){ return g.name===mapFocus; })[0];
+  renderDlg(); renderModal(); drawMap(mapSites, filt.region+'|'+filt.todo+'|'+(foc?foc.name:''), foc?foc.items:null);
+}
+
+// ── 지도 (PC 화면에서만) ──────────────────────────
+var map=null, mapLayer=null, mapFitKey=null, leafletP=null, lastMap=null, mapFocus=null;   // mapFocus: 방금 펼친 지역 → 지도를 그쪽으로
+function loadScript(src){ return new Promise(function(ok,no){ var sc=document.createElement('script'); sc.src=src; sc.onload=function(){ ok(); }; sc.onerror=no; document.head.appendChild(sc); }); }
+function loadLeaflet(){
+  if(window.L) return Promise.resolve();
+  if(leafletP) return leafletP;
+  if(!document.getElementById('leaflet-css')){ var l=document.createElement('link'); l.id='leaflet-css'; l.rel='stylesheet'; l.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(l); }
+  leafletP=loadScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js').catch(function(e){ leafletP=null; throw e; });
+  return leafletP;
+}
+function drawMap(list, key, focus){
+  lastMap={ list:list, key:key, focus:focus };
+  var el=document.getElementById('hz-map'); if(!el||el.offsetParent===null) return;   // 휴대폰 화면에선 숨김
+  loadLeaflet().then(function(){
+    var el2=document.getElementById('hz-map'); if(!el2) return;
+    if(!map||map.getContainer()!==el2){
+      if(map) map.remove();
+      map=L.map(el2,{ zoomControl:true }); map.attributionControl.setPrefix(false);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{ maxZoom:19, className:'hz-tiles', attribution:'© OpenStreetMap' }).addTo(map);
+      mapLayer=L.layerGroup().addTo(map); mapFitKey=null;
+    }
+    mapLayer.clearLayers(); var pts=[];
+    lastMap.list.forEach(function(s){ if(!s.co) return; var t=stOf(s.id), c=checks[s.id];
+      pts.push([s.co.lat,s.co.lng]);
+      var tip=esc(s.name)+(t==='done'?' · '+md(c.doneDate)+' '+esc(short1(c.doneBy)):t==='plan'?' · '+md(c.planDate)+' 예정':'');
+      L.circleMarker([s.co.lat,s.co.lng],{ radius:t==='none'?6:7, fillColor:t==='done'?'#3B6D11':t==='plan'?'#378ADD':'#C8C4BC', color:'#fff', weight:1.5, fillOpacity:1 })
+        .bindTooltip(tip,{ direction:'top' }).on('click',function(){ openDlg(s.id); }).addTo(mapLayer); });
+    if(lastMap.focus){ var fp=lastMap.focus.filter(function(s){ return s.co; }).map(function(s){ return [s.co.lat,s.co.lng]; }); if(fp.length) pts=fp; }
+    if(mapFitKey!==lastMap.key&&pts.length){ map.fitBounds(pts,{ padding:[30,30], maxZoom:14 }); mapFitKey=lastMap.key; }
+  }).catch(function(){});
+}
+var rsT=null;
+window.addEventListener('resize', function(){ clearTimeout(rsT); rsT=setTimeout(function(){ if(map) map.invalidateSize(); if(lastMap) drawMap(lastMap.list, lastMap.key, lastMap.focus); },200); });
+
+// ── 관리자: 읍·면으로 나눌 시 고르기 ──────────────────────────
+function renderModal(){
+  var el=document.getElementById('form');
+  if(!modal){ el.className='sup-modal'; el.innerHTML=''; return; }
+  var cs=cities().filter(function(c){ return !c.rest; });
+  el.className='sup-modal open';
+  el.innerHTML='<div class="sup-modal-inner" style="height:auto;max-height:92vh;max-width:420px"><div class="sup-modal-header"><h3>지역 나누기</h3><button class="btn sm" data-act="mclose"><i class="ti ti-x"></i></button></div>'+
+    '<div class="sup-modal-body"><div class="hint l" style="margin-bottom:12px">체크한 시는 읍·면별 카드로 나뉘어요 (동 지역은 "시내", 업장 1곳뿐인 읍·면은 "기타"로 묶임). 나눈 뒤 카드마다 담당을 다시 골라주세요.</div>'+
+    cs.map(function(c){ return '<label class="hz-cb" style="display:flex;padding:9px 2px;border-top:.5px solid #f0f0ec"><input type="checkbox" class="m-split" value="'+esc(c.name)+'"'+(split.indexOf(c.name)>=0?' checked':'')+'><span style="flex:1">'+esc(c.name)+'</span><small style="color:#999">'+c.items.length+'곳</small></label>'; }).join('')+
+    '</div><div class="sup-modal-footer"><button class="btn" data-act="mclose">취소</button><button class="btn primary" data-act="msave">저장</button></div></div>';
+}
+async function saveSplit(){
+  var v=[].slice.call(document.querySelectorAll('.m-split:checked')).map(function(e){ return e.value; });
+  try{ await setDoc(doc(db,'meta','hygAssign'), { map:assign, split:v, updatedAt:serverTimestamp(), by:me.phone }); toast('지역 나누기를 저장했어요.'); modal=false; renderModal(); }
+  catch(e){ console.error(e); toast(e.code==='permission-denied'?'관리자만 바꿀 수 있어요.':'저장하지 못했어요.'); }
 }
 
 // ── 업장 창 ──────────────────────────
@@ -194,18 +279,18 @@ function openDlg(id){ dlg={ siteId:id, mode:'done' }; try{ history.pushState({ h
 function closeDlg(){ if(!dlg) return; dlg=null; renderDlg(); try{ if(history.state&&history.state.hz) history.back(); }catch(e){} }
 async function saveAssign(region, name){
   var map=Object.assign({}, assign); if(name) map[region]=name; else delete map[region];
-  try{ await setDoc(doc(db,'meta','hygAssign'), { map:map, updatedAt:serverTimestamp(), by:me.phone }); toast(region+' 담당: '+(name?short1(name):'없음')); }
+  try{ await setDoc(doc(db,'meta','hygAssign'), { map:map, split:split, updatedAt:serverTimestamp(), by:me.phone }); toast(region+' 담당: '+(name?short1(name):'없음')); }
   catch(e){ console.error(e); toast(e.code==='permission-denied'?'관리자만 바꿀 수 있어요.':'저장하지 못했어요.'); render(); }
 }
 
 // ── 이벤트 ──────────────────────────
 document.addEventListener('click', async function(ev){
   if(ev.target.id==='popup'){ closeDlg(); return; }
-  if(ev.target.closest('select')) return;   // 담당 드롭다운 누를 땐 접고 펴지 않음
+  if(ev.target.closest('select')||ev.target.closest('label')) return;   // 담당 드롭다운 누를 땐 접고 펴지 않음
   var t=ev.target.closest('[data-act]'); if(!t) return;
   var a=t.getAttribute('data-act');
   if(a==='logout'){ if(confirm('로그아웃할까요?')){ await logoutUser(); location.reload(); } }
-  else if(a==='toggle'){ var k=t.getAttribute('data-k'); opened[k]=!opened[k]; render(); }
+  else if(a==='toggle'){ var k=t.getAttribute('data-k'); opened[k]=!opened[k]; mapFocus=opened[k]?k:(mapFocus===k?null:mapFocus); render(); }
   else if(a==='site'){ openDlg(t.getAttribute('data-id')); }
   else if(a==='close'){ closeDlg(); }
   else if(a==='mode'){ dlg.mode=t.getAttribute('data-m'); renderDlg(); }
@@ -213,6 +298,9 @@ document.addEventListener('click', async function(ev){
   else if(a==='plan'){ doPlan(); }
   else if(a==='unplan'){ undo('plan'); }
   else if(a==='undone'){ undo('done'); }
+  else if(a==='msplit'){ modal=true; renderModal(); }
+  else if(a==='mclose'){ modal=false; renderModal(); }
+  else if(a==='msave'){ saveSplit(); }
 });
 document.addEventListener('change', function(ev){
   var v=ev.target.getAttribute&&ev.target.getAttribute('data-v'); if(!v) return;
@@ -233,6 +321,8 @@ var CSS=
   '.hz-left{font-size:12px;color:#888;margin-top:6px;}.hz-left b{color:#1a1a18;}'+
   '.hz-f{display:flex;gap:12px;align-items:center;margin:12px 0 4px;}'+
   '.hz-sel{flex:1;min-width:0;padding:9px 10px;border:.5px solid #ccc;border-radius:8px;font-size:14px;background:#fff;color:#1a1a18;font-family:inherit;}'+
+  '.hz-f2{display:flex;align-items:center;gap:12px;}.hz-adm{font-size:12px;color:#185FA5;cursor:pointer;white-space:nowrap;text-decoration:underline;}'+
+  '.hz-mapcol{display:none;}.hz-maplg{display:flex;gap:12px;font-size:11px;color:#666;margin-top:6px;}.hz-maplg i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;}.hz-tiles{filter:saturate(.7) brightness(1.03);}'+
   '.hz-cb{display:inline-flex;align-items:center;gap:6px;font-size:14px;white-space:nowrap;cursor:pointer;}.hz-cb input{width:20px;height:20px;margin:0;accent-color:#3B6D11;}'+
   '.hz-col{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;overflow:hidden;margin-top:8px;}.hz-col.open{border-color:#B5D4F4;}'+
   '.hz-rh{display:flex;align-items:center;gap:8px;padding:13px 14px;font-size:13px;cursor:pointer;}.hz-rh b{font-size:15px;white-space:nowrap;}'+
@@ -258,7 +348,8 @@ var CSS=
   '.hz-prev{font-size:12px;color:#888;margin:10px 0 0;text-align:center;}'+
   '.hz-planinfo{display:flex;align-items:center;gap:8px;background:#E6F1FB;color:#0C447C;border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px;}.hz-planinfo span{margin-left:auto;color:#A32D2D;font-size:12px;cursor:pointer;text-decoration:underline;}'+
   '@media(min-width:900px){.hz-top{display:flex;gap:16px;align-items:stretch;max-width:none;}.hz-big{flex:1;}.hz-f{flex-direction:column;align-items:stretch;justify-content:center;margin:0;width:240px;gap:10px;}.hz-f .hz-sel{flex:none;}'+
-  '.hz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:0 12px;align-items:start;}.hz-it{font-size:14px;padding:9px 12px;gap:10px;}}';
+  '.hz-main{display:grid;grid-template-columns:minmax(0,1fr) 44%;gap:16px;align-items:start;}.hz-mapcol{display:block;position:sticky;top:12px;margin-top:8px;}#hz-map{height:calc(100vh - 140px);min-height:420px;border-radius:12px;border:.5px solid #e8e8e4;}'+
+  '.hz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0 12px;align-items:start;}.hz-it{font-size:14px;padding:9px 12px;gap:10px;}}';
 function ensureCss(){ if(document.getElementById('hz-css')) return; var st=document.createElement('style'); st.id='hz-css'; st.textContent=CSS; document.head.appendChild(st); }
 
 // ── 로그인 (차량 예약과 같은 방식, FS 권한 필요) ──────────────────────────
