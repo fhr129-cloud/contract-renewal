@@ -477,7 +477,7 @@ function renderForm(){
   if(sCat){
     h+='<div class="step"><div class="g2">'+grp('카테고리 *','<select data-f="purpose" style="'+SEL_STYLE+'">'+(form.purpose?'':'<option value="">선택...</option>')+
       PURPOSES.map(function(p){ return '<option'+(form.purpose===p?' selected':'')+'>'+p+'</option>'; }).join('')+(form.purpose&&PURPOSES.indexOf(form.purpose)<0?'<option selected>'+esc(form.purpose)+'</option>':'')+'</select>')+'<div></div></div>'+
-      (repair?'<div class="hint l" style="margin:-4px 0 6px">차량정비는 운전자를 고르지 않아요. 계기판 숫자도 안 적어도 돼요.</div>':'')+'</div>';
+      '</div>';
   }
   if(s4){
     var multiOk=!form.editIds.length;
@@ -485,7 +485,7 @@ function renderForm(){
       return '<div class="carpick'+(x.cf?' no':on?' on':'')+'" data-act="car" data-car="'+c.id+'" style="'+(on?'border-color:'+c.color+';background:'+c.bg+';':'')+'">'+
         '<div class="cp-n"><span class="cs-dot" style="background:'+(x.cf?'#ccc':c.color)+'"></span>'+c.name+(on?' <i class="ti ti-check" style="margin-left:auto;color:'+c.color+'"></i>':'')+'</div>'+
         '<div class="cp-s'+(x.cf?' bad':'')+'" style="font-size:12px">'+(x.cf?esc(who(x.cf.r))+' '+x.cf.r.start+'–'+x.cf.r.end+(x.cf.date!==form.date?' ('+(parseYmd(x.cf.date).getMonth()+1)+'/'+parseYmd(x.cf.date).getDate()+')':''):'비어 있음')+'</div></div>'; }).join('')+'</div>'+
-      (cars.every(function(x){ return x.cf; })?'<div class="err">이 시간엔 빈 차가 없어요. 시간을 바꿔보세요.</div>':''), multiOk?'(여러 대 선택 가능)':'');
+      (cars.every(function(x){ return x.cf; })?'<div class="err">이 시간엔 빈 차가 없어요. 시간을 바꿔보세요.</div>':''), '');
     // 고른 차마다 운전자 1명
     if(form.carIds.length&&!repair){
       var people=staffList.slice();
@@ -501,7 +501,7 @@ function renderForm(){
               if(!opts.length) return '';
               return '<optgroup label="'+esc(DEPT_NAME[g]||g||'기타')+'">'+opts.map(function(x){ return '<option'+(x.n===mine?' selected':'')+'>'+esc(x.n)+'</option>'; }).join('')+'</optgroup>'; }).join('')+
             '</select></div>';
-        }).join('')+(people.length?'':'<div class="hint l">직원 목록을 불러오는 중이에요…</div>'),'(차 1대당 1명)');
+        }).join('')+(people.length?'':'<div class="hint l">직원 목록을 불러오는 중이에요…</div>'));
     }
     h+='</div>';
   }
@@ -509,7 +509,7 @@ function renderForm(){
     h+='<div class="step">'+formRouteBox()+'</div>';
   }
   if(s7){
-    h+='<div class="step">'+grp('상세 내용','<textarea placeholder="용무 간략히 (짐, 특이사항 등)" data-f="memo">'+esc(form.memo)+'</textarea>')+'</div>';
+    h+='<div class="step">'+grp('상세 내용','<textarea placeholder="용무" data-f="memo">'+esc(form.memo)+'</textarea>')+'</div>';
   }
   var hint=!s2?'시작일을 골라주세요.':!s3?'시간을 골라주세요.':!sCat?'출발·종료 시간을 확인해주세요.':!s4?'카테고리를 골라주세요.':!s5?(form.carIds.length?'운전자를 골라주세요.':'차량을 골라주세요.'):!s6?(repair?'정비소를 적어주세요.':'업장을 골라주세요.'):esc(rangeText(formSegs()))+' · '+form.carIds.map(function(id){ return car(id).name; }).join(', ');
   h+='</div><div class="sup-modal-footer"><span class="foot-hint">'+hint+'</span><button class="btn" data-act="fclose">취소</button><button class="btn primary" data-act="save"'+(canSave?'':' disabled')+'>'+(form.busy?'저장 중…':form.editIds.length?'수정 저장':'등록')+'</button></div></div>';
@@ -548,10 +548,10 @@ function formRouteBox(){
     '<datalist id="fstop-list">'+stopList().map(function(n){ return '<option value="'+esc(n)+'">'; }).join('')+'</datalist>'+
     '<div style="border:.5px solid #bbb;border-radius:10px;background:#fff">'+
     '<div style="'+row+'">'+dot('#1D9E75')+'<select data-f="origin" style="'+inp+'appearance:auto;">'+['회사','집','기타'].map(function(x){ return '<option'+(x===form.origin?' selected':'')+'>'+x+'</option>'; }).join('')+'</select><span style="font-size:11px;color:#aaa">출발</span></div>'+
-    '<div style="'+row+'">'+dot('#185FA5')+'<div class="searchable-select" style="flex:1;min-width:0"><input id="f-dest" type="text" autocomplete="off" placeholder="'+(rp?'정비소 (예: 블루핸즈 평택점)':'업장 검색 (필수)')+'" value="'+esc(form.dest)+'" data-f="dest" style="'+inp+'width:100%"><div id="dest-sug" class="ss-dropdown"></div></div><span style="font-size:11px;color:#185FA5;font-weight:600">'+(rp?'정비소':'업장')+'</span></div>'+
+    '<div style="'+row+'">'+dot('#185FA5')+'<div class="searchable-select" style="flex:1;min-width:0"><input id="f-dest" type="text" autocomplete="off" placeholder="'+(rp?'정비소':'업장 검색')+'" value="'+esc(form.dest)+'" data-f="dest" style="'+inp+'width:100%"><div id="dest-sug" class="ss-dropdown"></div></div><span style="font-size:11px;color:#185FA5;font-weight:600">'+(rp?'정비소':'업장')+'</span></div>'+
     '<div id="fstop-box">'+form.stops.map(function(v,i){ return '<div class="fstop-row" data-i="'+i+'" style="'+row+'">'+(many?'<span class="stop-h" title="끌어서 순서 바꾸기">⠿</span>':'')+dot('#999')+'<input list="fstop-list" data-f="stop" data-i="'+i+'" placeholder="경유지 (업장 검색)" value="'+esc(v)+'" style="'+inp+'">'+
       '<button type="button" data-act="fstopdel" data-i="'+i+'" aria-label="경유지 빼기" style="width:24px;height:24px;border-radius:50%;border:1px solid #ccc;background:#fff;color:#888;font-size:16px;line-height:20px;padding:0;cursor:pointer">−</button></div>'; }).join('')+'</div>'+
-    '<div style="'+row+'border-bottom:none">'+dot('#E24B4A')+'<input list="fstop-list" data-f="routeEnd" placeholder="도착 (예: 회사, 집)" value="'+esc(form.routeEnd)+'" style="'+inp+'"><span style="font-size:11px;color:#aaa">도착</span></div></div>'+
+    '<div style="'+row+'border-bottom:none">'+dot('#E24B4A')+'<input list="fstop-list" data-f="routeEnd" placeholder="도착" value="'+esc(form.routeEnd)+'" style="'+inp+'"><span style="font-size:11px;color:#aaa">도착</span></div></div>'+
     '<div style="margin:8px 0 2px"><button type="button" class="btn sm" data-act="fstopadd"><i class="ti ti-plus"></i> 경유지</button></div>';
 }
 function initFormStopSort(){
@@ -719,22 +719,20 @@ function tripCard(r){
     var callP=(r.riderPhones&&r.riderPhones[0])||r.ownerPhone, callN=r.riders&&r.riders[0]?short1(r.riders[0]):short1(r.ownerName);
     return h+(callP?'<div class="pbtns"><a class="btn" href="tel:'+esc(callP)+'"><i class="ti ti-phone"></i> '+esc(callN)+'에게 전화 ('+telFmt(callP)+')</a></div>':'')+'</div></div>';
   }
-  if(others) h+='<div class="warn">다른 사람 운행이에요. 관리자라서 고칠 수 있어요.</div>';
   if(fut){
-    h+='<div style="font-size:12px;color:#888;background:#f7f7f5;border-radius:8px;padding:8px 10px;margin-bottom:10px">운행시작·운행종료 숫자는 다녀와서 적어요. 경로·시간은 [예약 수정]에서 바꿔요.</div>';
   } else {
     var auto=autoStartKm(r), p=prevTrip(list,r), fon=pv('fuelOn', !!r.fuel), noteOn=popup.noteOn||!!pv('ret-note')||!!r.returnNote;
     var startV=pv('km-start', r.startKm!=null?r.startKm:(auto!=null?auto:''));
     var L=lastEndTrip(r), lt=L&&L.trip;
     var ref=lt?'최근 운행종료 '+esc(who(lt))+' · '+(parseYmd(lt.date).getMonth()+1)+'/'+parseYmd(lt.date).getDate()+' · '+fmtKm(lt.endKm)+(p&&p.id!==lt.id&&p.endKm==null?' <span style="color:#854F0B">(바로 앞 '+esc(who(p))+' 운행은 숫자 없음)</span>':''):(L&&L.base?'관리자가 맞춘 숫자 '+fmtKm(L.km):'첫 기록이에요 — 탈 때 계기판 숫자를 적어주세요');
     h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
-        '<div><div style="'+lab+'">운행시작 <span style="font-weight:400;color:#999">(탈 때)</span></div><input id="km-start" data-for="'+r.id+'" inputmode="numeric" autocomplete="off" placeholder="계기판 숫자" value="'+esc(startV)+'" style="width:100%;height:50px;border:.5px solid #bbb;border-radius:10px;text-align:center;font-size:20px;font-weight:600;background:'+(r.startKm==null&&auto!=null?'#f7f7f5':'#fff')+';color:#1a1a18"></div>'+
-        '<div><div style="'+lab+'">운행종료 <span style="font-weight:400;color:#999">(내릴 때)</span></div><input id="km-end" data-for="'+r.id+'" inputmode="numeric" autocomplete="off" placeholder="계기판 숫자" value="'+esc(pv('km-end', r.endKm!=null?r.endKm:''))+'" style="width:100%;height:50px;border:2px solid #185FA5;border-radius:10px;text-align:center;font-size:20px;font-weight:700;background:#fff;color:#1a1a18"></div></div>'+
+        '<div><div style="'+lab+'">운행시작</div><input id="km-start" data-for="'+r.id+'" inputmode="numeric" autocomplete="off" placeholder="계기판 숫자" value="'+esc(startV)+'" style="width:100%;height:50px;border:.5px solid #bbb;border-radius:10px;text-align:center;font-size:20px;font-weight:600;background:'+(r.startKm==null&&auto!=null?'#f7f7f5':'#fff')+';color:#1a1a18"></div>'+
+        '<div><div style="'+lab+'">운행종료</div><input id="km-end" data-for="'+r.id+'" inputmode="numeric" autocomplete="off" placeholder="계기판 숫자" value="'+esc(pv('km-end', r.endKm!=null?r.endKm:''))+'" style="width:100%;height:50px;border:2px solid #185FA5;border-radius:10px;text-align:center;font-size:20px;font-weight:700;background:#fff;color:#1a1a18"></div></div>'+
       '<div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#777;background:#f7f7f5;border-radius:8px;padding:8px 10px;margin-top:8px"><span>'+ref+'</span><b id="km-diff" style="color:#185FA5;white-space:nowrap"></b></div>'+
       '<label style="display:flex;align-items:center;gap:8px;font-size:14px;margin:14px 0 6px;cursor:pointer;width:max-content"><input type="checkbox" id="km-fuelchk" data-for="'+r.id+'" style="width:18px;height:18px;margin:0"'+(fon?' checked':'')+'> 주유했어요</label>'+
       (fon?'<input id="km-fuel" data-for="'+r.id+'" inputmode="numeric" placeholder="주유 금액 (원)" value="'+esc(pv('km-fuel', r.fuel||''))+'" style="'+SM_IN+'margin-bottom:6px">':'')+
-      (noteOn?'<div style="font-size:12px;font-weight:600;margin:8px 0 6px">다음 사람에게 메모 <span style="font-weight:400;color:#888">(선택)</span></div><textarea id="ret-note" data-for="'+r.id+'" maxlength="200" placeholder="예: 주유 필요, 뒷범퍼 긁힘, 주차 B구역" style="'+SM_IN+'min-height:48px;resize:vertical">'+esc(pv('ret-note', r.returnNote||''))+'</textarea>'
-        :'<div style="font-size:12px;color:#185FA5;margin:4px 0 0;cursor:pointer" data-act="kmnote">+ 다음 사람에게 메모 남기기 (선택)</div>');
+      (noteOn?'<div style="font-size:12px;font-weight:600;margin:8px 0 6px">메모</div><textarea id="ret-note" data-for="'+r.id+'" maxlength="200" placeholder="다음 사람에게 남길 말" style="'+SM_IN+'min-height:48px;resize:vertical">'+esc(pv('ret-note', r.returnNote||''))+'</textarea>'
+        :'<div style="font-size:12px;color:#185FA5;margin:4px 0 0;cursor:pointer" data-act="kmnote">+ 메모</div>');
   }
   if(!fut) h+='<button class="btn primary full" style="margin:16px 0 0;padding:13px;font-size:16px;font-weight:700;justify-content:center" data-act="kmdone" data-id="'+r.id+'">'+(gate?'적고 예약 계속하기':(inUse?'저장하고 운행 끝내기':'저장'))+'</button>';
   if(gate) h+='<div style="text-align:center;font-size:12px;color:#888;margin-top:10px;text-decoration:underline;cursor:pointer" data-act="kmskip" data-id="'+r.id+'">숫자를 몰라요 (다음 사람이 채워요)</div>';
@@ -791,7 +789,7 @@ function routeFields(r){
     '<div style="'+row+'">'+dot('#1D9E75')+'<select id="km-origin" data-for="'+r.id+'" style="'+inp+'appearance:auto;">'+['회사','집','기타'].map(function(x){ return '<option'+(x===o?' selected':'')+'>'+x+'</option>'; }).join('')+'</select><span style="font-size:11px;color:#aaa">출발</span></div>'+
     '<div id="stop-box">'+stops.map(function(v,i){ return '<div class="stop-row" data-i="'+i+'" style="'+row+'">'+(stops.length>1?'<span class="stop-h" title="끌어서 순서 바꾸기">⠿</span>':'')+dot(i===0?'#185FA5':'#999')+'<input id="km-stop-'+i+'" list="stop-list" placeholder="'+(i===0?'업장':'경유지')+' (업장 검색)" value="'+esc(v)+'" style="'+inp+'">'+(i===0?'<span style="font-size:11px;color:#185FA5;font-weight:600">업장</span>':'')+
       '<button type="button" data-act="stopdel" data-i="'+i+'" aria-label="경유지 빼기" style="width:24px;height:24px;border-radius:50%;border:1px solid #ccc;background:#fff;color:#888;font-size:16px;line-height:20px;padding:0;cursor:pointer">−</button></div>'; }).join('')+'</div>'+
-    '<div style="'+row+'border-bottom:none">'+dot('#E24B4A')+'<input id="km-dest" list="stop-list" placeholder="도착 (예: 회사, 집)" value="'+esc(popup.dest)+'" style="'+inp+'"><span style="font-size:11px;color:#aaa">도착</span></div></div>'+
+    '<div style="'+row+'border-bottom:none">'+dot('#E24B4A')+'<input id="km-dest" list="stop-list" placeholder="도착" value="'+esc(popup.dest)+'" style="'+inp+'"><span style="font-size:11px;color:#aaa">도착</span></div></div>'+
     '<div style="margin:8px 0 12px"><button type="button" class="btn sm" data-act="stopadd"><i class="ti ti-plus"></i> 경유지</button></div>'+
     '';
   return h;
