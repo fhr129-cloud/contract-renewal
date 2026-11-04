@@ -811,9 +811,7 @@ function kmSkipped(id){ try{ var m=JSON.parse(localStorage.getItem('kmSkip')||'{
 function kmSkip(id){ try{ var m=JSON.parse(localStorage.getItem('kmSkip')||'{}'), t=ymd(new Date()); Object.keys(m).forEach(function(k){ if(m[k]!==t) delete m[k]; }); m[id]=t; localStorage.setItem('kmSkip',JSON.stringify(m)); }catch(e){} kmSkipMem[id]=1; }
 var kmSkipMem={};
 function startNew(opts){
-  var m=myMissing().filter(function(r){ return !kmSkipMem[r.id]&&!kmSkipped(r.id); })[0];
-  if(m){ pushLayer(); popup={type:'km', id:m.id, gate:opts}; renderPopup(); return; }
-  openForm(opts);
+  openForm(opts);   // 숫자 없는 운행은 맨 위 빨간 줄로만 알림 (예약은 막지 않음)
 }
 // 입력값 읽기 + 확인 (운행일지에서 열면 출발지·경유지·통행료도)
 function readKm(r, startOnly){ var kv=isFutureTrip(r)?{}:readKm0(r, startOnly); if(!kv||startOnly) return kv;
