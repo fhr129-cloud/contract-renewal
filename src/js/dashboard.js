@@ -155,8 +155,9 @@ function renderDashboard() {
 recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
   var recentEl=document.getElementById('recent-update-list');
   
- var news=recentUpdates.filter(function(x){ return x.latest.addType==='new'; });
-  var renewals=recentUpdates.filter(function(x){ return x.latest.addType!=='terminate'&&x.latest.addType!=='new'; });
+  function isNewItem(x){ return x.latest.addType!=='terminate'&&(x.latest.addType==='new'||x.prev===null); }   // 화면 '신규' 표시와 같은 기준
+  var news=recentUpdates.filter(isNewItem);
+  var renewals=recentUpdates.filter(function(x){ return x.latest.addType!=='terminate'&&!isNewItem(x); });
   var terminations=recentUpdates.filter(function(x){ return x.latest.addType==='terminate'; });
   var sortedList=[].concat(news,renewals,terminations);
   if(recentEl){
@@ -166,7 +167,7 @@ recentUpdates.sort(function(a,b){ return b.updDate-a.updDate; });
     
     recentEl.innerHTML=sortedList.slice(0,20).map(function(item){
         var s=calcStatus(item.c),d=dDiff(item.c.endDate),col=s==='urgent'?'#A32D2D':s==='near'?'#854F0B':'#185FA5';
-        var isNew=item.prev===null;
+                var isNew=isNewItem(item);
         var priceChanged=item.prev&&(item.prev.price!==item.latest.price||item.prev.priceType!==item.latest.priceType);
         var priceHtml='';
         var isTerminate=item.latest.addType==='terminate';
