@@ -2,7 +2,7 @@
 // 분기마다 자동으로 새로 시작. 업장마다 체크(완료) / 빈칸(아직) / 갈 날짜(예정).
 import { db, checkAllowedUser, loginUser, registerUser, watchAuth, logoutUser } from '../src/js/db.js';
 import {
-  collection, doc, query, where, onSnapshot, getDoc, setDoc, deleteDoc, serverTimestamp
+  collection, doc, query, where, onSnapshot, getDoc, getDocs, setDoc, deleteDoc, serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { regionOf } from '../src/js/region.js';
 import { COORDS } from '../src/js/coords.js';
@@ -51,8 +51,11 @@ function isAdmin(){ return !!(me&&me.role==='admin'); }
 function myName(){ var x=staff.filter(function(s){ return s.p&&s.p===me.phone; })[0]; return x?x.n:(me.name||''); }
 function toast(msg){ var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toast._t); toast._t=setTimeout(function(){ t.classList.remove('on'); },2600); }
 function stOf(id){ var c=checks[id]; return c?c.status:'none'; }
+// 화면용 상태: 예정일이 지났는데 완료 안 된 곳은 '지남'
+function isLate(c){ return !!c&&c.status==='plan'&&!!c.planDate&&c.planDate<ymd(new Date()); }
+function vsOf(id){ var t=stOf(id); return t==='plan'&&isLate(checks[id])?'late':t; }
 function siteById(id){ return sites.filter(function(x){ return x.id===id; })[0]; }
-var ORD={ done:0, plan:1, none:2 };   // 완료(날짜순) → 예정(날짜순) → 나머지
+var ORD={ done:0, plan:1, late:2, none:3 };   // 완료(날짜순) → 예정(날짜순) → 지남 → 나머지
 var CK='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>';
 
 // 지역: 시·군 단위 (업장 1곳뿐인 시는 '그 외').
@@ -110,17 +113,18 @@ function checkRef(siteId, round){ return doc(db,'hygChecks', (round||ROUND)+'_'+
 // ── 화면 ──────────────────────────
 function box(on){ return '<span class="hz-box'+(on?' on':'')+'">'+(on?CK:'')+'</span>'; }
 function itemHtml(s, dist){
-  var c=checks[s.id], t=stOf(s.id), r='';
+  var c=checks[s.id], t=vsOf(s.id), r='';
   if(t==='done') r='<span class="hz-r">'+md(c.doneDate)+' '+esc(short1(c.doneBy))+' 완료</span>';
   else if(t==='plan') r='<span class="hz-r p">'+md(c.planDate)+' '+esc(short1(c.planBy))+' 예정</span>';
+  else if(t==='late') r='<span class="hz-r late">'+md(c.planDate)+' '+esc(short1(c.planBy))+' 지남</span>';
   return '<div class="hz-it'+(t==='done'?' dn':'')+'" data-act="site" data-id="'+s.id+'">'+box(t==='done')+'<span class="hz-nm">'+esc(s.name)+'</span>'+(dist!=null?'<span class="hz-km">'+fmtKm(dist)+'</span>':'')+r+'</div>';
 }
 function sortItems(list){
   return list.slice().sort(function(a,b){
-    var ta=stOf(a.id), tb=stOf(b.id); if(ta!==tb) return ORD[ta]-ORD[tb];
+    var ta=vsOf(a.id), tb=vsOf(b.id); if(ta!==tb) return ORD[ta]-ORD[tb];
     var ca=checks[a.id]||{}, cb=checks[b.id]||{};
     if(ta==='done') return String(ca.doneDate).localeCompare(String(cb.doneDate))||a.name.localeCompare(b.name,'ko');
-    if(ta==='plan') return String(ca.planDate).localeCompare(String(cb.planDate))||a.name.localeCompare(b.name,'ko');
+    if(ta==='plan'||ta==='late') return String(ca.planDate).localeCompare(String(cb.planDate))||a.name.localeCompare(b.name,'ko');
     return a.name.localeCompare(b.name,'ko');
   });
 }
@@ -132,7 +136,7 @@ function recentHtml(){
   var n=recentMore?20:4;
   return '<div class="hz-rec"><div class="hz-rec-h"><b>최근 기록</b>'+(all.length>4?'<span data-act="recmore">'+(recentMore?'접기':'더 보기')+'</span>':'')+'</div>'+
     all.slice(0,n).map(function(c){ var dn=c.status==='done', s=siteById(c.siteId);
-      return '<div class="hz-rr" data-act="site" data-id="'+s.id+'"><span class="d">'+md(dn?c.doneDate:c.planDate)+'</span><span class="w">'+esc(short1(dn?c.doneBy:c.planBy))+'</span><span class="s">'+esc(s.name)+'</span><span class="t'+(dn?'':' p')+'">'+(dn?'완료':'예정')+'</span></div>'; }).join('')+'</div>';
+      return '<div class="hz-rr" data-act="site" data-id="'+s.id+'"><span class="d">'+md(dn?c.doneDate:c.planDate)+'</span><span class="w">'+esc(short1(dn?c.doneBy:c.planBy))+'</span><span class="s">'+esc(s.name)+'</span><span class="t'+(dn?'':isLate(c)?' late':' p')+'">'+(dn?'완료':isLate(c)?'지남':'예정')+'</span></div>'; }).join('')+'</div>';
 }
 function render(){
   var app=document.getElementById('app');
@@ -140,12 +144,12 @@ function render(){
   ensureCss();
   if(!document.getElementById('hz-list')){
     app.innerHTML='<div class="top-bar"><a class="back-btn" href="../"><i class="ti ti-arrow-left"></i> 홈</a>'+
-      '<h2>위생점검</h2><div class="top-actions"><span class="hz-q">'+qLabel(ROUND)+'</span><button class="btn sm" data-act="logout" title="로그아웃"><i class="ti ti-logout"></i></button></div></div>'+
+      '<h2>위생점검</h2><div class="top-actions"><span class="hz-q">'+qLabel(ROUND)+'</span>'+(isAdmin()?'<button class="btn sm" data-act="mxlsx" title="엑셀"><i class="ti ti-download"></i></button>':'')+'<button class="btn sm" data-act="logout" title="로그아웃"><i class="ti ti-logout"></i></button></div></div>'+
       '<div class="page-body hz">'+
       '<div class="hz-search"><i class="ti ti-search"></i><input id="hz-q" type="search" placeholder="사업장 · 점검자 이름 검색" autocomplete="off"><span class="hz-qx" data-act="qclear" style="display:none">✕</span></div>'+
       '<div id="hz-recent"></div>'+
       '<div class="hz-main"><div id="hz-list"></div>'+
-      '<div class="hz-mapcol"><div id="hz-map" class="hz-mapbox"></div><div class="hz-maplg"><span><i style="background:#3B6D11"></i>완료</span><span><i style="background:#378ADD"></i>예정</span><span><i style="background:#C8C4BC"></i>안 한 곳</span></div></div></div></div>';
+      '<div class="hz-mapcol"><div id="hz-map" class="hz-mapbox"></div><div class="hz-maplg"><span><i style="background:#3B6D11"></i>완료</span><span><i style="background:#378ADD"></i>예정</span><span><i style="background:#E24B4A"></i>지남</span><span><i style="background:#C8C4BC"></i>안 한 곳</span></div></div></div></div>';
   }
   var all=regions(), mine=short1(myName()), cs=cities();
   var shown=all.filter(function(g){
@@ -206,7 +210,7 @@ function render(){
 // ── 지도 (PC 화면에서만) — 실제 지도 대신 단순한 점 지도. 가까운 업장끼리는 숫자 동그라미로 묶임 ──────────────────────────
 var mapFocus=null, mapZoom=null, lastMap=null;   // mapZoom: 지도에서 큰 동그라미를 눌러 확대한 업장들   // mapFocus: 방금 펼친 카드 → 그 지역으로 확대
 var HQ={ lat:37.017, lng:126.930 };   // 본사 (청북읍)
-var ST_COLOR={ done:'#3B6D11', plan:'#378ADD', none:'#C8C4BC' };
+var ST_COLOR={ done:'#3B6D11', plan:'#378ADD', late:'#E24B4A', none:'#C8C4BC' };
 function drawMap(list, focus, label, ring){
   lastMap={ list:list, focus:focus, label:label, ring:ring };
   var el=document.getElementById('hz-map'), small=false;
@@ -264,12 +268,12 @@ function drawMap(list, focus, label, ring){
     var n=c.items.length, ids=c.items.map(function(s){ return s.id; }).join(',');
     svg+='<g class="hz-dot" data-act="mapdot" data-ids="'+ids+'">';
     if(c.center) svg+='<circle cx="'+c.x+'" cy="'+c.y+'" r="'+(rad(c)-1)+'" fill="#fff" stroke="#1a1a18" stroke-width="2"/>';
-    if(n===1){ svg+='<circle cx="'+c.x+'" cy="'+c.y+'" r="7" fill="'+ST_COLOR[stOf(c.items[0].id)]+'" stroke="#fff" stroke-width="2"/>'; }
+    if(n===1){ svg+='<circle cx="'+c.x+'" cy="'+c.y+'" r="7" fill="'+ST_COLOR[vsOf(c.items[0].id)]+'" stroke="#fff" stroke-width="2"/>'; }
     else{
-      var r=Math.min(11+n,18), L=2*Math.PI*r, d=0, p=0;
-      c.items.forEach(function(s){ var t=stOf(s.id); if(t==='done') d++; else if(t==='plan') p++; });
+      var r=Math.min(11+n,18), L=2*Math.PI*r, d=0, p=0, lt=0;
+      c.items.forEach(function(s){ var t=vsOf(s.id); if(t==='done') d++; else if(t==='plan') p++; else if(t==='late') lt++; });
       svg+='<circle cx="'+c.x+'" cy="'+c.y+'" r="'+r+'" fill="#fff" stroke="'+ST_COLOR.none+'" stroke-width="5"/>';
-      var off=0; [['done',d],['plan',p]].forEach(function(z){ if(!z[1]) return; var len=L*z[1]/n;
+      var off=0; [['done',d],['plan',p],['late',lt]].forEach(function(z){ if(!z[1]) return; var len=L*z[1]/n;
         svg+='<circle cx="'+c.x+'" cy="'+c.y+'" r="'+r+'" fill="none" stroke="'+ST_COLOR[z[0]]+'" stroke-width="5" stroke-dasharray="'+len+' '+(L-len)+'" stroke-dashoffset="'+(-off)+'" transform="rotate(-90 '+c.x+' '+c.y+')"/>'; off+=len; });
       svg+='<text x="'+c.x+'" y="'+(c.y+4.5)+'" text-anchor="middle" font-size="13" font-weight="700" fill="#1a1a18">'+n+'</text>';
     }
@@ -296,8 +300,8 @@ function drawMap(list, focus, label, ring){
   el.innerHTML=svg+top+'<div class="hz-tip"></div>';
 }
 // 지도 점에 마우스를 올리면 업장 이름·상태 말풍선 (PC)
-function tipLine(s){ var c=checks[s.id], t=stOf(s.id);
-  return '<div class="hz-tl"><i style="background:'+ST_COLOR[t]+'"></i><b>'+esc(s.name)+'</b><span>'+(t==='done'?md(c.doneDate)+' '+esc(short1(c.doneBy))+' 완료':t==='plan'?md(c.planDate)+' '+esc(short1(c.planBy))+' 예정':'안 함')+'</span></div>'; }
+function tipLine(s){ var c=checks[s.id], t=vsOf(s.id);
+  return '<div class="hz-tl"><i style="background:'+ST_COLOR[t]+'"></i><b>'+esc(s.name)+'</b><span>'+(t==='done'?md(c.doneDate)+' '+esc(short1(c.doneBy))+' 완료':t==='plan'?md(c.planDate)+' '+esc(short1(c.planBy))+' 예정':t==='late'?md(c.planDate)+' '+esc(short1(c.planBy))+' 지남':'안 함')+'</span></div>'; }
 document.addEventListener('mousemove', function(ev){
   var g=ev.target.closest&&ev.target.closest('.hz-mapbox .hz-dot');
   if(!g){ [].forEach.call(document.querySelectorAll('.hz-tip'),function(t){ t.style.display='none'; }); return; }
@@ -335,6 +339,25 @@ document.addEventListener('touchend', function(ev){ if(ev.touches.length<2) pinc
 var rsT=null;
 window.addEventListener('resize', function(){ clearTimeout(rsT); rsT=setTimeout(function(){ if(lastMap) drawMap(lastMap.list, lastMap.focus, lastMap.label, lastMap.ring); },200); });
 
+// ── 관리자: 분기별 결과 엑셀 ──────────────────────────
+function loadScript(src){ return new Promise(function(ok,no){ var sc=document.createElement('script'); sc.src=src; sc.onload=function(){ ok(); }; sc.onerror=no; document.head.appendChild(sc); }); }
+function lastQuarters(n){ var out=[], q=ROUND; for(var i=0;i<n;i++){ out.push(q); q=qPrev(q); } return out; }
+async function exportXlsx(round){
+  try{
+    if(!window.XLSX) await loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
+    var snap=await getDocs(query(collection(db,'hygChecks'), where('round','==',round))), m={};
+    snap.docs.forEach(function(d){ var x=d.data(); m[x.siteId]=x; });
+    var rows=[['지역','담당','사업장','상태','점검일','점검자','예정일','예정자']];
+    regions().forEach(function(g){ g.items.slice().sort(function(a,b){ return a.name.localeCompare(b.name,'ko'); }).forEach(function(s){ var c=m[s.id]||{};
+      var st=c.status==='done'?'완료':c.status==='plan'?(c.planDate&&c.planDate<ymd(new Date())?'지남':'예정'):'안 함';
+      rows.push([g.city, short1(g.who), s.name, st, c.doneDate||'', short1(c.doneBy||''), c.planDate||'', short1(c.planBy||'')]); }); });
+    var ws=XLSX.utils.aoa_to_sheet(rows); ws['!cols']=[{wch:10},{wch:8},{wch:22},{wch:6},{wch:11},{wch:8},{wch:11},{wch:8}];
+    var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, qLabel(round));
+    XLSX.writeFile(wb, '위생점검_'+qLabel(round).replace(/ /g,'_')+'.xlsx');
+    modal=false; renderModal();
+  }catch(e){ console.error(e); toast('엑셀을 만들지 못했어요.'); }
+}
+
 // ── 관리자: 담당 정하기 (시마다 기본 담당 + 필요한 읍·면만 다르게) ──────────────────────────
 function staffOpts(cur, firstLabel){
   var o='<option value="">'+firstLabel+'</option>'+staff.map(function(x){ return '<option value="'+esc(x.n)+'"'+(x.n===cur?' selected':'')+'>'+esc(x.n)+'</option>'; }).join('');
@@ -344,6 +367,13 @@ function staffOpts(cur, firstLabel){
 function renderModal(){
   var el=document.getElementById('form');
   if(!modal){ el.className='sup-modal'; el.innerHTML=''; return; }
+  if(modal==='xlsx'){
+    el.className='sup-modal open';
+    el.innerHTML='<div class="sup-modal-inner" style="height:auto;max-width:340px"><div class="sup-modal-header"><h3>엑셀 받기</h3><button class="btn sm" data-act="mclose"><i class="ti ti-x"></i></button></div>'+
+      '<div class="sup-modal-body"><select id="m-q" class="hz-fld">'+lastQuarters(4).map(function(q){ return '<option value="'+q+'">'+qLabel(q)+'</option>'; }).join('')+'</select></div>'+
+      '<div class="sup-modal-footer"><button class="btn" data-act="mclose">취소</button><button class="btn primary" data-act="mxdo">받기</button></div></div>';
+    return;
+  }
   var cs=cities();
   el.className='sup-modal open';
   el.innerHTML='<div class="sup-modal-inner" style="height:auto;max-height:92vh;max-width:460px"><div class="sup-modal-header"><h3>담당 정하기</h3><button class="btn sm" data-act="mclose"><i class="ti ti-x"></i></button></div>'+
@@ -407,7 +437,7 @@ function renderDlg(){
   } else {
     // 날짜·점검자 한 번 고르고 → [점검 예정] 또는 [점검 완료]
     h+=
-      (t==='plan'?'<div class="hz-planinfo">'+mdw(c.planDate)+' 예정 · '+esc(short1(c.planBy))+'<span data-act="unplan">예정 지우기</span></div>':'')+
+      (t==='plan'?'<div class="hz-planinfo'+(isLate(c)?' late':'')+'">'+mdw(c.planDate)+(isLate(c)?' 지남':' 예정')+' · '+esc(short1(c.planBy))+'<span data-act="unplan">예정 지우기</span></div>':'')+
       '<label class="hz-l">날짜</label><input type="date" id="h-date" class="hz-fld" value="'+(t==='plan'&&c.planDate<=today?c.planDate:today)+'">'+
       '<label class="hz-l">점검자</label>'+staffSelect('h-by', t==='plan'?c.planBy:me_)+
       '<div class="hz-btns"><button class="hz-bp" data-act="plan">점검 예정</button><button class="hz-bg" data-act="done">점검 완료</button></div>'+prevLine();
@@ -461,6 +491,8 @@ document.addEventListener('click', async function(ev){
   var t=ev.target.closest('[data-act]'); if(!t) return;
   var a=t.getAttribute('data-act');
   if(a==='logout'){ if(confirm('로그아웃할까요?')){ await logoutUser(); location.reload(); } }
+  else if(a==='mxlsx'){ modal='xlsx'; renderModal(); }
+  else if(a==='mxdo'){ exportXlsx(document.getElementById('m-q').value); }
   else if(a==='recmore'){ recentMore=!recentMore; render(); }
   else if(a==='toggle'){ var k=t.getAttribute('data-k'); opened[k]=!opened[k]; mapFocus=opened[k]?k:(mapFocus===k?null:mapFocus); mapZoom=null; render(); }
   else if(a==='mapdot'){ var ids=t.getAttribute('data-ids').split(',');
@@ -503,7 +535,7 @@ var CSS=
   '.hz-rec-h{display:flex;align-items:center;padding:11px 14px;font-size:14px;border-bottom:.5px solid #eee;}.hz-rec-h span{margin-left:auto;font-size:12px;color:#185FA5;cursor:pointer;}'+
   '.hz-rr{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:.5px solid #f0f0ec;font-size:14px;cursor:pointer;}.hz-rec-h+.hz-rr{border-top:0;}.hz-rr:active{background:#f5f5f2;}'+
   '.hz-rr .d{flex:0 0 3.2em;color:#888;font-size:12px;font-variant-numeric:tabular-nums;}.hz-rr .w{flex:0 0 3.4em;font-weight:600;}'+
-  '.hz-rr .s{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.hz-rr .t{font-size:12px;font-weight:600;color:#3B6D11;}.hz-rr .t.p{color:#185FA5;}'+
+  '.hz-rr .s{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.hz-rr .t{font-size:12px;font-weight:600;color:#3B6D11;}.hz-rr .t.p{color:#185FA5;}.hz-rr .t.late{color:#A32D2D;}'+
   '.hz-cnt{font-size:15px;font-weight:500;color:#888;margin-left:6px;}.hz-cnt b{color:#3B6D11;font-weight:800;font-size:17px;}'+
   '.hz-q{font-size:13px;color:#666;margin-right:6px;white-space:nowrap;}'+
   '.hz-top{max-width:640px;}'+
@@ -514,7 +546,7 @@ var CSS=
   '.hz-f{display:flex;gap:12px;align-items:center;margin:10px 2px 0;}'+
   '.hz-sel{flex:1;min-width:0;padding:9px 10px;border:.5px solid #ccc;border-radius:8px;font-size:14px;background:#fff;color:#1a1a18;font-family:inherit;}'+
   '.hz-f2{flex:1;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}.hz-f2 .hz-adm{margin-left:auto;}.hz-adm{font-size:12px;color:#185FA5;cursor:pointer;white-space:nowrap;text-decoration:underline;}'+
-  '.hz-main{display:flex;flex-direction:column;}.hz-mapcol{order:-1;margin-top:10px;}.hz-main.near .hz-mapcol{display:none;}.hz-nmap{position:relative;height:210px;background:#FAFAF7;border-bottom:.5px solid #eee;overflow:hidden;touch-action:pan-x pan-y;}#hz-map{position:relative;touch-action:pan-x pan-y;height:300px;border-radius:12px;border:.5px solid #e8e8e4;background:#FAFAF7;overflow:hidden;}'+
+  '.hz-main{display:flex;flex-direction:column;}.hz-mapcol{order:-1;margin-top:10px;}.hz-main.near .hz-mapcol{display:none;}.hz-nmap{position:relative;height:210px;background:#FAFAF7;border-bottom:.5px solid #eee;overflow:hidden;touch-action:pan-x pan-y;}#hz-map{position:relative;touch-action:pan-x pan-y;height:210px;border-radius:12px;border:.5px solid #e8e8e4;background:#FAFAF7;overflow:hidden;}'+
   '.hz-near{background:#fff;border:1px solid #B5D4F4;border-radius:12px;overflow:hidden;margin-top:8px;}.hz-near-h{display:flex;align-items:center;gap:6px;padding:10px 12px;font-size:13px;background:#F5F9FD;flex-wrap:wrap;}.hz-near-h .ti{color:#185FA5;font-size:16px;}.hz-near-h em{margin-left:auto;font-style:normal;font-weight:700;color:#185FA5;}'+
   '.hz-nsel{padding:5px 6px;border:.5px solid #B5D4F4;border-radius:6px;font-size:13px;background:#fff;font-family:inherit;max-width:170px;}.hz-near .hz-lst{border-top:.5px solid #e3eef9;}.hz-near-e{padding:14px;font-size:13px;color:#888;}'+
   '.hz-km{font-size:12px;color:#185FA5;font-weight:600;white-space:nowrap;}'+
@@ -534,7 +566,7 @@ var CSS=
   '.hz-lst{border-top:.5px solid #eee;}'+
   '.hz-it{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:.5px solid #f0f0ec;font-size:15px;cursor:pointer;}.hz-it:first-child{border-top:0;}.hz-it:active{background:#f5f5f2;}'+
   '.hz-nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;}.hz-it.dn .hz-nm{color:#999;font-weight:400;}'+
-  '.hz-r{font-size:12px;color:#888;white-space:nowrap;}.hz-r.p{color:#185FA5;font-weight:600;}'+
+  '.hz-r{font-size:12px;color:#888;white-space:nowrap;}.hz-r.p{color:#185FA5;font-weight:600;}.hz-r.late{color:#A32D2D;font-weight:600;}'+
   '.hz-box{width:20px;height:20px;border:1.5px solid #bbb;border-radius:4px;background:#fff;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-sizing:border-box;}.hz-box.on{background:#3B6D11;border-color:#3B6D11;}'+
   '.hz-dlg{width:340px;max-width:calc(100% - 32px);padding:22px 20px 16px;border-radius:16px;box-sizing:border-box;}'+
   '.hz-dlg h3{margin:0 0 14px;font-size:19px;}.hz-q2{font-size:14px;color:#555;margin:4px 0 14px;}'+
@@ -547,7 +579,7 @@ var CSS=
   '.hz-close{text-align:center;font-size:13px;color:#999;margin-top:12px;cursor:pointer;padding:4px;}'+
   '.hz-ok{background:#EAF3DE;color:#27500A;border-radius:12px;padding:14px;font-size:14px;margin-bottom:10px;}'+
   '.hz-prev{font-size:12px;color:#888;margin:10px 0 0;text-align:center;}'+
-  '.hz-planinfo{display:flex;align-items:center;gap:8px;background:#E6F1FB;color:#0C447C;border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px;}.hz-planinfo span{margin-left:auto;color:#A32D2D;font-size:12px;cursor:pointer;text-decoration:underline;}'+
+  '.hz-planinfo{display:flex;align-items:center;gap:8px;background:#E6F1FB;color:#0C447C;border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px;}.hz-planinfo.late{background:#FCEBEB;color:#A32D2D;}.hz-planinfo span{margin-left:auto;color:#A32D2D;font-size:12px;cursor:pointer;text-decoration:underline;}'+
   '@media(min-width:900px){'+
   '.hz-nmap{display:none;}.hz-main.near .hz-mapcol{display:block;}.hz-main{display:grid;grid-template-columns:minmax(0,1fr) 44%;gap:16px;align-items:start;}.hz-mapcol{order:0;display:block;position:sticky;top:12px;margin-top:8px;}#hz-map{height:calc(100vh - 140px);min-height:420px;}'+
   '.hz-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;align-items:start;}.hz-it{font-size:14px;padding:9px 12px;gap:10px;}}';
