@@ -17,6 +17,7 @@ var filt={ region:'', todo:false, q:'' };
 var R_STEPS=[3,5,10];   // 근처 반경 단계 (km)
 var near={ center:'', r:3 };   // 검색한 업장 근처: 기준 업장 id, 반경 km   // q: 사업장 이름 검색어   // region: '' 전체 | '@mine' 내 담당 | 지역 이름
 var opened={};               // 펼친 지역 이름 → true (처음엔 모두 접힘)
+var recentMore=false;        // 최근 기록 더 보기
 var modal=false;             // 관리자 '담당 정하기' 창
 var dlg=null;                // {siteId, mode:'done'|'plan', prev}
 var unsubs=[];
@@ -101,7 +102,7 @@ function listen(){
   }, function(e){ console.warn('staff', e.code); }));
   unsubs.push(onSnapshot(doc(db,'meta','hygAssign'), function(snap){ var x=snap.exists()?snap.data():{}; assign=x.map||{}; render(); }, function(e){ console.warn('assign', e.code); }));
   unsubs.push(onSnapshot(query(collection(db,'hygChecks'), where('round','==',ROUND)), function(snap){
-    checks={}; snap.docs.forEach(function(d){ var x=d.data(); checks[x.siteId]=x; }); render();
+    checks={}; snap.docs.forEach(function(d){ var x=d.data({ serverTimestamps:'estimate' }); checks[x.siteId]=x; }); render();
   }, function(e){ console.error(e); toast('점검 기록을 불러오지 못했어요 ('+(e.code||'')+')'); }));
 }
 function checkRef(siteId, round){ return doc(db,'hygChecks', (round||ROUND)+'_'+siteId); }
@@ -110,7 +111,7 @@ function checkRef(siteId, round){ return doc(db,'hygChecks', (round||ROUND)+'_'+
 function box(on){ return '<span class="hz-box'+(on?' on':'')+'">'+(on?CK:'')+'</span>'; }
 function itemHtml(s, dist){
   var c=checks[s.id], t=stOf(s.id), r='';
-    if(t==='done') r='<span class="hz-r">'+md(c.doneDate)+' '+esc(short1(c.doneBy))+' 완료</span>';
+  if(t==='done') r='<span class="hz-r">'+md(c.doneDate)+' '+esc(short1(c.doneBy))+' 완료</span>';
   else if(t==='plan') r='<span class="hz-r p">'+md(c.planDate)+' '+esc(short1(c.planBy))+' 예정</span>';
   return '<div class="hz-it'+(t==='done'?' dn':'')+'" data-act="site" data-id="'+s.id+'">'+box(t==='done')+'<span class="hz-nm">'+esc(s.name)+'</span>'+(dist!=null?'<span class="hz-km">'+fmtKm(dist)+'</span>':'')+r+'</div>';
 }
@@ -123,6 +124,16 @@ function sortItems(list){
     return a.name.localeCompare(b.name,'ko');
   });
 }
+// 최근 기록: 이번 분기 완료·예정을 적은 순서(최근 먼저)로 4건, 더 보기 20건
+function tsOf(c){ var u=c.updatedAt; return u&&u.toMillis?u.toMillis():u&&u.seconds?u.seconds*1000:Date.parse((c.status==='done'?c.doneDate:c.planDate)||0)||0; }
+function recentHtml(){
+  var all=Object.keys(checks).map(function(id){ return checks[id]; }).filter(function(c){ return siteById(c.siteId); }).sort(function(a,b){ return tsOf(b)-tsOf(a); });
+  if(!all.length) return '';
+  var n=recentMore?20:4;
+  return '<div class="hz-rec"><div class="hz-rec-h"><b>최근 기록</b>'+(all.length>4?'<span data-act="recmore">'+(recentMore?'접기':'더 보기')+'</span>':'')+'</div>'+
+    all.slice(0,n).map(function(c){ var dn=c.status==='done', s=siteById(c.siteId);
+      return '<div class="hz-rr" data-act="site" data-id="'+s.id+'"><span class="d">'+md(dn?c.doneDate:c.planDate)+'</span><span class="w">'+esc(short1(dn?c.doneBy:c.planBy))+'</span><span class="s">'+esc(s.name)+'</span><span class="t'+(dn?'':' p')+'">'+(dn?'완료':'예정')+'</span></div>'; }).join('')+'</div>';
+}
 function render(){
   var app=document.getElementById('app');
   if(!me){ app.innerHTML=''; return; }
@@ -132,8 +143,9 @@ function render(){
       '<h2>위생점검</h2><div class="top-actions"><span class="hz-q">'+qLabel(ROUND)+'</span><button class="btn sm" data-act="logout" title="로그아웃"><i class="ti ti-logout"></i></button></div></div>'+
       '<div class="page-body hz">'+
       '<div class="hz-search"><i class="ti ti-search"></i><input id="hz-q" type="search" placeholder="사업장 · 점검자 이름 검색" autocomplete="off"><span class="hz-qx" data-act="qclear" style="display:none">✕</span></div>'+
+      '<div id="hz-recent"></div>'+
       '<div class="hz-main"><div id="hz-list"></div>'+
-      '<div class="hz-mapcol"><div id="hz-map"></div><div class="hz-maplg"><span><i style="background:#3B6D11"></i>완료</span><span><i style="background:#378ADD"></i>예정</span><span><i style="background:#C8C4BC"></i>안 한 곳</span></div></div></div></div>';
+      '<div class="hz-mapcol"><div id="hz-map" class="hz-mapbox"></div><div class="hz-maplg"><span><i style="background:#3B6D11"></i>완료</span><span><i style="background:#378ADD"></i>예정</span><span><i style="background:#C8C4BC"></i>안 한 곳</span></div></div></div></div>';
   }
   var all=regions(), mine=short1(myName()), cs=cities();
   var shown=all.filter(function(g){
@@ -143,7 +155,7 @@ function render(){
   });
   var tot=sites.length, done=sites.filter(function(s){ return stOf(s.id)==='done'; }).length;
   var q=norm(filt.q), h='', nearHtml='', nearInfo=null;
-    if(q){ shown=all.filter(function(g){ return g.items.some(function(s){ return matchQ(s,q); }); });
+  if(q){ shown=all.filter(function(g){ return g.items.some(function(s){ return matchQ(s,q); }); });
     if(!shown.length&&sites.length) h+='<div class="empty-state">"'+esc(filt.q)+'" 이름의 사업장이 없어요.</div>';
     // 검색한 업장 근처 (반경 km)
     var hits=sites.filter(function(s){ return norm(s.name).indexOf(q)>=0; });
@@ -152,18 +164,18 @@ function render(){
       var nl=ctr.co?sites.filter(function(s){ return s!==ctr&&s.co; }).map(function(s){ return { s:s, d:kmBetween(ctr.co,s.co) }; })
         .filter(function(x){ return x.d<=near.r; }).sort(function(a,b){ return a.d-b.d; }):[];
       nearInfo={ ctr:ctr, list:nl };
-            nearHtml='<div class="hz-near"><div class="hz-near-h"><i class="ti ti-map-pin"></i>'+
+      nearHtml='<div class="hz-near"><div class="hz-near-h"><i class="ti ti-map-pin"></i>'+
         (hits.length>1?'<select data-v="ncenter" class="hz-nsel">'+hits.map(function(s){ return '<option value="'+s.id+'"'+(s===ctr?' selected':'')+'>'+esc(s.name)+'</option>'; }).join('')+'</select>':'<b>'+esc(ctr.name)+'</b>')+
-        '<span>근처 <b class="hz-rkm">'+fmtKm(near.r)+'</b> 안</span>'+
+        '<span>근처</span>'+'<span class="hz-seg">'+R_STEPS.map(function(k){ return '<button data-act="rset" data-r="'+k+'"'+(near.r===k?' class="on"':'')+'>'+k+'km</button>'; }).join('')+'</span>'+
         '<em>'+nl.length+'곳</em></div>'+
         (!ctr.co?'<div class="hz-near-e">이 업장은 위치 정보가 없어 근처를 찾을 수 없어요.</div>'
-          :nl.length?'<div class="hz-lst">'+nl.map(function(x){ return itemHtml(x.s, x.d); }).join('')+'</div>'
-          :'<div class="hz-near-e">'+fmtKm(near.r)+' 안에 다른 업장이 없어요.</div>')+'</div>';
+          :'<div id="hz-nmap" class="hz-mapbox hz-nmap"></div>'+(nl.length?'<div class="hz-lst">'+nl.map(function(x){ return itemHtml(x.s, x.d); }).join('')+'</div>'
+          :'<div class="hz-near-e">'+fmtKm(near.r)+' 안에 다른 업장이 없어요.</div>'))+'</div>';
     }
   }
   if(!sites.length) h+='<div class="empty-state">불러오는 중…</div>';
   else if(!shown.length&&!q) h+='<div class="empty-state">'+(filt.region==='@mine'?'내 담당으로 지정된 지역이 없어요.':'해당하는 지역이 없어요.')+'</div>';
-      h+='<div class="hz-grid">';
+  h+='<div class="hz-grid">';
   var mapSites=[];
   shown.forEach(function(g){
     var d=g.items.filter(function(s){ return stOf(s.id)==='done'; }).length, who=g.who;
@@ -174,18 +186,20 @@ function render(){
       ? '<select class="hz-as'+(who?'':' empty')+'" data-v="assign" data-k="'+esc(g.key)+'"><option value="">담당 선택</option>'+staff.map(function(x){ return '<option value="'+esc(x.n)+'"'+(x.n===who?' selected':'')+'>담당 '+esc(short1(x.n))+'</option>'; }).join('')+(who&&!staff.some(function(x){ return x.n===who; })?'<option selected value="'+esc(who)+'">담당 '+esc(short1(who))+'</option>':'')+'<option value="__more">읍·면별로 정하기…</option></select>'
       : (who?'<span class="hz-who">담당 '+esc(short1(who))+'</span>':'');
     var op=!!q||!!opened[g.key]||(!!filt.region&&filt.region!=='@mine')||shown.length===1;
-        var sub=g.split?'<small class="hz-tw" title="'+esc(g.towns.join('·'))+'">'+esc(g.towns.join('·'))+'</small>':'';
+    var sub=g.split?'<small class="hz-tw" title="'+esc(g.towns.join('·'))+'">'+esc(g.towns.join('·'))+'</small>':'';
     h+='<div class="hz-col'+(op?' open':'')+'"><div class="hz-rh" data-act="toggle" data-k="'+esc(g.key)+'"><span class="hz-nmw"><b>'+esc(g.city)+'</b>'+sub+'</span>'+whoHtml+
       '<span class="hz-mini"><i style="width:'+(100*d/g.items.length)+'%"></i></span><em>'+d+'<span>/'+g.items.length+'</span></em><i class="ti ti-chevron-'+(op?'up':'down')+' hz-chev"></i></div>'+
       (op?'<div class="hz-lst">'+list.map(function(x){ return itemHtml(x); }).join('')+'</div>':'')+'</div>';
   });
-    h+=nearHtml+'</div>';
+  h+=nearHtml+'</div>';   // 근처 상자는 검색된 카드 뒤(PC 오른쪽 칸 / 휴대폰 아래)
   document.getElementById('hz-list').innerHTML=h;
   var foc=!q&&mapFocus&&shown.filter(function(g){ return g.key===mapFocus; })[0], fItems=null, fLabel='';
   if(foc){ fItems=foc.items; fLabel=foc.city+(foc.split?' ('+foc.towns.join('·')+')':''); }
   if(!q&&mapZoom){ fItems=mapZoom.map(siteById).filter(Boolean); fLabel='가까운 '+fItems.length+'곳'; }
   var ring=null;
   if(nearInfo&&nearInfo.ctr.co){ mapSites=[nearInfo.ctr].concat(nearInfo.list.map(function(x){ return x.s; })); fItems=mapSites; fLabel=nearInfo.ctr.name+' 근처'; ring={ s:nearInfo.ctr, km:near.r }; }
+  document.getElementById('hz-recent').innerHTML=q?'':recentHtml();
+  var mn=document.querySelector('.hz-main'); if(mn) mn.classList.toggle('near', !!ring);   // 휴대폰: 검색 중엔 위 큰 지도 숨기고 근처 상자 안 작은 지도
   renderDlg(); renderModal(); drawMap(mapSites, fItems, fLabel, ring);
 }
 
@@ -195,7 +209,9 @@ var HQ={ lat:37.017, lng:126.930 };   // 본사 (청북읍)
 var ST_COLOR={ done:'#3B6D11', plan:'#378ADD', none:'#C8C4BC' };
 function drawMap(list, focus, label, ring){
   lastMap={ list:list, focus:focus, label:label, ring:ring };
-  var el=document.getElementById('hz-map'); if(!el||el.offsetParent===null) return;
+  var el=document.getElementById('hz-map'), small=false;
+  if(ring){ var nm=document.getElementById('hz-nmap'); if(nm&&nm.offsetParent!==null){ el=nm; small=true; } }
+  if(!el||el.offsetParent===null) return;
   var W=el.clientWidth, H=el.clientHeight; if(!W||!H) return;
   var pts=list.filter(function(s){ return s.co; });
   if(!pts.length){ el.innerHTML='<div class="hz-mapempty">지도에 표시할 업장이 없어요</div>'; return; }
@@ -208,7 +224,7 @@ function drawMap(list, focus, label, ring){
   var minLa=la[cut], maxLa=la[la.length-1-cut], minLn=ln[cut], maxLn=ln[ln.length-1-cut];
   var cLa=(minLa+maxLa)/2, cLn=(minLn+maxLn)/2, kx=Math.cos(cLa*Math.PI/180);
   var sx=Math.max((maxLn-minLn)*kx,0.03), sy=Math.max(maxLa-minLa,0.03), pad=40;
-  var padT=(ring||focus)?58:pad;   // 위쪽 버튼 줄 아래부터 그림
+  if(small) pad=26; var padT=(ring||focus)&&!small?58:pad;   // 위쪽 버튼 줄 아래부터 그림
   var sc=Math.min((W-2*pad)/sx,(H-padT-pad)/sy), cy0=padT+(H-padT-pad)/2;
   function P(co){ return [W/2+(co.lng-cLn)*kx*sc, cy0-(co.lat-cLa)*sc]; }
   function PC(co){ var p=P(co); return [Math.max(14,Math.min(W-14,p[0])), Math.max(14,Math.min(H-14,p[1]))]; }
@@ -276,22 +292,20 @@ function drawMap(list, focus, label, ring){
       break; }
   });
   svg+='</svg>';
-  var top=ring
-    ? '<div class="hz-mapbar"><span>'+esc(label||'')+'</span><span class="hz-seg">'+R_STEPS.map(function(k){ return '<button data-act="rset" data-r="'+k+'"'+(ring.km===k?' class="on"':'')+'>'+k+'km</button>'; }).join('')+'</span><button class="btn sm" data-act="mapall">전체 보기</button></div>'
-    : focus?'<div class="hz-mapbar"><span>'+esc(label||'')+' 확대</span><button class="btn sm" data-act="mapall">전체 보기</button></div>':'';
-  el.innerHTML=svg+top+'<div class="hz-tip" id="hz-tip"></div>';
+  var top=small?'':(ring||focus)?'<div class="hz-mapbar"><span>'+esc(label||'')+(ring?'':' 확대')+'</span><button class="btn sm" data-act="mapall">전체 보기</button></div>':'';
+  el.innerHTML=svg+top+'<div class="hz-tip"></div>';
 }
 // 지도 점에 마우스를 올리면 업장 이름·상태 말풍선 (PC)
 function tipLine(s){ var c=checks[s.id], t=stOf(s.id);
   return '<div class="hz-tl"><i style="background:'+ST_COLOR[t]+'"></i><b>'+esc(s.name)+'</b><span>'+(t==='done'?md(c.doneDate)+' '+esc(short1(c.doneBy))+' 완료':t==='plan'?md(c.planDate)+' '+esc(short1(c.planBy))+' 예정':'안 함')+'</span></div>'; }
 document.addEventListener('mousemove', function(ev){
-  var tip=document.getElementById('hz-tip'); if(!tip) return;
-  var g=ev.target.closest&&ev.target.closest('#hz-map .hz-dot');
-  if(!g){ tip.style.display='none'; return; }
+  var g=ev.target.closest&&ev.target.closest('.hz-mapbox .hz-dot');
+  if(!g){ [].forEach.call(document.querySelectorAll('.hz-tip'),function(t){ t.style.display='none'; }); return; }
+  var mb=g.closest('.hz-mapbox'), tip=mb.querySelector('.hz-tip'); if(!tip) return;
   var ids=g.getAttribute('data-ids').split(','), list=sortItems(ids.map(siteById).filter(Boolean));
   var more=list.length>10?'<div class="hz-tl" style="color:#999">외 '+(list.length-10)+'곳 · 누르면 확대</div>':'';
   tip.innerHTML=list.slice(0,10).map(tipLine).join('')+more;
-  var box=document.getElementById('hz-map').getBoundingClientRect(), x=ev.clientX-box.left+14, y=ev.clientY-box.top+14;
+  var box=mb.getBoundingClientRect(), x=ev.clientX-box.left+14, y=ev.clientY-box.top+14;
   tip.style.display='block';
   if(x+tip.offsetWidth>box.width-6) x=ev.clientX-box.left-tip.offsetWidth-14;
   if(y+tip.offsetHeight>box.height-6) y=ev.clientY-box.top-tip.offsetHeight-14;
@@ -303,13 +317,13 @@ function stepRadius(dir){ var i=R_STEPS.indexOf(near.r); if(i<0) i=0; i=Math.max
 // 지도 위 마우스 휠 / 두 손가락으로도 한 단계씩 (3 → 5 → 10km)
 var wheelAt=0;
 document.addEventListener('wheel', function(ev){
-  if(!(lastMap&&lastMap.ring)||!ev.target.closest||!ev.target.closest('#hz-map')) return;
+  if(!(lastMap&&lastMap.ring)||!ev.target.closest||!ev.target.closest('.hz-mapbox')) return;
   ev.preventDefault(); var now=Date.now(); if(now-wheelAt<350) return; wheelAt=now;
   stepRadius(ev.deltaY>0?1:-1);
 }, { passive:false });
 var pinch=null;
 document.addEventListener('touchstart', function(ev){
-  if(ev.touches.length===2&&lastMap&&lastMap.ring&&ev.target.closest&&ev.target.closest('#hz-map')){
+  if(ev.touches.length===2&&lastMap&&lastMap.ring&&ev.target.closest&&ev.target.closest('.hz-mapbox')){
     pinch={ d:Math.hypot(ev.touches[0].clientX-ev.touches[1].clientX, ev.touches[0].clientY-ev.touches[1].clientY), done:false }; }
 }, { passive:true });
 document.addEventListener('touchmove', function(ev){
@@ -447,6 +461,7 @@ document.addEventListener('click', async function(ev){
   var t=ev.target.closest('[data-act]'); if(!t) return;
   var a=t.getAttribute('data-act');
   if(a==='logout'){ if(confirm('로그아웃할까요?')){ await logoutUser(); location.reload(); } }
+  else if(a==='recmore'){ recentMore=!recentMore; render(); }
   else if(a==='toggle'){ var k=t.getAttribute('data-k'); opened[k]=!opened[k]; mapFocus=opened[k]?k:(mapFocus===k?null:mapFocus); mapZoom=null; render(); }
   else if(a==='mapdot'){ var ids=t.getAttribute('data-ids').split(',');
     if(ids.length===1) openDlg(ids[0]);
@@ -484,6 +499,11 @@ window.addEventListener('popstate', function(){ if(dlg){ dlg=null; renderDlg(); 
 setInterval(function(){ if(qOf(new Date())!==ROUND) location.reload(); }, 60000);
 
 var CSS=
+  '.hz-rec{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;overflow:hidden;margin-top:2px;}'+
+  '.hz-rec-h{display:flex;align-items:center;padding:11px 14px;font-size:14px;border-bottom:.5px solid #eee;}.hz-rec-h span{margin-left:auto;font-size:12px;color:#185FA5;cursor:pointer;}'+
+  '.hz-rr{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:.5px solid #f0f0ec;font-size:14px;cursor:pointer;}.hz-rec-h+.hz-rr{border-top:0;}.hz-rr:active{background:#f5f5f2;}'+
+  '.hz-rr .d{flex:0 0 3.2em;color:#888;font-size:12px;font-variant-numeric:tabular-nums;}.hz-rr .w{flex:0 0 3.4em;font-weight:600;}'+
+  '.hz-rr .s{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.hz-rr .t{font-size:12px;font-weight:600;color:#3B6D11;}.hz-rr .t.p{color:#185FA5;}'+
   '.hz-cnt{font-size:15px;font-weight:500;color:#888;margin-left:6px;}.hz-cnt b{color:#3B6D11;font-weight:800;font-size:17px;}'+
   '.hz-q{font-size:13px;color:#666;margin-right:6px;white-space:nowrap;}'+
   '.hz-top{max-width:640px;}'+
@@ -494,7 +514,7 @@ var CSS=
   '.hz-f{display:flex;gap:12px;align-items:center;margin:10px 2px 0;}'+
   '.hz-sel{flex:1;min-width:0;padding:9px 10px;border:.5px solid #ccc;border-radius:8px;font-size:14px;background:#fff;color:#1a1a18;font-family:inherit;}'+
   '.hz-f2{flex:1;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}.hz-f2 .hz-adm{margin-left:auto;}.hz-adm{font-size:12px;color:#185FA5;cursor:pointer;white-space:nowrap;text-decoration:underline;}'+
-  '.hz-main{display:flex;flex-direction:column;}.hz-mapcol{order:-1;margin-top:10px;}#hz-map{position:relative;touch-action:pan-x pan-y;height:300px;border-radius:12px;border:.5px solid #e8e8e4;background:#FAFAF7;overflow:hidden;}'+
+  '.hz-main{display:flex;flex-direction:column;}.hz-mapcol{order:-1;margin-top:10px;}.hz-main.near .hz-mapcol{display:none;}.hz-nmap{position:relative;height:210px;background:#FAFAF7;border-bottom:.5px solid #eee;overflow:hidden;touch-action:pan-x pan-y;}#hz-map{position:relative;touch-action:pan-x pan-y;height:300px;border-radius:12px;border:.5px solid #e8e8e4;background:#FAFAF7;overflow:hidden;}'+
   '.hz-near{background:#fff;border:1px solid #B5D4F4;border-radius:12px;overflow:hidden;margin-top:8px;}.hz-near-h{display:flex;align-items:center;gap:6px;padding:10px 12px;font-size:13px;background:#F5F9FD;flex-wrap:wrap;}.hz-near-h .ti{color:#185FA5;font-size:16px;}.hz-near-h em{margin-left:auto;font-style:normal;font-weight:700;color:#185FA5;}'+
   '.hz-nsel{padding:5px 6px;border:.5px solid #B5D4F4;border-radius:6px;font-size:13px;background:#fff;font-family:inherit;max-width:170px;}.hz-near .hz-lst{border-top:.5px solid #e3eef9;}.hz-near-e{padding:14px;font-size:13px;color:#888;}'+
   '.hz-km{font-size:12px;color:#185FA5;font-weight:600;white-space:nowrap;}'+
@@ -506,7 +526,7 @@ var CSS=
   '.hz-chev{color:#aaa;font-size:15px;}'+
   '.hz-rh em{font-style:normal;min-width:34px;text-align:right;font-size:13px;font-weight:700;}.hz-rh em span{color:#999;font-weight:400;}'+
   '.hz-who{font-size:12px;color:#888;white-space:nowrap;}'+
-    '.hz-nmw{display:flex;flex-direction:column;font-size:15px;flex:0 0 3.6em;width:3.6em;overflow:hidden;}.hz-tw{font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}'+
+  '.hz-nmw{display:flex;flex-direction:column;font-size:15px;flex:0 0 3.6em;width:3.6em;overflow:hidden;}.hz-tw{font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}'+
   '.hz-mrow{border-top:.5px solid #f0f0ec;padding:8px 0;}.hz-mc{display:grid;grid-template-columns:1fr 170px;gap:8px;align-items:center;font-size:14px;}.hz-mc small{color:#999;font-weight:400;font-size:12px;}.hz-mc.sub{font-size:13px;padding:4px 0 4px 14px;}'+
   '.hz-msel{padding:7px 8px;border:.5px solid #ccc;border-radius:8px;font-size:13px;background:#fff;font-family:inherit;}'+
   '.hz-det summary{font-size:12px;color:#185FA5;cursor:pointer;margin-top:6px;}'+
@@ -529,7 +549,7 @@ var CSS=
   '.hz-prev{font-size:12px;color:#888;margin:10px 0 0;text-align:center;}'+
   '.hz-planinfo{display:flex;align-items:center;gap:8px;background:#E6F1FB;color:#0C447C;border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px;}.hz-planinfo span{margin-left:auto;color:#A32D2D;font-size:12px;cursor:pointer;text-decoration:underline;}'+
   '@media(min-width:900px){'+
-  '.hz-main{display:grid;grid-template-columns:minmax(0,1fr) 44%;gap:16px;align-items:start;}.hz-mapcol{order:0;display:block;position:sticky;top:12px;margin-top:8px;}#hz-map{height:calc(100vh - 140px);min-height:420px;}'+
+  '.hz-nmap{display:none;}.hz-main.near .hz-mapcol{display:block;}.hz-main{display:grid;grid-template-columns:minmax(0,1fr) 44%;gap:16px;align-items:start;}.hz-mapcol{order:0;display:block;position:sticky;top:12px;margin-top:8px;}#hz-map{height:calc(100vh - 140px);min-height:420px;}'+
   '.hz-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;align-items:start;}.hz-it{font-size:14px;padding:9px 12px;gap:10px;}}';
 function ensureCss(){ if(document.getElementById('hz-css')) return; var st=document.createElement('style'); st.id='hz-css'; st.textContent=CSS; document.head.appendChild(st); }
 
