@@ -17,7 +17,6 @@ var filt={ region:'', todo:false, q:'' };
 var R_STEPS=[3,5,10];   // 근처 반경 단계 (km)
 var near={ center:'', r:3 };   // 검색한 업장 근처: 기준 업장 id, 반경 km   // q: 사업장 이름 검색어   // region: '' 전체 | '@mine' 내 담당 | 지역 이름
 var opened={};               // 펼친 지역 이름 → true (처음엔 모두 접힘)
-var recentMore=false;        // 최근 기록 더 보기
 var modal=false;             // 관리자 '담당 정하기' 창
 var dlg=null;                // {siteId, mode:'done'|'plan', prev}
 var unsubs=[];
@@ -130,13 +129,15 @@ function sortItems(list){
 }
 // 최근 기록: 이번 분기 완료·예정을 적은 순서(최근 먼저)로 4건, 더 보기 20건
 function tsOf(c){ var u=c.updatedAt; return u&&u.toMillis?u.toMillis():u&&u.seconds?u.seconds*1000:Date.parse((c.status==='done'?c.doneDate:c.planDate)||0)||0; }
+function recFade(el){ el.classList.toggle('end', el.scrollTop+el.clientHeight>=el.scrollHeight-2); }   // 끝까지 내리면 아래 흐림 없앰
+document.addEventListener('scroll', function(ev){ var t=ev.target; if(t&&t.classList&&t.classList.contains('hz-rec-b')) recFade(t); }, true);
 function recentHtml(){
   var all=Object.keys(checks).map(function(id){ return checks[id]; }).filter(function(c){ return siteById(c.siteId); }).sort(function(a,b){ return tsOf(b)-tsOf(a); });
   if(!all.length) return '';
-  var n=recentMore?20:4;
-  return '<div class="hz-rec"><div class="hz-rec-h"><b>최근 기록</b>'+(all.length>4?'<span data-act="recmore">'+(recentMore?'접기':'더 보기')+'</span>':'')+'</div>'+
-    all.slice(0,n).map(function(c){ var dn=c.status==='done', s=siteById(c.siteId);
-      return '<div class="hz-rr" data-act="site" data-id="'+s.id+'"><span class="d">'+md(dn?c.doneDate:c.planDate)+'</span><span class="w">'+esc(short1(dn?c.doneBy:c.planBy))+'</span><span class="s">'+esc(s.name)+'</span><span class="t'+(dn?'':isLate(c)?' late':' p')+'">'+(dn?'완료':isLate(c)?'지남':'예정')+'</span></div>'; }).join('')+'</div>';
+  // 4줄 높이 고정 · 안에서 휴대폰은 끌어서, PC는 휠로 넘김 (최대 20건)
+  return '<div class="hz-rec"><div class="hz-rec-h"><b>최근 기록</b></div><div class="hz-rec-b'+(all.length>4?' more':'')+'">'+
+    all.slice(0,20).map(function(c){ var dn=c.status==='done', s=siteById(c.siteId);
+      return '<div class="hz-rr" data-act="site" data-id="'+s.id+'"><span class="d">'+md(dn?c.doneDate:c.planDate)+'</span><span class="w">'+esc(short1(dn?c.doneBy:c.planBy))+'</span><span class="s">'+esc(s.name)+'</span><span class="t'+(dn?'':isLate(c)?' late':' p')+'">'+(dn?'완료':isLate(c)?'지남':'예정')+'</span></div>'; }).join('')+'</div></div>';
 }
 function render(){
   var app=document.getElementById('app');
@@ -202,7 +203,9 @@ function render(){
   if(!q&&mapZoom){ fItems=mapZoom.map(siteById).filter(Boolean); fLabel='가까운 '+fItems.length+'곳'; }
   var ring=null;
   if(nearInfo&&nearInfo.ctr.co){ mapSites=[nearInfo.ctr].concat(nearInfo.list.map(function(x){ return x.s; })); fItems=mapSites; fLabel=nearInfo.ctr.name+' 근처'; ring={ s:nearInfo.ctr, km:near.r }; }
+  var rb0=document.querySelector('.hz-rec-b'), rst=rb0?rb0.scrollTop:0;   // 다시 그려도 넘겨둔 위치 유지
   document.getElementById('hz-recent').innerHTML=q?'':recentHtml();
+  var rb1=document.querySelector('.hz-rec-b'); if(rb1){ rb1.scrollTop=rst; recFade(rb1); }
   var mn=document.querySelector('.hz-main'); if(mn) mn.classList.toggle('near', !!ring);   // 휴대폰: 검색 중엔 위 큰 지도 숨기고 근처 상자 안 작은 지도
   renderDlg(); renderModal(); drawMap(mapSites, fItems, fLabel, ring);
 }
@@ -493,7 +496,6 @@ document.addEventListener('click', async function(ev){
   if(a==='logout'){ if(confirm('로그아웃할까요?')){ await logoutUser(); location.reload(); } }
   else if(a==='mxlsx'){ modal='xlsx'; renderModal(); }
   else if(a==='mxdo'){ exportXlsx(document.getElementById('m-q').value); }
-  else if(a==='recmore'){ recentMore=!recentMore; render(); }
   else if(a==='toggle'){ var k=t.getAttribute('data-k'); opened[k]=!opened[k]; mapFocus=opened[k]?k:(mapFocus===k?null:mapFocus); mapZoom=null; render(); }
   else if(a==='mapdot'){ var ids=t.getAttribute('data-ids').split(',');
     if(ids.length===1) openDlg(ids[0]);
@@ -532,8 +534,10 @@ setInterval(function(){ if(qOf(new Date())!==ROUND) location.reload(); }, 60000)
 
 var CSS=
   '.hz-rec{background:#fff;border:.5px solid #e8e8e4;border-radius:12px;overflow:hidden;margin-top:2px;}'+
-  '.hz-rec-h{display:flex;align-items:center;padding:11px 14px;font-size:14px;border-bottom:.5px solid #eee;}.hz-rec-h span{margin-left:auto;font-size:12px;color:#185FA5;cursor:pointer;}'+
-  '.hz-rr{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:.5px solid #f0f0ec;font-size:14px;cursor:pointer;}.hz-rec-h+.hz-rr{border-top:0;}.hz-rr:active{background:#f5f5f2;}'+
+  '.hz-rec-h{display:flex;align-items:center;padding:11px 14px;font-size:14px;border-bottom:.5px solid #eee;}'+
+  '.hz-rec-b{max-height:164px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;}.hz-rec-b::-webkit-scrollbar{display:none;}'+
+  '.hz-rec-b.more:not(.end){-webkit-mask-image:linear-gradient(#000 78%,transparent);mask-image:linear-gradient(#000 78%,transparent);}'+
+  '.hz-rr{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:.5px solid #f0f0ec;font-size:14px;cursor:pointer;}.hz-rec-b .hz-rr:first-child{border-top:0;}.hz-rr:active{background:#f5f5f2;}'+
   '.hz-rr .d{flex:0 0 3.2em;color:#888;font-size:12px;font-variant-numeric:tabular-nums;}.hz-rr .w{flex:0 0 3.4em;font-weight:600;}'+
   '.hz-rr .s{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.hz-rr .t{font-size:12px;font-weight:600;color:#3B6D11;}.hz-rr .t.p{color:#185FA5;}.hz-rr .t.late{color:#A32D2D;}'+
   '.hz-cnt{font-size:15px;font-weight:500;color:#888;margin-left:6px;}.hz-cnt b{color:#3B6D11;font-weight:800;font-size:17px;}'+
